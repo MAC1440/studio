@@ -37,6 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createTicket, getTickets } from '@/lib/firebase/tickets';
 import { getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Ticket as TicketIcon } from 'lucide-react';
 
 
 export default function TicketsPage() {
@@ -80,7 +81,8 @@ export default function TicketsPage() {
     if (title && description) {
         try {
             const newTicket = await createTicket({ title, description, assignedTo });
-            setTickets(prev => [...prev, newTicket]);
+            const allTickets = await getTickets();
+            setTickets(allTickets);
             toast({
                 title: "Ticket Created",
                 description: `Ticket "${title}" has been created.`,
@@ -170,7 +172,7 @@ export default function TicketsPage() {
                   </TableCell>
                 </TableRow>
               ))
-            ) : (
+            ) : tickets.length > 0 ? (
               tickets.map((ticket) => (
                 <TableRow key={ticket.id}>
                   <TableCell className="font-medium">{ticket.title}</TableCell>
@@ -197,6 +199,16 @@ export default function TicketsPage() {
                   </TableCell>
                 </TableRow>
               ))
+            ) : (
+                <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                        <div className="flex flex-col items-center gap-2">
+                            <TicketIcon className="h-8 w-8 text-muted-foreground" />
+                            <p className="text-muted-foreground">No tickets found.</p>
+                            <Button size="sm" onClick={() => setIsDialogOpen(true)}>Create Ticket</Button>
+                        </div>
+                    </TableCell>
+                </TableRow>
             )}
           </TableBody>
         </Table>

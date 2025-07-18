@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -21,6 +22,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { getTickets, updateTicketStatus } from '@/lib/firebase/tickets';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
+import { useAuth } from '@/context/AuthContext';
 
 const initialColumns: Column[] = [
   { id: 'backlog', title: 'Backlog', tickets: [] },
@@ -36,6 +38,7 @@ export default function KanbanBoard() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketDetailOpen, setIsTicketDetailOpen] = useState(false);
   const { toast } = useToast();
+  const { ticketReloadKey } = useAuth();
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -47,6 +50,9 @@ export default function KanbanBoard() {
           const columnIndex = newColumns.findIndex(col => col.id === ticket.status);
           if (columnIndex !== -1) {
             newColumns[columnIndex].tickets.push(ticket);
+          } else {
+             // If status is invalid, put it in the backlog
+            newColumns[0].tickets.push(ticket);
           }
         });
         setColumns(newColumns);
@@ -62,7 +68,7 @@ export default function KanbanBoard() {
       }
     };
     fetchTickets();
-  }, [toast]);
+  }, [toast, ticketReloadKey]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -109,7 +115,10 @@ export default function KanbanBoard() {
 
       if (activeColumn.id === overColumn.id) {
         // Same column
-        const newTickets = arrayMove(activeItems, activeIndex, overItems.findIndex(t => t.id === overId));
+        const overIndex = overItems.findIndex(t => t.id === overId);
+        if (activeIndex === -1 || overIndex === -1) return prev;
+        
+        const newTickets = arrayMove(activeItems, activeIndex, overIndex);
         const activeColIndex = newColumns.findIndex(c => c.id === activeColumn.id);
         newColumns[activeColIndex] = { ...activeColumn, tickets: newTickets };
       } else {
@@ -144,7 +153,7 @@ export default function KanbanBoard() {
                 description: "Could not update ticket status. Please try again.",
                 variant: "destructive"
             });
-            // Revert UI change on failure? (more complex state management)
+            // Consider reverting UI change on failure (more complex state management)
         });
       }
 
@@ -171,9 +180,10 @@ export default function KanbanBoard() {
                 <div key={i} className="flex flex-col w-72 md:w-80 shrink-0">
                     <div className="flex items-center justify-between p-2 mb-2">
                         <Skeleton className="h-6 w-32" />
-                        <Skeleton className="h-6 w-8 rounded-full" />
+                        <Skeleton className="h-6 w-8 rounded-md" />
                     </div>
                     <div className="flex-1 rounded-md bg-secondary/50 p-2 space-y-3">
+                        <Skeleton className="h-24 w-full" />
                         <Skeleton className="h-24 w-full" />
                         <Skeleton className="h-24 w-full" />
                     </div>

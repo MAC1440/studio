@@ -1,11 +1,13 @@
+
 // src/context/AuthContext.tsx
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User as FirebaseUser, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import type { User } from '@/lib/types';
+import { getUsers } from '@/lib/firebase/users';
 import { useRouter } from 'next/navigation';
 
 
@@ -15,6 +17,9 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
+  users: User[];
+  ticketReloadKey: number;
+  reloadTickets: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,25 +27,36 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ticketReloadKey, setTicketReloadKey] = useState(0);
   const router = useRouter();
 
+  const reloadTickets = useCallback(() => {
+    setTicketReloadKey(oldKey => oldKey + 1);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setLoading(true);
       if (firebaseUser) {
         setUser(firebaseUser);
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
+        const [userDocSnap, allUsers] = await Promise.all([
+          getDoc(userDocRef),
+          getUsers()
+        ]);
+        
         if (userDocSnap.exists()) {
           setUserData(userDocSnap.data() as User);
         } else {
-            // This case can happen if a user exists in Auth but not Firestore
             setUserData(null);
         }
+        setUsers(allUsers);
       } else {
         setUser(null);
         setUserData(null);
+        setUsers([]);
       }
       setLoading(false);
     });
@@ -62,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, userData, loading, login, logout, users, ticketReloadKey, reloadTickets }}>
       {children}
     </AuthContext.Provider>
   );

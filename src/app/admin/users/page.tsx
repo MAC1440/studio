@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -34,7 +35,7 @@ import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createUser, getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-
+import { Users as UsersIcon } from 'lucide-react';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -170,7 +171,7 @@ export default function UsersPage() {
                   </TableCell>
                 </TableRow>
               ))
-            ) : (
+            ) : users.length > 0 ? (
               users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
@@ -199,6 +200,16 @@ export default function UsersPage() {
                   </TableCell>
                 </TableRow>
               ))
+            ) : (
+                <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center">
+                        <div className="flex flex-col items-center gap-2">
+                            <UsersIcon className="h-8 w-8 text-muted-foreground" />
+                            <p className="text-muted-foreground">No users found.</p>
+                            <Button size="sm" onClick={() => setIsDialogOpen(true)}>Create User</Button>
+                        </div>
+                    </TableCell>
+                </TableRow>
             )}
           </TableBody>
         </Table>
