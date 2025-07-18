@@ -51,10 +51,12 @@ import { Separator } from '../ui/separator';
 
 function CreateTicketDialog({ users, onTicketCreated }: { users: User[], onTicketCreated: () => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
 
     const handleCreateTicket = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        setIsSubmitting(true);
         const formData = new FormData(event.currentTarget);
         const title = formData.get('title') as string;
         const description = formData.get('description') as string;
@@ -78,7 +80,11 @@ function CreateTicketDialog({ users, onTicketCreated }: { users: User[], onTicke
                     description: `Could not create ticket. Error: ${error.message}`,
                     variant: "destructive",
                 });
+            } finally {
+                setIsSubmitting(false);
             }
+        } else {
+            setIsSubmitting(false);
         }
     };
 
@@ -94,15 +100,15 @@ function CreateTicketDialog({ users, onTicketCreated }: { users: User[], onTicke
                 <form onSubmit={handleCreateTicket} className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="title">Title</Label>
-                        <Input id="title" name="title" required />
+                        <Input id="title" name="title" required disabled={isSubmitting} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="description">Description</Label>
-                        <Textarea id="description" name="description" required />
+                        <Textarea id="description" name="description" required disabled={isSubmitting} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="assignedTo">Assign To</Label>
-                        <Select name="assignedTo">
+                        <Select name="assignedTo" disabled={isSubmitting}>
                             <SelectTrigger id="assignedTo">
                                 <SelectValue placeholder="Select a user" />
                             </SelectTrigger>
@@ -116,9 +122,11 @@ function CreateTicketDialog({ users, onTicketCreated }: { users: User[], onTicke
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button type="button" variant="outline">Cancel</Button>
+                            <Button type="button" variant="outline" disabled={isSubmitting}>Cancel</Button>
                         </DialogClose>
-                        <Button type="submit">Create Ticket</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? 'Creating...' : 'Create Ticket'}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

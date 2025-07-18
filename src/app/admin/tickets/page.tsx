@@ -45,6 +45,7 @@ export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -76,6 +77,7 @@ export default function TicketsPage() {
 
   const handleCreateTicket = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsSubmitting(true);
     const formData = new FormData(event.currentTarget);
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
@@ -103,7 +105,11 @@ export default function TicketsPage() {
                 description: `Could not create ticket. Error: ${error.message}`,
                 variant: "destructive",
             });
+        } finally {
+            setIsSubmitting(false);
         }
+    } else {
+        setIsSubmitting(false);
     }
   };
 
@@ -145,16 +151,16 @@ export default function TicketsPage() {
             <form onSubmit={handleCreateTicket} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
-                <Input id="title" name="title" required />
+                <Input id="title" name="title" required disabled={isSubmitting} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" name="description" required />
+                <Textarea id="description" name="description" required disabled={isSubmitting} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="priority">Priority</Label>
-                    <Select name="priority" defaultValue="medium">
+                    <Select name="priority" defaultValue="medium" disabled={isSubmitting}>
                       <SelectTrigger id="priority">
                         <SelectValue placeholder="Select priority" />
                       </SelectTrigger>
@@ -168,13 +174,13 @@ export default function TicketsPage() {
                 </div>
                  <div className="space-y-2">
                   <Label htmlFor="tags">Tags</Label>
-                  <Input id="tags" name="tags" placeholder="e.g. Frontend, Bug" />
+                  <Input id="tags" name="tags" placeholder="e.g. Frontend, Bug" disabled={isSubmitting} />
                   <p className="text-xs text-muted-foreground">Comma-separated.</p>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="assignedTo">Assign To</Label>
-                <Select name="assignedTo">
+                <Select name="assignedTo" disabled={isSubmitting}>
                   <SelectTrigger id="assignedTo">
                     <SelectValue placeholder="Select a user" />
                   </SelectTrigger>
@@ -188,9 +194,11 @@ export default function TicketsPage() {
               </div>
               <DialogFooter>
                 <DialogClose asChild>
-                    <Button type="button" variant="outline">Cancel</Button>
+                    <Button type="button" variant="outline" disabled={isSubmitting}>Cancel</Button>
                 </DialogClose>
-                <Button type="submit">Create Ticket</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Creating...' : 'Create Ticket'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>

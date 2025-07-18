@@ -52,6 +52,7 @@ import { useAuth } from '@/context/AuthContext';
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const { toast } = useToast();
@@ -86,6 +87,7 @@ export default function UsersPage() {
         return;
     }
 
+    setIsSubmitting(true);
     const form = event.currentTarget;
     const formData = new FormData(form);
     const name = formData.get('name') as string;
@@ -112,12 +114,17 @@ export default function UsersPage() {
                 variant: "destructive",
                 duration: 9000
             });
+        } finally {
+            setIsSubmitting(false);
         }
+    } else {
+        setIsSubmitting(false);
     }
   };
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
+    setIsSubmitting(true);
     try {
       await deleteUser(userToDelete.id);
       toast({
@@ -138,6 +145,7 @@ export default function UsersPage() {
         duration: 9000,
       });
     } finally {
+        setIsSubmitting(false);
         setUserToDelete(null);
     }
   };
@@ -158,19 +166,19 @@ export default function UsersPage() {
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" name="name" required />
+                <Input id="name" name="name" required disabled={isSubmitting}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
-                <Input id="email" name="email" type="email" required />
+                <Input id="email" name="email" type="email" required disabled={isSubmitting}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" name="password" type="password" required />
+                <Input id="password" name="password" type="password" required disabled={isSubmitting}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <Select name="role" defaultValue="user">
+                <Select name="role" defaultValue="user" disabled={isSubmitting}>
                   <SelectTrigger id="role">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
@@ -182,9 +190,9 @@ export default function UsersPage() {
               </div>
               <DialogFooter>
                 <DialogClose asChild>
-                    <Button type="button" variant="outline">Cancel</Button>
+                    <Button type="button" variant="outline" disabled={isSubmitting}>Cancel</Button>
                 </DialogClose>
-                <Button type="submit">Create User</Button>
+                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creating...' : 'Create User'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -291,7 +299,9 @@ export default function UsersPage() {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDeleteUser}>Continue</AlertDialogAction>
+          <AlertDialogAction onClick={handleDeleteUser} disabled={isSubmitting}>
+            {isSubmitting ? 'Deleting...' : 'Continue'}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
 
