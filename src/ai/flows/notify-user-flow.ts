@@ -31,6 +31,10 @@ const emailSender = ai.defineTool(
       outputSchema: z.void(),
     },
     async (input) => {
+        if (!process.env.RESEND_API_KEY) {
+            console.warn("RESEND_API_KEY is not set. Skipping email notification.");
+            return;
+        }
         const resend = new Resend(process.env.RESEND_API_KEY);
         
         await resend.emails.send({
