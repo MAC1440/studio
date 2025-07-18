@@ -10,7 +10,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { Resend } from 'resend';
-import {confirm} from 'genkit';
 
 const NotifyUserInputSchema = z.object({
   ticketId: z.string().describe('The ID of the ticket.'),
@@ -56,50 +55,22 @@ const notifyUserFlow = ai.defineFlow(
     outputSchema: z.void(),
   },
   async (input) => {
+    const subject = `You've been assigned a new ticket: "${input.ticketTitle}"`;
+    const htmlBody = `
+      <h1>New Ticket Assignment</h1>
+      <p>Hi ${input.userName},</p>
+      <p>You have been assigned a new ticket on KanbanFlow:</p>
+      <p><b>Title:</b> ${input.ticketTitle}</p>
+      <p>You can view the ticket on the board.</p>
+      <p>Thank you,</p>
+      <p>The KanbanFlow Team</p>
+    `;
 
-    const {toolRequest} = await ai.generate({
-        prompt: `A user has been assigned a new ticket. Generate a friendly and professional email notification to ${input.userEmail}.
-        
-        Ticket Title: "${input.ticketTitle}"
-        User Name: ${input.userName}
-        
-        The email should inform the user they have been assigned a new ticket and provide a link to view it. The link should be to /board.
-        
-        Generate only the subject and the HTML body of the email.
-        `,
-        model: 'googleai/gemini-1.5-flash-latest',
-        tools: [emailSender],
-        config: {
-            // Lower temperature for more deterministic, less "creative" output
-            temperature: 0.2,
-        },
+    // Directly call the email sender tool without involving an LLM
+    await emailSender({
+        to: input.userEmail,
+        subject: subject,
+        html: htmlBody,
     });
-
-
-    if (!toolRequest) {
-        console.error("The model did not request the emailSender tool. Cannot send email.");
-        return;
-    }
-
-    if (toolRequest.name !== 'emailSender') {
-        // This case shouldn't happen with our prompt, but it's good practice to handle it.
-        await confirm({
-            label: `The model requested an unexpected tool: ${toolRequest.name}. The expected tool was emailSender.`,
-            context: toolRequest,
-        });
-        return;
-    }
-    
-    // We are sure the tool is 'emailSender'
-    const toolInput = {
-      ...toolRequest.input,
-      to: input.userEmail,
-    };
-
-    const toolResponse = await toolRequest.run(toolInput);
-
-    // Although our tool output is void, we need to pass a response back to the model.
-    await toolRequest.confirm(toolResponse);
-
   }
 );
