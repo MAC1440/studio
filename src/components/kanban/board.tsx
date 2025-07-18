@@ -25,7 +25,7 @@ import { Skeleton } from '../ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 
 const initialColumns: Column[] = [
-  { id: 'backlog', title: 'Backlog', tickets: [] },
+  { id: 'backlog', title: 'Sprint Backlog', tickets: [] },
   { id: 'todo', title: 'To Do', tickets: [] },
   { id: 'in-progress', title: 'In Progress', tickets: [] },
   { id: 'review', title: 'Review', tickets: [] },
@@ -172,12 +172,17 @@ export default function KanbanBoard() {
     setSelectedTicket(null);
   }
 
-  const onTicketUpdate = async () => {
+  const onTicketUpdate = async (isDeleted = false) => {
     await fetchBoardData();
-    if(selectedTicket){
+    if(isDeleted) {
+        handleTicketDetailClose();
+    } else if (selectedTicket) {
       const freshTicket = (await getTickets()).find(t => t.id === selectedTicket?.id);
       if(freshTicket) {
         setSelectedTicket(freshTicket);
+      } else {
+        // Ticket was likely deleted
+        handleTicketDetailClose();
       }
     }
   }

@@ -1,3 +1,4 @@
+
 import { type Ticket } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -5,11 +6,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Flame, ChevronsUp, ChevronUp, Equal } from 'lucide-react';
 
 type KanbanTicketProps = {
   ticket: Ticket;
   onClick: () => void;
 };
+
+const priorityIcons = {
+    critical: <Flame className="h-4 w-4 text-red-500" />,
+    high: <ChevronsUp className="h-4 w-4 text-orange-500" />,
+    medium: <ChevronUp className="h-4 w-4 text-yellow-500" />,
+    low: <Equal className="h-4 w-4 text-green-500" />,
+}
 
 export default function KanbanTicket({ ticket, onClick }: KanbanTicketProps) {
   const {
@@ -40,25 +49,23 @@ export default function KanbanTicket({ ticket, onClick }: KanbanTicketProps) {
         onClick={onClick}
         className="cursor-grab active:cursor-grabbing hover:bg-card/95 transition-colors duration-200"
         >
-        <CardHeader className="p-4">
+        <CardHeader className="p-4 pb-2">
             <CardTitle className="text-base leading-tight">{ticket.title}</CardTitle>
         </CardHeader>
-        <CardContent className="p-4 pt-0">
-            <p className="text-sm text-muted-foreground line-clamp-2">
-            {ticket.description}
-            </p>
+        <CardContent className="p-4 pt-2">
             <div className="flex items-center justify-between mt-4">
             <div className="flex items-center gap-2">
-                {ticket.tags.map((tag) => (
-                <Badge key={tag.id} variant="secondary" style={{
-                    // A bit of a hack to use custom colors per tag without changing the theme
-                    // In a real app, this might come from a CSS variable map.
-                    backgroundColor: 'hsl(var(--accent))',
-                    color: 'hsl(var(--accent-foreground))'
-                }}>
-                    {tag.label}
-                </Badge>
-                ))}
+                {priorityIcons[ticket.priority]}
+                <div className="flex items-center gap-1">
+                    {ticket.tags.slice(0, 2).map((tag) => (
+                    <Badge key={tag.id} variant="secondary" style={{
+                        backgroundColor: 'hsl(var(--accent))',
+                        color: 'hsl(var(--accent-foreground))'
+                    }}>
+                        {tag.label}
+                    </Badge>
+                    ))}
+                </div>
             </div>
             {ticket.assignedTo && (
                 <TooltipProvider>

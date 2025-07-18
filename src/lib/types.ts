@@ -28,15 +28,19 @@ export type Comment = {
 
 export type ColumnId = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
 
+export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
+
 export type Ticket = {
   id: string;
   title: string;
   description: string;
   status: ColumnId;
+  priority: TicketPriority;
   tags: Tag[];
   assignedTo?: User;
   epicId?: string;
   comments: Comment[];
+  createdAt: Timestamp;
 };
 
 export type Column = {

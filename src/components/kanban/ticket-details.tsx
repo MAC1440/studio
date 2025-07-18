@@ -1,11 +1,24 @@
 
 'use client';
-import { type Ticket, type Comment as CommentType } from '@/lib/types';
+import { type Ticket, type Comment as CommentType, User } from '@/lib/types';
 import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogClose
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,12 +28,13 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { addCommentToTicket } from '@/lib/firebase/tickets';
-import { formatDistanceToNow } from 'date-fns';
+import { addCommentToTicket, deleteTicket } from '@/lib/firebase/tickets';
+import { format, formatDistanceToNow } from 'date-fns';
+import { Calendar, Trash2 } from 'lucide-react';
 
 type TicketDetailsProps = {
   ticket: Ticket;
-  onUpdate: () => void;
+  onUpdate: (isDeleted?: boolean) => void;
 };
 
 function Comment({ comment }: { comment: CommentType }) {
@@ -71,18 +85,40 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
     }
   }
 
+  const handleDeleteTicket = async () => {
+    try {
+        await deleteTicket(ticket.id);
+        toast({
+            title: "Ticket Deleted",
+            description: `Ticket "${ticket.title}" has been successfully deleted.`,
+        });
+        onUpdate(true);
+    } catch (error: any) {
+        console.error("Failed to delete ticket:", error);
+        toast({
+            title: "Deletion Failed",
+            description: `Could not delete ticket. ${error.message}`,
+            variant: "destructive",
+        });
+    }
+  }
+
   const sortedComments = ticket.comments?.sort((a, b) => {
     const dateA = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
     const dateB = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
     return dateA - dateB;
   }) || [];
 
+  const createdAtDate = ticket.createdAt?.toDate ? ticket.createdAt.toDate() : new Date();
 
   return (
     <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
+    <AlertDialog>
       <DialogHeader>
-        <DialogTitle className="text-2xl">{ticket.title}</DialogTitle>
-        <div className="flex items-center gap-2 pt-2">
+        <DialogTitle className="text-2xl pr-10">{ticket.title}</DialogTitle>
+        <div className="flex items-center gap-2 pt-2 flex-wrap">
+            <Badge variant="secondary" className="capitalize">{ticket.status.replace('-', ' ')}</Badge>
+             <Badge variant={ticket.priority === 'critical' || ticket.priority === 'high' ? 'destructive' : 'secondary'} className="capitalize">{ticket.priority}</Badge>
             {(ticket.tags || []).map((tag) => (
               <Badge key={tag.id} variant="outline" style={{
                 borderColor: 'hsl(var(--accent))',
@@ -91,13 +127,17 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                 {tag.label}
               </Badge>
             ))}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto">
+                <Calendar className="h-3.5 w-3.5" />
+                <span>Created {format(createdAtDate, "MMM d, yyyy")}</span>
+            </div>
         </div>
       </DialogHeader>
       
       <ScrollArea className="flex-1 -mx-6 px-6">
         <div className="py-4">
             <h3 className="font-semibold mb-2">Description</h3>
-            <p className="text-muted-foreground">{ticket.description}</p>
+            <p className="text-muted-foreground whitespace-pre-wrap">{ticket.description}</p>
         </div>
 
         <Separator className="my-4" />
@@ -105,36 +145,64 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
         <div>
             <h3 className="font-semibold mb-4">Activity</h3>
             <div className="space-y-6">
-                {sortedComments.map(comment => (
-                    <Comment key={comment.id} comment={comment} />
+                {sortedComments.map((comment, index) => (
+                    <Comment key={index} comment={comment} />
                 ))}
+                 {sortedComments.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No comments yet.</p>
+                )}
             </div>
         </div>
       </ScrollArea>
 
-      {userData && (
-        <div className="mt-auto pt-4">
-          <div className="flex gap-3">
-            <Avatar>
-              <AvatarImage src={userData.avatarUrl} alt={userData.name}/>
-              <AvatarFallback>{userData.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <form onSubmit={handleCommentSubmit}>
-                <Textarea 
-                  placeholder="Add a comment..." 
-                  className="mb-2"
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                />
-                <div className="flex justify-end">
-                  <Button type="submit" disabled={!newComment.trim()}>Comment</Button>
+      <div className="mt-auto pt-4 border-t">
+        {userData && (
+            <div className="flex gap-3">
+                <Avatar>
+                <AvatarImage src={userData.avatarUrl} alt={userData.name}/>
+                <AvatarFallback>{userData.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                <form onSubmit={handleCommentSubmit}>
+                    <Textarea 
+                    placeholder="Add a comment..." 
+                    className="mb-2"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    />
+                    <div className="flex justify-end">
+                    <Button type="submit" disabled={!newComment.trim()}>Comment</Button>
+                    </div>
+                </form>
                 </div>
-              </form>
             </div>
-          </div>
-        </div>
-      )}
+        )}
+         <DialogFooter className="mt-4">
+              {userData?.role === 'admin' && (
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="mr-auto">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Ticket
+                    </Button>
+                  </AlertDialogTrigger>
+              )}
+        </DialogFooter>
+      </div>
+      
+       <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the ticket
+            "{ticket.title}".
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDeleteTicket}>Continue</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+      </AlertDialog>
     </DialogContent>
   );
 }

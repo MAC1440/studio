@@ -32,7 +32,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { type User, type Ticket } from '@/lib/types';
+import { type User, type Ticket, TicketPriority } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createTicket, getTickets } from '@/lib/firebase/tickets';
 import { getUsers } from '@/lib/firebase/users';
@@ -54,7 +54,7 @@ export default function TicketsPage() {
       // Don't set is loading to true on refetch
       try {
         const [fetchedTickets, fetchedUsers] = await Promise.all([getTickets(), getUsers()]);
-        setTickets(fetchedTickets);
+        setTickets(fetchedTickets.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
         setUsers(fetchedUsers);
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -81,6 +81,7 @@ export default function TicketsPage() {
     const description = formData.get('description') as string;
     const assignedToId = formData.get('assignedTo') as string;
     const tagsString = formData.get('tags') as string;
+    const priority = formData.get('priority') as TicketPriority;
 
     const assignedTo = users.find(u => u.id === assignedToId) || null;
     const tags = tagsString.split(',').map(tag => ({ id: tag.trim(), label: tag.trim(), color: 'gray' })).filter(t => t.label);
@@ -88,7 +89,7 @@ export default function TicketsPage() {
 
     if (title && description) {
         try {
-            await createTicket({ title, description, assignedTo, tags });
+            await createTicket({ title, description, assignedTo, tags, priority });
             await fetchTicketsAndUsers();
             toast({
                 title: "Ticket Created",
@@ -111,12 +112,20 @@ export default function TicketsPage() {
     setIsDetailDialogOpen(true);
   }
 
-  const onTicketUpdate = async () => {
-    // Refetch the single ticket that was updated, or all for simplicity
+  const onTicketUpdate = async (isDeleted = false) => {
     await fetchTicketsAndUsers();
-    const freshTicket = (await getTickets()).find(t => t.id === selectedTicket?.id);
-    if(freshTicket) {
-      setSelectedTicket(freshTicket);
+    if (isDeleted) {
+        setIsDetailDialogOpen(false);
+        setSelectedTicket(null);
+    } else if (selectedTicket) {
+        const freshTicket = (await getTickets()).find(t => t.id === selectedTicket?.id);
+        if(freshTicket) {
+          setSelectedTicket(freshTicket);
+        } else {
+            // Ticket was likely deleted, close the dialog
+            setIsDetailDialogOpen(false);
+            setSelectedTicket(null);
+        }
     }
   }
 
@@ -142,10 +151,26 @@ export default function TicketsPage() {
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" name="description" required />
               </div>
-               <div className="space-y-2">
-                <Label htmlFor="tags">Tags</Label>
-                <Input id="tags" name="tags" placeholder="e.g. Frontend, Bug, High Priority" />
-                <p className="text-xs text-muted-foreground">Comma-separated values.</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="priority">Priority</Label>
+                    <Select name="priority" defaultValue="medium">
+                      <SelectTrigger id="priority">
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="tags">Tags</Label>
+                  <Input id="tags" name="tags" placeholder="e.g. Frontend, Bug" />
+                  <p className="text-xs text-muted-foreground">Comma-separated.</p>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="assignedTo">Assign To</Label>
@@ -177,6 +202,7 @@ export default function TicketsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
+              <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Assigned To</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -187,6 +213,7 @@ export default function TicketsPage() {
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                   <TableCell>
                      <div className="flex items-center gap-3">
@@ -204,7 +231,10 @@ export default function TicketsPage() {
                 <TableRow key={ticket.id}>
                   <TableCell className="font-medium">{ticket.title}</TableCell>
                    <TableCell>
-                    <Badge variant="secondary">{ticket.status}</Badge>
+                    <Badge variant={ticket.priority === 'critical' || ticket.priority === 'high' ? 'destructive' : 'secondary'} className="capitalize">{ticket.priority}</Badge>
+                   </TableCell>
+                   <TableCell>
+                    <Badge variant="secondary" className="capitalize">{ticket.status.replace('-', ' ')}</Badge>
                    </TableCell>
                   <TableCell>
                     {ticket.assignedTo ? (
@@ -228,7 +258,7 @@ export default function TicketsPage() {
               ))
             ) : (
                 <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={5} className="h-24 text-center">
                         <div className="flex flex-col items-center gap-2">
                             <TicketIcon className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">No tickets found.</p>

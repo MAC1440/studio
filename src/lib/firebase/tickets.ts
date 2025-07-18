@@ -1,7 +1,7 @@
 
 import { db } from './config';
-import { collection, addDoc, getDocs, query, doc, setDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
-import type { Ticket, User, ColumnId, Tag, Comment, AppUser } from '@/lib/types';
+import { collection, addDoc, getDocs, query, doc, setDoc, updateDoc, arrayUnion, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import type { Ticket, User, ColumnId, Tag, Comment, AppUser, TicketPriority } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
 import { notifyUser } from '@/ai/flows/notify-user-flow';
 
@@ -10,20 +10,22 @@ type CreateTicketArgs = {
   description: string;
   assignedTo: User | null;
   status?: ColumnId;
+  priority?: TicketPriority;
   tags?: Tag[];
 };
 
 export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
     const docRef = await addDoc(collection(db, "tickets"), {});
 
-    const newTicketData: Ticket = {
-        id: docRef.id,
+    const newTicketData: Omit<Ticket, 'id'> = {
         title: args.title,
         description: args.description,
         status: args.status || 'backlog',
+        priority: args.priority || 'medium',
         tags: args.tags || [],
         comments: [],
         assignedTo: args.assignedTo || undefined,
+        createdAt: serverTimestamp() as any, // Let server generate timestamp
     };
 
     await setDoc(doc(db, "tickets", docRef.id), newTicketData);
@@ -32,7 +34,7 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
     if (newTicketData.assignedTo) {
       try {
           await notifyUser({
-              ticketId: newTicketData.id,
+              ticketId: docRef.id,
               ticketTitle: newTicketData.title,
               userName: newTicketData.assignedTo.name,
               userEmail: newTicketData.assignedTo.email,
@@ -45,7 +47,7 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
     }
 
 
-    return newTicketData;
+    return { ...newTicketData, id: docRef.id } as Ticket;
 }
 
 export async function getTickets(): Promise<Ticket[]> {
@@ -82,7 +84,7 @@ export async function addCommentToTicket(ticketId: string, {userId, message}: Ad
     }
     const userData = userSnap.data() as AppUser;
 
-    const comment: Omit<Comment, 'id'> = {
+    const comment: Omit<Comment, 'id' | 'timestamp'> & { timestamp: any } = {
         user: {
             id: userData.id,
             name: userData.name,
@@ -96,4 +98,10 @@ export async function addCommentToTicket(ticketId: string, {userId, message}: Ad
     await updateDoc(ticketRef, {
         comments: arrayUnion(comment)
     });
+}
+
+
+export async function deleteTicket(ticketId: string): Promise<void> {
+  const ticketRef = doc(db, 'tickets', ticketId);
+  await deleteDoc(ticketRef);
 }
