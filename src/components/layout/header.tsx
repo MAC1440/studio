@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn } from 'lucide-react';
+import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +21,12 @@ import {
   DialogFooter,
   DialogClose
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -36,9 +42,12 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { createTicket, getTickets } from '@/lib/firebase/tickets';
-import { type User } from '@/lib/types';
-
+import { createTicket } from '@/lib/firebase/tickets';
+import { type User, type Notification } from '@/lib/types';
+import { subscribeToNotifications, markNotificationAsRead } from '@/lib/firebase/notifications';
+import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
+import { Separator } from '../ui/separator';
 
 function CreateTicketDialog({ users, onTicketCreated }: { users: User[], onTicketCreated: () => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -117,12 +126,82 @@ function CreateTicketDialog({ users, onTicketCreated }: { users: User[], onTicke
     );
 }
 
+function NotificationBell() {
+    const { user } = useAuth();
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        if (user?.uid) {
+            const unsubscribe = subscribeToNotifications(user.uid, setNotifications);
+            return () => unsubscribe();
+        }
+    }, [user]);
+
+    const handleNotificationClick = async (notification: Notification) => {
+        if (!notification.read) {
+            await markNotificationAsRead(notification.id);
+        }
+        // TODO: Navigate to the ticket, for now, just close popover
+        setIsOpen(false);
+    };
+    
+    const unreadCount = notifications.filter(n => !n.read).length;
+
+    return (
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                            {unreadCount}
+                        </span>
+                    )}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0">
+                <div className="p-4">
+                    <h4 className="font-medium text-sm">Notifications</h4>
+                </div>
+                <Separator />
+                <div className="max-h-96 overflow-y-auto">
+                    {notifications.length > 0 ? (
+                        notifications.map(n => (
+                            <div key={n.id}>
+                                <div
+                                    className={cn(
+                                        "flex items-start gap-3 p-4 hover:bg-muted/50 cursor-pointer",
+                                        !n.read && "bg-accent/50"
+                                    )}
+                                    onClick={() => handleNotificationClick(n)}
+                                >
+                                    <div className="mt-1">
+                                        <Ticket className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm">{n.message}</p>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {formatDistanceToNow(n.createdAt.toDate(), { addSuffix: true })}
+                                        </p>
+                                    </div>
+                                </div>
+                                <Separator />
+                            </div>
+                        ))
+                    ) : (
+                        <p className="p-4 text-sm text-center text-muted-foreground">No new notifications</p>
+                    )}
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 export default function AppHeader() {
   const { user, userData, logout, loading, users, reloadTickets } = useAuth();
   
   const handleTicketCreated = () => {
-    // This is a bit of a workaround to trigger a re-fetch on the board
-    // In a more complex app, you might use a more robust state management library
     if (reloadTickets) {
         reloadTickets();
     }
@@ -135,7 +214,7 @@ export default function AppHeader() {
           <LayoutGrid className="h-6 w-6 text-primary" />
           <span className="text-lg font-bold tracking-tight">KanbanFlow</span>
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {loading ? (
             <div className="flex items-center gap-4">
               <Skeleton className="h-9 w-24" />
@@ -144,6 +223,7 @@ export default function AppHeader() {
           ) : user ? (
             <>
               <CreateTicketDialog users={users} onTicketCreated={handleTicketCreated}/>
+              <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Avatar className="h-9 w-9 cursor-pointer">

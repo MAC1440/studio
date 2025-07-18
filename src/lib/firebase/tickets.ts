@@ -1,16 +1,12 @@
-
 import { db } from './config';
 import { collection, addDoc, getDocs, query, doc, setDoc, updateDoc, arrayUnion, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import type { Ticket, User, ColumnId, Tag, Comment, AppUser, TicketPriority } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
-import { Resend } from 'resend';
+import { sendEmail } from '@/app/actions';
+import { addNotification } from './notifications';
+
 
 async function sendNotificationEmail(ticketId: string, ticketTitle: string, user: User) {
-    if (!process.env.RESEND_API_KEY) {
-        console.warn("RESEND_API_KEY is not set. Skipping email notification.");
-        return;
-    }
-    const resend = new Resend(process.env.RESEND_API_KEY);
     
     const subject = `You've been assigned a new ticket: "${ticketTitle}"`;
     const htmlBody = `
@@ -24,14 +20,18 @@ async function sendNotificationEmail(ticketId: string, ticketTitle: string, user
     `;
 
     try {
-        await resend.emails.send({
-            from: 'KanbanFlow <onboarding@resend.dev>',
+        await sendEmail({
             to: user.email,
             subject: subject,
             html: htmlBody,
         });
+        await addNotification({
+            userId: user.id,
+            message: `You were assigned a new ticket: "${ticketTitle}"`,
+            ticketId: ticketId,
+        });
     } catch (error) {
-        console.error("Failed to send notification email:", error);
+        console.error("Failed to send notification email or add notification:", error);
         // We don't re-throw, as the ticket creation/update itself was successful.
     }
 }
@@ -100,8 +100,8 @@ export async function updateTicket(ticketId: string, updates: Partial<Omit<Ticke
       const hasNewAssignee = !!newAssignee;
       const wasAssignedToNewUser = hasNewAssignee && (!hadOldAssignee || newAssignee.id !== currentTicket.assignedTo?.id);
 
-      if (wasAssignedToNewUser) {
-        await sendNotificationEmail(ticketId, updates.title || currentTicket.title, newAssignee!);
+      if (wasAssignedToNewUser && newAssignee) {
+        await sendNotificationEmail(ticketId, updates.title || currentTicket.title, newAssignee);
       }
     }
     

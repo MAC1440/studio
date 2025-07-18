@@ -48,3 +48,13 @@ export type Column = {
   title: string;
   tickets: Ticket[];
 };
+
+export type Notification = {
+    id: string;
+    userId: string;
+    message: string;
+    ticketId: string;
+    read: boolean;
+    createdAt: Timestamp;
+    expiresAt: Timestamp;
+}
