@@ -20,6 +20,17 @@ import {
   DialogFooter,
   DialogClose
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -33,20 +44,21 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { createUser, getUsers } from '@/lib/firebase/users';
+import { createUser, getUsers, deleteUser } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users as UsersIcon } from 'lucide-react';
+import { Users as UsersIcon, Trash2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const { toast } = useToast();
-  const { user: currentUser } = useAuth(); // Get current admin user
+  const { user: currentUser } = useAuth();
 
   const fetchUsers = async () => {
-    setIsLoading(true);
+    // No need to set loading to true here, to avoid flashing on refetch
     try {
       const fetchedUsers = await getUsers();
       setUsers(fetchedUsers);
@@ -54,7 +66,7 @@ export default function UsersPage() {
       console.error("Failed to fetch users:", error);
       toast({
           title: "Error Fetching Users",
-          description: "Could not load user data. Check security rules and console for errors.",
+          description: "Could not load user data. Check console for errors.",
           variant: "destructive"
       });
     } finally {
@@ -63,8 +75,9 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
+    setIsLoading(true);
     fetchUsers();
-  }, [toast]);
+  }, []);
 
 
   const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -83,10 +96,8 @@ export default function UsersPage() {
 
     if (name && email && password && role) {
         try {
-            const newUser = await createUser({ name, email, password, role }, currentUser.uid);
-            // Instead of setUsers(prev => [...prev, newUser]);
-            // We refetch the whole list to ensure consistency
-            await fetchUsers();
+            await createUser({ name, email, password, role });
+            await fetchUsers(); // Refetch to get the updated list
 
             toast({
                 title: "User Created",
@@ -106,7 +117,30 @@ export default function UsersPage() {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      await deleteUser(userToDelete.id);
+      toast({
+        title: "User Deleted",
+        description: `User ${userToDelete.name} has been successfully deleted.`,
+      });
+      setUserToDelete(null);
+      // Refresh the list
+      setUsers(users.filter(u => u.id !== userToDelete.id));
+    } catch (error: any) {
+      console.error("Failed to delete user:", error);
+      toast({
+        title: "Deletion Failed",
+        description: `Could not delete user. ${error.message}`,
+        variant: "destructive",
+      });
+      setUserToDelete(null);
+    }
+  };
+
   return (
+    <AlertDialog>
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">User Management</h1>
@@ -180,13 +214,16 @@ export default function UsersPage() {
                     <Skeleton className="h-6 w-16 rounded-full" />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Skeleton className="h-8 w-20" />
+                    <div className="flex justify-end gap-2">
+                      <Skeleton className="h-8 w-20" />
+                       <Skeleton className="h-8 w-20" />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
             ) : users.length > 0 ? (
               users.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user.id} className={user.id === currentUser?.uid ? 'bg-muted/50' : ''}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar>
@@ -207,9 +244,22 @@ export default function UsersPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      Edit
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm">
+                        Edit
+                      </Button>
+                       <AlertDialogTrigger asChild>
+                         <Button
+                           variant="destructive"
+                           size="sm"
+                           onClick={() => setUserToDelete(user)}
+                           disabled={user.id === currentUser?.uid}
+                         >
+                           <Trash2 className="mr-2 h-4 w-4" />
+                           Delete
+                         </Button>
+                       </AlertDialogTrigger>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -227,6 +277,23 @@ export default function UsersPage() {
           </TableBody>
         </Table>
       </div>
+
+       <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the user account
+            for <span className="font-bold">{userToDelete?.name}</span> and remove their data from our servers.
+             Note: This only removes the user from Firestore, not from Firebase Authentication.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDeleteUser}>Continue</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+
     </div>
+    </AlertDialog>
   );
 }
