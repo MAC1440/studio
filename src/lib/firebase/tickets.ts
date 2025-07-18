@@ -3,7 +3,39 @@ import { db } from './config';
 import { collection, addDoc, getDocs, query, doc, setDoc, updateDoc, arrayUnion, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import type { Ticket, User, ColumnId, Tag, Comment, AppUser, TicketPriority } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
-import { notifyUser } from '@/ai/flows/notify-user-flow';
+import { Resend } from 'resend';
+
+async function sendNotificationEmail(ticketId: string, ticketTitle: string, user: User) {
+    if (!process.env.RESEND_API_KEY) {
+        console.warn("RESEND_API_KEY is not set. Skipping email notification.");
+        return;
+    }
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    const subject = `You've been assigned a new ticket: "${ticketTitle}"`;
+    const htmlBody = `
+      <h1>New Ticket Assignment</h1>
+      <p>Hi ${user.name},</p>
+      <p>You have been assigned a new ticket on KanbanFlow:</p>
+      <p><b>Title:</b> ${ticketTitle}</p>
+      <p>You can view the ticket on the board.</p>
+      <p>Thank you,</p>
+      <p>The KanbanFlow Team</p>
+    `;
+
+    try {
+        await resend.emails.send({
+            from: 'KanbanFlow <onboarding@resend.dev>',
+            to: user.email,
+            subject: subject,
+            html: htmlBody,
+        });
+    } catch (error) {
+        console.error("Failed to send notification email:", error);
+        // We don't re-throw, as the ticket creation/update itself was successful.
+    }
+}
+
 
 type CreateTicketArgs = {
   title: string;
@@ -32,20 +64,8 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
 
     // If assigned to a user, send a notification
     if (newTicketData.assignedTo) {
-      try {
-          await notifyUser({
-              ticketId: docRef.id,
-              ticketTitle: newTicketData.title,
-              userName: newTicketData.assignedTo.name,
-              userEmail: newTicketData.assignedTo.email,
-          });
-      } catch (error) {
-          console.error("Failed to send notification email:", error);
-          // We don't re-throw, as the ticket creation itself was successful.
-          // In a production app, you might want to add this to a retry queue.
-      }
+      await sendNotificationEmail(docRef.id, newTicketData.title, newTicketData.assignedTo);
     }
-
 
     return { ...newTicketData, id: docRef.id } as Ticket;
 }
@@ -75,24 +95,13 @@ export async function updateTicket(ticketId: string, updates: Partial<Omit<Ticke
       }
       const currentTicket = ticketSnap.data() as Ticket;
       const newAssignee = updates.assignedTo;
-
-      // Only notify if the new assignee is different from the old one.
-      const hasNewAssignee = !!newAssignee;
-      const hadOldAssignee = !!currentTicket.assignedTo;
-      const assigneeIdChanged = hasNewAssignee && hadOldAssignee && newAssignee.id !== currentTicket.assignedTo?.id;
-      const wasUnassignedAndNowIs = !hadOldAssignee && hasNewAssignee;
       
-      if (assigneeIdChanged || wasUnassignedAndNowIs) {
-         try {
-            await notifyUser({
-                ticketId: ticketId,
-                ticketTitle: updates.title || currentTicket.title,
-                userName: newAssignee!.name,
-                userEmail: newAssignee!.email,
-            });
-        } catch (error) {
-            console.error("Failed to send reassignment notification email:", error);
-        }
+      const hadOldAssignee = !!currentTicket.assignedTo;
+      const hasNewAssignee = !!newAssignee;
+      const wasAssignedToNewUser = hasNewAssignee && (!hadOldAssignee || newAssignee.id !== currentTicket.assignedTo?.id);
+
+      if (wasAssignedToNewUser) {
+        await sendNotificationEmail(ticketId, updates.title || currentTicket.title, newAssignee!);
       }
     }
     
