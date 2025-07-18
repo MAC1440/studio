@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { LayoutGrid, User as UserIcon, LogOut, Settings } from 'lucide-react';
+import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +40,12 @@ export default function AppHeader() {
                 <Link href="/profile">
                   <UserIcon className="mr-2 h-4 w-4" />
                   <span>Profile</span>
+                </Link>
+              </DropdownMenuItem>
+               <DropdownMenuItem asChild>
+                <Link href="/admin">
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>Admin Panel</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
