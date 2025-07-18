@@ -1,5 +1,6 @@
 // src/app/actions.ts
 'use server';
+import 'dotenv/config';
 
 import { Resend } from 'resend';
 import { adminAuth } from '@/lib/firebase/admin';
