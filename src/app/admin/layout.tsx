@@ -1,8 +1,16 @@
-import AuthGuard from '@/components/auth/AuthGuard';
-import AppHeader from '@/components/layout/header';
-import { SidebarProvider, Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarContent, SidebarInset } from '@/components/ui/sidebar';
-import { Home, Users, Ticket, FolderKanban } from 'lucide-react';
-import Link from 'next/link';
+import AuthGuard from "@/components/auth/AuthGuard";
+import AppHeader from "@/components/layout/header";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarContent,
+  SidebarInset,
+} from "@/components/ui/sidebar";
+import { Home, Users, Ticket, FolderKanban } from "lucide-react";
+import Link from "next/link";
 
 export default function AdminLayout({
   children,
