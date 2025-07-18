@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -8,9 +8,6 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
-  DragOverlay,
-  DropAnimation,
-  defaultDropAnimation,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -19,33 +16,53 @@ import {
 } from '@dnd-kit/sortable';
 import { type Column, type ColumnId, type Ticket } from '@/lib/types';
 import KanbanColumn from './column';
-import KanbanTicket from './ticket';
 import TicketDetails from './ticket-details';
 import { Dialog } from '@/components/ui/dialog';
-
-const mockTickets: Ticket[] = [
-  { id: 'TICKET-1', title: 'Implement user authentication', description: 'Full description for user auth.', tags: [{id: 'tag-1', label: 'Feature', color: 'bg-blue-500'}], comments: [], assignedTo: {id: 'user-1', name: 'Jane Doe', email: 'jane@example.com', role: 'user'} },
-  { id: 'TICKET-2', title: 'Design the Kanban board UI', description: 'Detailed UI design specifications.', tags: [{id: 'tag-2', label: 'Design', color: 'bg-pink-500'}], comments: [] },
-  { id: 'TICKET-3', title: 'Setup CI/CD pipeline', description: 'Setup continuous integration and deployment.', tags: [{id: 'tag-3', label: 'DevOps', color: 'bg-yellow-500'}], comments: [] },
-  { id: 'TICKET-4', title: 'Fix login page bug', description: 'Users are unable to login with correct credentials.', tags: [{id: 'tag-4', label: 'Bug', color: 'bg-red-500'}], comments: [] },
-  { id: 'TICKET-5', title: 'Write API documentation', description: 'Document all available API endpoints.', tags: [{id: 'tag-5', label: 'Docs', color: 'bg-green-500'}], comments: [] },
-  { id: 'TICKET-6', title: 'Refactor database schema', description: 'Optimize database schema for performance.', tags: [{id: 'tag-1', label: 'Feature', color: 'bg-blue-500'}], comments: [] },
-  { id: 'TICKET-7', title: 'User profile page design', description: 'Design mockups for the user profile page.', tags: [{id: 'tag-2', label: 'Design', color: 'bg-pink-500'}], comments: [] },
-  { id: 'TICKET-8', title: 'Test payment gateway integration', description: 'End-to-end testing for payment processing.', tags: [{id: 'tag-6', label: 'QA', color: 'bg-purple-500'}], comments: [] },
-];
+import { getTickets, updateTicketStatus } from '@/lib/firebase/tickets';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '../ui/skeleton';
 
 const initialColumns: Column[] = [
-  { id: 'backlog', title: 'Backlog', tickets: [mockTickets[0], mockTickets[1]] },
-  { id: 'todo', title: 'To Do', tickets: [mockTickets[2], mockTickets[3]] },
-  { id: 'in-progress', title: 'In Progress', tickets: [mockTickets[4]] },
-  { id: 'review', title: 'Review', tickets: [mockTickets[5]] },
-  { id: 'done', title: 'Done', tickets: [mockTickets[6], mockTickets[7]] },
+  { id: 'backlog', title: 'Backlog', tickets: [] },
+  { id: 'todo', title: 'To Do', tickets: [] },
+  { id: 'in-progress', title: 'In Progress', tickets: [] },
+  { id: 'review', title: 'Review', tickets: [] },
+  { id: 'done', title: 'Done', tickets: [] },
 ];
 
 export default function KanbanBoard() {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketDetailOpen, setIsTicketDetailOpen] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchTickets = async () => {
+      setIsLoading(true);
+      try {
+        const tickets = await getTickets();
+        const newColumns = [...initialColumns].map(c => ({...c, tickets: []})); // Reset tickets
+        tickets.forEach(ticket => {
+          const columnIndex = newColumns.findIndex(col => col.id === ticket.status);
+          if (columnIndex !== -1) {
+            newColumns[columnIndex].tickets.push(ticket);
+          }
+        });
+        setColumns(newColumns);
+      } catch (error) {
+        console.error("Failed to fetch tickets:", error);
+        toast({
+          title: "Error",
+          description: "Could not fetch tickets from the database.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTickets();
+  }, [toast]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -56,7 +73,10 @@ export default function KanbanBoard() {
   );
 
   const findColumn = (id: ColumnId | string): Column | undefined => {
-    return columns.find((col) => col.id === id || col.tickets.some((t) => t.id === id));
+    if (columns.find(c => c.id === id)) {
+        return columns.find(c => c.id === id);
+    }
+    return columns.find((col) => col.tickets.some((t) => t.id === id));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -70,33 +90,37 @@ export default function KanbanBoard() {
     const overId = over.id.toString();
     
     const activeColumn = findColumn(activeId);
-    const overColumn = findColumn(overId);
+    let overColumn = findColumn(overId);
 
-    if (!activeColumn || !overColumn) {
-      return;
+    if (!activeColumn) return;
+
+    // If dropping on a column directly
+    if (columns.some(c => c.id === overId)) {
+        overColumn = columns.find(c => c.id === overId);
     }
+
+    if (!overColumn) return;
 
     setColumns((prev) => {
       const activeItems = activeColumn.tickets;
       const overItems = overColumn.tickets;
       const activeIndex = activeItems.findIndex((t) => t.id === activeId);
-      const overIndex = overItems.findIndex((t) => t.id === overId);
-
       let newColumns = [...prev];
 
       if (activeColumn.id === overColumn.id) {
         // Same column
-        const newTickets = arrayMove(activeItems, activeIndex, overIndex);
+        const newTickets = arrayMove(activeItems, activeIndex, overItems.findIndex(t => t.id === overId));
         const activeColIndex = newColumns.findIndex(c => c.id === activeColumn.id);
         newColumns[activeColIndex] = { ...activeColumn, tickets: newTickets };
       } else {
         // Different columns
         const [movedItem] = activeItems.splice(activeIndex, 1);
+        movedItem.status = overColumn.id;
 
-        // Is the user dropping on a ticket or on the column?
         const isDroppingOnTicket = overItems.some(t => t.id === overId);
         
         if (isDroppingOnTicket) {
+             const overIndex = overItems.findIndex(t => t.id === overId);
              overItems.splice(overIndex, 0, movedItem);
         } else {
              overItems.push(movedItem);
@@ -107,6 +131,17 @@ export default function KanbanBoard() {
 
         newColumns[activeColIndex] = { ...activeColumn, tickets: [...activeItems] };
         newColumns[overColIndex] = { ...overColumn, tickets: [...overItems] };
+
+        // Persist change to Firebase
+        updateTicketStatus(activeId, overColumn.id).catch(err => {
+            console.error("Failed to update ticket status:", err);
+            toast({
+                title: "Update Failed",
+                description: "Could not update ticket status. Please try again.",
+                variant: "destructive"
+            });
+            // Revert UI change on failure? (more complex state management)
+        });
       }
 
       return newColumns;
@@ -127,15 +162,30 @@ export default function KanbanBoard() {
     <Dialog open={isTicketDetailOpen} onOpenChange={handleTicketDetailClose}>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="flex h-full w-full gap-6 p-4 md:p-6 overflow-x-auto">
-          <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
-            {columns.map((column) => (
-              <KanbanColumn
-                key={column.id}
-                column={column}
-                onTicketClick={handleTicketClick}
-              />
-            ))}
-          </SortableContext>
+          {isLoading ? (
+            Array.from({length: 5}).map((_, i) => (
+                <div key={i} className="flex flex-col w-72 md:w-80 shrink-0">
+                    <div className="flex items-center justify-between p-2 mb-2">
+                        <Skeleton className="h-6 w-32" />
+                        <Skeleton className="h-6 w-8 rounded-full" />
+                    </div>
+                    <div className="flex-1 rounded-md bg-secondary/50 p-2 space-y-3">
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                    </div>
+                </div>
+            ))
+          ) : (
+            <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+              {columns.map((column) => (
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
+                  onTicketClick={handleTicketClick}
+                />
+              ))}
+            </SortableContext>
+          )}
         </div>
       </DndContext>
       {selectedTicket && <TicketDetails ticket={selectedTicket} />}
