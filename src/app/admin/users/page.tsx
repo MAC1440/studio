@@ -129,10 +129,17 @@ export default function UsersPage() {
       setUsers(users.filter(u => u.id !== userToDelete.id));
     } catch (error: any) {
       console.error("Failed to delete user:", error);
+      
+      let description = `Could not delete user. ${error.message}`;
+      if (error.message && error.message.includes("Firebase Admin SDK not initialized")) {
+          description = "Could not delete user. The Firebase Admin SDK is not configured on the server. Please check your environment variables.";
+      }
+
       toast({
         title: "Deletion Failed",
-        description: `Could not delete user. ${error.message}`,
+        description: description,
         variant: "destructive",
+        duration: 9000,
       });
       setUserToDelete(null);
     }
