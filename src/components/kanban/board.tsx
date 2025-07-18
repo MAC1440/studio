@@ -115,6 +115,10 @@ export default function KanbanBoard() {
       } else {
         // Different columns
         const [movedItem] = activeItems.splice(activeIndex, 1);
+        if (!movedItem) {
+          // Item not found, something went wrong. Revert state to be safe.
+          return prev;
+        }
         movedItem.status = overColumn.id;
 
         const isDroppingOnTicket = overItems.some(t => t.id === overId);
