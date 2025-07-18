@@ -4,7 +4,6 @@ import { createUserWithEmailAndPassword, sendPasswordResetEmail, getAuth } from 
 import { setDoc, doc, collection, getDocs, query, deleteDoc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { initializeApp, getApps, deleteApp } from 'firebase/app';
-import { deleteUserFromAuth } from '@/app/actions';
 
 type CreateUserArgs = {
     email: string;
@@ -72,18 +71,8 @@ export async function forgotPassword(email: string): Promise<void> {
 }
 
 export async function deleteUser(userId: string): Promise<void> {
-    // First, delete the user from Firestore.
+    // This function now only deletes the user from the Firestore database.
+    // The user's authentication account will remain in Firebase Authentication.
     const userRef = doc(db, 'users', userId);
-    
-    // Then, call the server action to delete the user from Firebase Auth.
-    const result = await deleteUserFromAuth(userId);
-
-    if (!result.success) {
-      // If deleting from Auth fails, we should ideally NOT delete the Firestore document
-      // to avoid an inconsistent state. We'll throw an error to be handled by the caller.
-      throw new Error(`Failed to delete user from Authentication: ${result.error}`);
-    }
-
-    // Only delete from Firestore if the Auth deletion was successful.
     await deleteDoc(userRef);
 }

@@ -122,7 +122,7 @@ export default function UsersPage() {
       await deleteUser(userToDelete.id);
       toast({
         title: "User Deleted",
-        description: `User ${userToDelete.name} has been successfully deleted.`,
+        description: `User ${userToDelete.name} has been successfully deleted from the application database.`,
       });
       // Refresh the list
       setUsers(users.filter(u => u.id !== userToDelete.id));
@@ -130,10 +130,7 @@ export default function UsersPage() {
       console.error("Failed to delete user:", error);
       
       let description = `Could not delete user. ${error.message}`;
-      if (error.message && error.message.includes("Firebase Admin SDK not initialized")) {
-          description = "Could not delete user. The Firebase Admin SDK is not configured on the server. Please check your environment variables.";
-      }
-
+      
       toast({
         title: "Deletion Failed",
         description: description,
@@ -289,7 +286,7 @@ export default function UsersPage() {
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete the user account
-            for <span className="font-bold">{userToDelete?.name}</span> from both the application database and Firebase Authentication.
+            for <span className="font-bold">{userToDelete?.name}</span> from the application database. Their authentication account will remain.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
