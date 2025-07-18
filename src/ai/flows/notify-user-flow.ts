@@ -57,7 +57,7 @@ const notifyUserFlow = ai.defineFlow(
   },
   async (input) => {
 
-    const notificationPrompt = await ai.generate({
+    const {toolRequest} = await ai.generate({
         prompt: `A user has been assigned a new ticket. Generate a friendly and professional email notification.
         
         Ticket Title: "${input.ticketTitle}"
@@ -75,7 +75,6 @@ const notifyUserFlow = ai.defineFlow(
         },
     });
 
-    const toolRequest = notificationPrompt.toolRequest();
 
     if (!toolRequest) {
         console.error("The model did not request the emailSender tool. Cannot send email.");
