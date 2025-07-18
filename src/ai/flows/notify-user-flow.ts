@@ -58,7 +58,7 @@ const notifyUserFlow = ai.defineFlow(
   async (input) => {
 
     const {toolRequest} = await ai.generate({
-        prompt: `A user has been assigned a new ticket. Generate a friendly and professional email notification.
+        prompt: `A user has been assigned a new ticket. Generate a friendly and professional email notification to ${input.userEmail}.
         
         Ticket Title: "${input.ticketTitle}"
         User Name: ${input.userName}
@@ -67,7 +67,7 @@ const notifyUserFlow = ai.defineFlow(
         
         Generate only the subject and the HTML body of the email.
         `,
-        model: 'googleai/gemini-pro',
+        model: 'googleai/gemini-1.5-flash-latest',
         tools: [emailSender],
         config: {
             // Lower temperature for more deterministic, less "creative" output
@@ -91,7 +91,12 @@ const notifyUserFlow = ai.defineFlow(
     }
     
     // We are sure the tool is 'emailSender'
-    const toolResponse = await toolRequest.run();
+    const toolInput = {
+      ...toolRequest.input,
+      to: input.userEmail,
+    };
+
+    const toolResponse = await toolRequest.run(toolInput);
 
     // Although our tool output is void, we need to pass a response back to the model.
     await toolRequest.confirm(toolResponse);
