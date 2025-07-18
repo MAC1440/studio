@@ -28,9 +28,17 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { addCommentToTicket, deleteTicket } from '@/lib/firebase/tickets';
+import { addCommentToTicket, deleteTicket, updateTicket } from '@/lib/firebase/tickets';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Calendar, Trash2 } from 'lucide-react';
+import { Calendar, Trash2, User as UserIcon } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
 
 type TicketDetailsProps = {
   ticket: Ticket;
@@ -62,7 +70,7 @@ function Comment({ comment }: { comment: CommentType }) {
 
 export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) {
   const [newComment, setNewComment] = useState('');
-  const { userData, user } = useAuth();
+  const { userData, user, users } = useAuth();
   const { toast } = useToast();
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
@@ -103,6 +111,22 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
     }
   }
 
+  const handleAssigneeChange = async (userId: string) => {
+    const newAssignee = users.find(u => u.id === userId) || null;
+    try {
+      await updateTicket(ticket.id, { assignedTo: newAssignee });
+      onUpdate();
+      toast({
+        title: "Assignee Updated",
+        description: newAssignee ? `Ticket assigned to ${newAssignee.name}.` : "Ticket unassigned.",
+      });
+    } catch (error: any) {
+       console.error('Failed to update assignee:', error);
+       toast({ title: 'Error', description: 'Could not update assignee.', variant: 'destructive' });
+    }
+  };
+
+
   const sortedComments = ticket.comments?.sort((a, b) => {
     const dateA = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
     const dateB = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
@@ -134,26 +158,66 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
         </div>
       </DialogHeader>
       
-      <ScrollArea className="flex-1 -mx-6 px-6">
-        <div className="py-4">
-            <h3 className="font-semibold mb-2">Description</h3>
-            <p className="text-muted-foreground whitespace-pre-wrap">{ticket.description}</p>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 min-h-0">
+        <ScrollArea className="md:col-span-2">
+            <div className="pr-6">
+                <div className="py-4">
+                    <h3 className="font-semibold mb-2">Description</h3>
+                    <p className="text-muted-foreground whitespace-pre-wrap">{ticket.description}</p>
+                </div>
 
-        <Separator className="my-4" />
+                <Separator className="my-4" />
 
-        <div>
-            <h3 className="font-semibold mb-4">Activity</h3>
-            <div className="space-y-6">
-                {sortedComments.map((comment, index) => (
-                    <Comment key={index} comment={comment} />
-                ))}
-                 {sortedComments.length === 0 && (
-                    <p className="text-sm text-muted-foreground">No comments yet.</p>
-                )}
+                <div>
+                    <h3 className="font-semibold mb-4">Activity</h3>
+                    <div className="space-y-6">
+                        {sortedComments.map((comment, index) => (
+                            <Comment key={index} comment={comment} />
+                        ))}
+                        {sortedComments.length === 0 && (
+                            <p className="text-sm text-muted-foreground">No comments yet.</p>
+                        )}
+                    </div>
+                </div>
             </div>
-        </div>
-      </ScrollArea>
+        </ScrollArea>
+        <aside className="border-l -mx-6 px-6 md:mx-0 md:px-0 md:pl-6">
+            <ScrollArea>
+                <div className="space-y-6 py-4 h-full">
+                    <div>
+                        <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Assignee</h3>
+                        <Select onValueChange={handleAssigneeChange} defaultValue={ticket.assignedTo?.id || 'unassigned'}>
+                            <SelectTrigger>
+                                <SelectValue>
+                                    {ticket.assignedTo ? (
+                                        <div className="flex items-center gap-2">
+                                            <Avatar className="h-6 w-6">
+                                                <AvatarImage src={ticket.assignedTo.avatarUrl} alt={ticket.assignedTo.name} />
+                                                <AvatarFallback>{ticket.assignedTo.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <span>{ticket.assignedTo.name}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <UserIcon className="h-6 w-6 p-0.5" />
+                                            <span>Unassigned</span>
+                                        </div>
+                                    )}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="unassigned">Unassigned</SelectItem>
+                                {users.map(u => (
+                                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+            </ScrollArea>
+        </aside>
+      </div>
+
 
       <div className="mt-auto pt-4 border-t">
         {userData && (

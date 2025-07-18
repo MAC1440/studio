@@ -64,6 +64,40 @@ export async function getTickets(): Promise<Ticket[]> {
     return ticketList;
 }
 
+export async function updateTicket(ticketId: string, updates: Partial<Omit<Ticket, 'id' | 'comments'>>): Promise<void> {
+    const ticketRef = doc(db, 'tickets', ticketId);
+
+    // If assignee is being changed, we need to check if we should notify the new user
+    if ('assignedTo' in updates) {
+      const ticketSnap = await getDoc(ticketRef);
+      if (!ticketSnap.exists()) {
+        throw new Error("Ticket not found");
+      }
+      const currentTicket = ticketSnap.data() as Ticket;
+      const newAssignee = updates.assignedTo;
+
+      // Only notify if the assignee is new and not null
+      if (newAssignee && newAssignee.id !== currentTicket.assignedTo?.id) {
+         try {
+            await notifyUser({
+                ticketId: ticketId,
+                ticketTitle: updates.title || currentTicket.title,
+                userName: newAssignee.name,
+                userEmail: newAssignee.email,
+            });
+        } catch (error) {
+            console.error("Failed to send reassignment notification email:", error);
+        }
+      }
+    }
+    
+    // Firestore handles undefined values by not changing them, but for `assignedTo: null` we need to set it properly.
+    const finalUpdates = 'assignedTo' in updates ? { ...updates, assignedTo: updates.assignedTo || null } : updates;
+
+    await updateDoc(ticketRef, finalUpdates);
+}
+
+
 export async function updateTicketStatus(ticketId: string, status: ColumnId): Promise<void> {
     const ticketRef = doc(db, 'tickets', ticketId);
     await updateDoc(ticketRef, {
