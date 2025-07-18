@@ -2,6 +2,7 @@
 'use server';
 
 import { Resend } from 'resend';
+import { adminAuth } from '@/lib/firebase/admin';
 
 type SendEmailArgs = {
     to: string;
@@ -12,7 +13,6 @@ type SendEmailArgs = {
 export async function sendEmail({ to, subject, html }: SendEmailArgs) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('RESEND_API_KEY is not set. Skipping email notification.');
-    // In a real app, you might want to return an error or handle this differently
     return { success: false, error: 'RESEND_API_KEY not configured.' };
   }
 
@@ -36,4 +36,18 @@ export async function sendEmail({ to, subject, html }: SendEmailArgs) {
     console.error('Failed to send email:', error);
     return { success: false, error: 'An unexpected error occurred.' };
   }
+}
+
+export async function deleteUserFromAuth(uid: string) {
+    try {
+        await adminAuth.deleteUser(uid);
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error deleting user from Firebase Auth:', error);
+        // Provide a more specific error message if available
+        const message = error.code === 'auth/user-not-found'
+            ? 'User not found in Firebase Authentication.'
+            : 'An unexpected error occurred during user deletion from Auth.';
+        return { success: false, error: message };
+    }
 }

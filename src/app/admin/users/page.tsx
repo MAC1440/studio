@@ -282,8 +282,7 @@ export default function UsersPage() {
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete the user account
-            for <span className="font-bold">{userToDelete?.name}</span> and remove their data from our servers.
-             Note: This only removes the user from Firestore, not from Firebase Authentication.
+            for <span className="font-bold">{userToDelete?.name}</span> from both the application database and Firebase Authentication.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
