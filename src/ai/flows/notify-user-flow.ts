@@ -10,7 +10,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { Resend } from 'resend';
-import {confirm} from 'genkit/tools';
+import {confirm} from 'genkit';
 
 const NotifyUserInputSchema = z.object({
   ticketId: z.string().describe('The ID of the ticket.'),
@@ -67,7 +67,7 @@ const notifyUserFlow = ai.defineFlow(
         
         Generate only the subject and the HTML body of the email.
         `,
-        model: 'googleai/gemini-2.0-flash',
+        model: 'googleai/gemini-pro',
         tools: [emailSender],
         config: {
             // Lower temperature for more deterministic, less "creative" output
