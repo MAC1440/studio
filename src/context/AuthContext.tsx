@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User as FirebaseUser, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import type { User } from '@/lib/types';
 import { getUsers, ensureUserRecord } from '@/lib/firebase/users';
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const fetchCurrentUserData = useCallback(async (firebaseUser: FirebaseUser) => {
-    // This function now also ensures the record exists, which is critical for the first login of an admin.
+    // This function now also ensures the record exists, which is critical for the first login.
     await ensureUserRecord(firebaseUser); 
     const userDocRef = doc(db, 'users', firebaseUser.uid);
     const userDocSnap = await getDoc(userDocRef);
@@ -46,6 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserData(currentData);
       return currentData;
     }
+    console.warn("Could not find user document after ensuring it exists.");
     return null;
   }, []);
 
@@ -54,10 +55,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       if (firebaseUser) {
         setUser(firebaseUser);
-        const [allUsers, currentUserData] = await Promise.all([
-          getUsers(),
-          fetchCurrentUserData(firebaseUser),
-        ]);
+        // The order here is critical. We must fetch the current user's data (and ensure it exists)
+        // before we try to fetch all users or do anything else that might depend on the user's role.
+        await fetchCurrentUserData(firebaseUser);
+        const allUsers = await getUsers();
         setUsers(allUsers);
       } else {
         setUser(null);
@@ -75,7 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!userCredential.user) {
         throw new Error("Login failed: no user returned");
     }
-    // Fetch and return user data immediately after login to ensure it's available.
+    // Fetch and return user data immediately after login to ensure it's available for routing.
     return fetchCurrentUserData(userCredential.user);
   };
 

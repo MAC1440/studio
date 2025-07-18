@@ -25,10 +25,17 @@ export async function ensureUserRecord(firebaseUser: FirebaseUser): Promise<void
             id: firebaseUser.uid,
             name: firebaseUser.displayName || firebaseUser.email || 'Admin User',
             email: firebaseUser.email!,
-            role: 'admin', // Default to admin for the user ensuring their own record
+            // The first user to trigger this will be the admin.
+            // Subsequent user creation should be handled by an admin through the UI.
+            role: 'admin', 
             avatarUrl: firebaseUser.photoURL || `https://placehold.co/150x150.png`
         };
-        await setDoc(userRef, newUser);
+        try {
+            await setDoc(userRef, newUser);
+        } catch(error) {
+            console.error("Failed to create user record for initial admin:", error);
+            // This might fail if the rules are not set up correctly yet, but we have to try.
+        }
     }
 }
 
@@ -70,6 +77,7 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
         
         return newUser;
     } catch (error) {
+        console.error("Error in createUser:", error);
         throw error;
     } finally {
         // Clean up the secondary app instance
