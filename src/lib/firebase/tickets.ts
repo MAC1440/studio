@@ -76,14 +76,19 @@ export async function updateTicket(ticketId: string, updates: Partial<Omit<Ticke
       const currentTicket = ticketSnap.data() as Ticket;
       const newAssignee = updates.assignedTo;
 
-      // Only notify if the assignee is new and not null
-      if (newAssignee && newAssignee.id !== currentTicket.assignedTo?.id) {
+      // Only notify if the new assignee is different from the old one.
+      const hasNewAssignee = !!newAssignee;
+      const hadOldAssignee = !!currentTicket.assignedTo;
+      const assigneeIdChanged = hasNewAssignee && hadOldAssignee && newAssignee.id !== currentTicket.assignedTo?.id;
+      const wasUnassignedAndNowIs = !hadOldAssignee && hasNewAssignee;
+      
+      if (assigneeIdChanged || wasUnassignedAndNowIs) {
          try {
             await notifyUser({
                 ticketId: ticketId,
                 ticketTitle: updates.title || currentTicket.title,
-                userName: newAssignee.name,
-                userEmail: newAssignee.email,
+                userName: newAssignee!.name,
+                userEmail: newAssignee!.email,
             });
         } catch (error) {
             console.error("Failed to send reassignment notification email:", error);
