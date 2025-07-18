@@ -4,10 +4,10 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User as FirebaseUser, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import type { User } from '@/lib/types';
-import { getUsers, ensureUserRecord } from '@/lib/firebase/users';
+import { getUsers } from '@/lib/firebase/users';
 import { useRouter } from 'next/navigation';
 
 
@@ -35,29 +35,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const reloadTickets = useCallback(() => {
     setTicketReloadKey(oldKey => oldKey + 1);
   }, []);
-
-  const fetchCurrentUserData = useCallback(async (firebaseUser: FirebaseUser) => {
-    // This function now also ensures the record exists, which is critical for the first login.
-    await ensureUserRecord(firebaseUser); 
+  
+  const fetchAndSetUserData = useCallback(async (firebaseUser: FirebaseUser) => {
     const userDocRef = doc(db, 'users', firebaseUser.uid);
     const userDocSnap = await getDoc(userDocRef);
     if (userDocSnap.exists()) {
-      const currentData = userDocSnap.data() as User;
-      setUserData(currentData);
-      return currentData;
+      const userData = userDocSnap.data() as User;
+      setUserData(userData);
+      return userData;
+    } else {
+      // This is the key change for the first-time admin user.
+      // If the document doesn't exist, we create it.
+      const newUser: User = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'Admin',
+        email: firebaseUser.email!,
+        role: 'admin', // First user is an admin
+        avatarUrl: firebaseUser.photoURL || `https://placehold.co/150x150.png`
+      };
+      // This write will succeed because the security rules allow a user to create their own document.
+      await setDoc(userDocRef, newUser);
+      setUserData(newUser);
+      return newUser;
     }
-    console.warn("Could not find user document after ensuring it exists.");
-    return null;
   }, []);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
       if (firebaseUser) {
         setUser(firebaseUser);
-        // The order here is critical. We must fetch the current user's data (and ensure it exists)
-        // before we try to fetch all users or do anything else that might depend on the user's role.
-        await fetchCurrentUserData(firebaseUser);
+        await fetchAndSetUserData(firebaseUser);
         const allUsers = await getUsers();
         setUsers(allUsers);
       } else {
@@ -69,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [fetchCurrentUserData]);
+  }, [fetchAndSetUserData]);
 
   const login = async (email: string, pass: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
@@ -77,7 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error("Login failed: no user returned");
     }
     // Fetch and return user data immediately after login to ensure it's available for routing.
-    return fetchCurrentUserData(userCredential.user);
+    return fetchAndSetUserData(userCredential.user);
   };
 
 
