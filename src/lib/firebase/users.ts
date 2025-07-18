@@ -1,7 +1,7 @@
 
 import { auth, db } from './config';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, getAuth, type User as FirebaseUser } from 'firebase/auth';
-import { setDoc, doc, collection, getDocs, query, deleteDoc, getDoc } from 'firebase/firestore';
+import { setDoc, doc, collection, getDocs, query, deleteDoc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { initializeApp, getApps, deleteApp } from 'firebase/app';
 
@@ -11,34 +11,6 @@ type CreateUserArgs = {
     name: string;
     role: 'admin' | 'user';
 };
-
-// This function checks if a user record exists in Firestore and creates one if it doesn't.
-// This is crucial for the first admin user, whose record might not be created on sign-up.
-export async function ensureUserRecord(firebaseUser: FirebaseUser): Promise<void> {
-    const userRef = doc(db, 'users', firebaseUser.uid);
-    const userSnap = await getDoc(userRef);
-
-    if (!userSnap.exists()) {
-        // User record doesn't exist, let's create it.
-        // This typically happens for the very first user (the admin).
-        const newUser: User = {
-            id: firebaseUser.uid,
-            name: firebaseUser.displayName || firebaseUser.email || 'Admin User',
-            email: firebaseUser.email!,
-            // The first user to trigger this will be the admin.
-            // Subsequent user creation should be handled by an admin through the UI.
-            role: 'admin', 
-            avatarUrl: firebaseUser.photoURL || `https://placehold.co/150x150.png`
-        };
-        try {
-            await setDoc(userRef, newUser);
-        } catch(error) {
-            console.error("Failed to create user record for initial admin:", error);
-            // This might fail if the rules are not set up correctly yet, but we have to try.
-        }
-    }
-}
-
 
 // IMPORTANT: This implementation has a limitation. It only creates a user record in Firestore
 // and an authentication entry. It does not provide a secure way to delete the user

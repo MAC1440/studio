@@ -32,10 +32,9 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { type User, type Ticket, TicketPriority, Project } from '@/lib/types';
+import { type User, type Ticket, TicketPriority } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createTicket, getTickets } from '@/lib/firebase/tickets';
-import { getProjects } from '@/lib/firebase/projects';
 import { getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Ticket as TicketIcon } from 'lucide-react';
@@ -45,7 +44,6 @@ import TicketDetails from '@/components/kanban/ticket-details';
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -55,10 +53,9 @@ export default function TicketsPage() {
   const fetchTicketsAndUsers = async () => {
       // Don't set is loading to true on refetch
       try {
-        const [fetchedTickets, fetchedUsers, fetchedProjects] = await Promise.all([getTickets(), getUsers(), getProjects()]);
+        const [fetchedTickets, fetchedUsers] = await Promise.all([getTickets(), getUsers()]);
         setTickets(fetchedTickets.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
         setUsers(fetchedUsers);
-        setProjects(fetchedProjects);
       } catch (error) {
         console.error("Failed to fetch data:", error);
         toast({
@@ -85,15 +82,14 @@ export default function TicketsPage() {
     const assignedToId = formData.get('assignedTo') as string;
     const tagsString = formData.get('tags') as string;
     const priority = formData.get('priority') as TicketPriority;
-    const projectId = formData.get('projectId') as string;
 
     const assignedTo = users.find(u => u.id === assignedToId) || null;
     const tags = tagsString.split(',').map(tag => ({ id: tag.trim(), label: tag.trim(), color: 'gray' })).filter(t => t.label);
 
 
-    if (title && description && projectId) {
+    if (title && description) {
         try {
-            await createTicket({ title, description, assignedTo, tags, priority, projectId });
+            await createTicket({ title, description, assignedTo, tags, priority });
             await fetchTicketsAndUsers();
             toast({
                 title: "Ticket Created",
@@ -140,26 +136,13 @@ export default function TicketsPage() {
         <h1 className="text-3xl font-bold">Ticket Management</h1>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button disabled={projects.length === 0}>Create Ticket</Button>
+            <Button>Create Ticket</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Ticket</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateTicket} className="space-y-4">
-               <div className="space-y-2">
-                  <Label htmlFor="projectId">Project</Label>
-                  <Select name="projectId" required>
-                    <SelectTrigger id="projectId">
-                      <SelectValue placeholder="Select a project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects.map(project => (
-                           <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input id="title" name="title" required />
@@ -219,7 +202,6 @@ export default function TicketsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
-              <TableHead>Project</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Assigned To</TableHead>
@@ -231,7 +213,6 @@ export default function TicketsPage() {
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                   <TableCell>
@@ -249,9 +230,6 @@ export default function TicketsPage() {
               tickets.map((ticket) => (
                 <TableRow key={ticket.id}>
                   <TableCell className="font-medium">{ticket.title}</TableCell>
-                   <TableCell>
-                      {projects.find(p => p.id === ticket.projectId)?.name || 'N/A'}
-                   </TableCell>
                    <TableCell>
                     <Badge variant={ticket.priority === 'critical' || ticket.priority === 'high' ? 'destructive' : 'secondary'} className="capitalize">{ticket.priority}</Badge>
                    </TableCell>
@@ -280,11 +258,11 @@ export default function TicketsPage() {
               ))
             ) : (
                 <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={5} className="h-24 text-center">
                         <div className="flex flex-col items-center gap-2">
                             <TicketIcon className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">No tickets found.</p>
-                            <Button size="sm" onClick={() => setIsCreateDialogOpen(true)} disabled={projects.length === 0}>Create Ticket</Button>
+                            <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>Create Ticket</Button>
                         </div>
                     </TableCell>
                 </TableRow>

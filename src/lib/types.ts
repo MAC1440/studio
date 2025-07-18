@@ -32,7 +32,6 @@ export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
 
 export type Ticket = {
   id: string;
-  projectId: string;
   title: string;
   description: string;
   status: ColumnId;
@@ -59,12 +58,3 @@ export type Notification = {
     createdAt: Timestamp;
     expiresAt: Timestamp;
 }
-
-export type Project = {
-    id: string;
-    name: string;
-    description: string;
-    createdAt: Timestamp;
-    ownerId: string;
-}
-

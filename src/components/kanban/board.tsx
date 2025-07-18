@@ -46,10 +46,7 @@ export default function KanbanBoard() {
         const tickets = await getTickets();
         const newColumns = initialColumns.map(c => ({...c, tickets: []})); // Reset tickets
         
-        // TODO: In the future, this will be dynamic based on a selected project
-        const projectTickets = tickets.filter(t => t.projectId === 'default-project');
-        
-        projectTickets.forEach(ticket => {
+        tickets.forEach(ticket => {
           const columnIndex = newColumns.findIndex(col => col.id === ticket.status);
           if (columnIndex !== -1) {
             newColumns[columnIndex].tickets.push(ticket);

@@ -64,8 +64,7 @@ function CreateTicketDialog({ users, onTicketCreated }: { users: User[], onTicke
 
         if (title && description) {
             try {
-                // TODO: This needs a projectId
-                await createTicket({ title, description, assignedTo, projectId: 'default-project' });
+                await createTicket({ title, description, assignedTo });
                 toast({
                     title: "Ticket Created",
                     description: `Ticket "${title}" has been created.`,

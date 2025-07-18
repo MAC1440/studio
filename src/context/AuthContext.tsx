@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User as FirebaseUser, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import type { User } from '@/lib/types';
 import { getUsers } from '@/lib/firebase/users';
@@ -44,19 +44,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserData(userData);
       return userData;
     } else {
-      // This is the key change for the first-time admin user.
-      // If the document doesn't exist, we create it.
-      const newUser: User = {
-        id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'Admin',
-        email: firebaseUser.email!,
-        role: 'admin', // First user is an admin
-        avatarUrl: firebaseUser.photoURL || `https://placehold.co/150x150.png`
-      };
-      // This write will succeed because the security rules allow a user to create their own document.
-      await setDoc(userDocRef, newUser);
-      setUserData(newUser);
-      return newUser;
+      // User data not found in Firestore. This can happen for a new user.
+      // The calling function should handle this case, e.g., by creating the user document.
+      console.warn(`User document not found for UID: ${firebaseUser.uid}`);
+      setUserData(null);
+      return null;
     }
   }, []);
 

@@ -40,7 +40,6 @@ async function sendNotificationEmail(ticketId: string, ticketTitle: string, user
 type CreateTicketArgs = {
   title: string;
   description: string;
-  projectId: string;
   assignedTo: User | null;
   status?: ColumnId;
   priority?: TicketPriority;
@@ -53,7 +52,6 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
     const newTicketData: Omit<Ticket, 'id'> = {
         title: args.title,
         description: args.description,
-        projectId: args.projectId,
         status: args.status || 'backlog',
         priority: args.priority || 'medium',
         tags: args.tags || [],
