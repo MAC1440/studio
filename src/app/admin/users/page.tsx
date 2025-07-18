@@ -44,7 +44,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { createUser, getUsers, deleteUser, ensureUserRecord } from '@/lib/firebase/users';
+import { createUser, getUsers, deleteUser } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users as UsersIcon, Trash2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -59,10 +59,6 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
-      // Ensure the admin user record exists before fetching all users
-      if (currentUser) {
-        await ensureUserRecord(currentUser);
-      }
       const fetchedUsers = await getUsers();
       setUsers(fetchedUsers);
     } catch (error) {
@@ -79,10 +75,8 @@ export default function UsersPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    if(currentUser) {
-      fetchUsers();
-    }
-  }, [currentUser]);
+    fetchUsers();
+  }, []);
 
 
   const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {

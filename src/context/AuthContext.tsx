@@ -4,10 +4,10 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User as FirebaseUser, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import type { User } from '@/lib/types';
-import { getUsers } from '@/lib/firebase/users';
+import { getUsers, ensureUserRecord } from '@/lib/firebase/users';
 import { useRouter } from 'next/navigation';
 
 
@@ -37,6 +37,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const fetchCurrentUserData = useCallback(async (firebaseUser: FirebaseUser) => {
+    // This function now also ensures the record exists, which is critical for the first login of an admin.
+    await ensureUserRecord(firebaseUser); 
     const userDocRef = doc(db, 'users', firebaseUser.uid);
     const userDocSnap = await getDoc(userDocRef);
     if (userDocSnap.exists()) {
@@ -52,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       if (firebaseUser) {
         setUser(firebaseUser);
-        const [allUsers] = await Promise.all([
+        const [allUsers, currentUserData] = await Promise.all([
           getUsers(),
           fetchCurrentUserData(firebaseUser),
         ]);
@@ -73,13 +75,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!userCredential.user) {
         throw new Error("Login failed: no user returned");
     }
-    // Fetch and return user data after login
+    // Fetch and return user data immediately after login to ensure it's available.
     return fetchCurrentUserData(userCredential.user);
   };
 
 
   const logout = async () => {
     await signOut(auth);
+    setUserData(null);
     router.push('/');
   };
 
