@@ -25,7 +25,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await login(email, password);
-      router.push('/');
+      router.push('/board');
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential') {
         setError('Invalid email or password. Please try again.');
