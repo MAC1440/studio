@@ -47,6 +47,12 @@ export async function sendEmail({ to, subject, html }: SendEmailArgs) {
 }
 
 export async function deleteUserFromAuth(uid: string) {
+    console.log('--- DEBUGGING deleteUserFromAuth ---');
+    console.log('NEXT_PUBLIC_FIREBASE_PROJECT_ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'Loaded' : 'MISSING');
+    console.log('FIREBASE_ADMIN_CLIENT_EMAIL:', process.env.FIREBASE_ADMIN_CLIENT_EMAIL ? 'Loaded' : 'MISSING');
+    console.log('FIREBASE_ADMIN_PRIVATE_KEY:', process.env.FIREBASE_ADMIN_PRIVATE_KEY ? 'Loaded' : 'MISSING');
+    console.log('--- END DEBUGGING ---');
+    
     if (!adminAuth) {
       const errorMessage = 'Firebase Admin SDK not initialized. User deletion is disabled. Ensure server environment variables are set correctly.';
       console.error(errorMessage);
