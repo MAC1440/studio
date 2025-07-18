@@ -8,6 +8,9 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
+  DragOverlay,
+  DropAnimation,
+  defaultDropAnimation,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -16,6 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { type Column, type ColumnId, type Ticket } from '@/lib/types';
 import KanbanColumn from './column';
+import KanbanTicket from './ticket';
 import TicketDetails from './ticket-details';
 import { Dialog } from '@/components/ui/dialog';
 
@@ -51,36 +55,59 @@ export default function KanbanBoard() {
     })
   );
 
+  const findColumn = (id: ColumnId | string): Column | undefined => {
+    return columns.find((col) => col.id === id || col.tickets.some((t) => t.id === id));
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (!over) return;
+    if (!over || active.id === over.id) {
+      return;
+    }
 
-    // Find the columns
-    const activeColumn = columns.find((col) => col.tickets.some((t) => t.id === active.id));
-    const overColumn = columns.find((col) => col.id === over.id || col.tickets.some((t) => t.id === over.id));
+    const activeId = active.id.toString();
+    const overId = over.id.toString();
+    
+    const activeColumn = findColumn(activeId);
+    const overColumn = findColumn(overId);
 
-    if (!activeColumn || !overColumn) return;
+    if (!activeColumn || !overColumn) {
+      return;
+    }
 
-    setColumns((prevColumns) => {
-      const newColumns = [...prevColumns];
-      const activeColIndex = newColumns.findIndex((col) => col.id === activeColumn.id);
-      const overColIndex = newColumns.findIndex((col) => col.id === overColumn.id);
+    setColumns((prev) => {
+      const activeItems = activeColumn.tickets;
+      const overItems = overColumn.tickets;
+      const activeIndex = activeItems.findIndex((t) => t.id === activeId);
+      const overIndex = overItems.findIndex((t) => t.id === overId);
 
-      const activeTicketIndex = activeColumn.tickets.findIndex((t) => t.id === active.id);
-      const [movedTicket] = activeColumn.tickets.splice(activeTicketIndex, 1);
+      let newColumns = [...prev];
 
       if (activeColumn.id === overColumn.id) {
-        // Moving within the same column
-        const overTicketIndex = overColumn.tickets.findIndex((t) => t.id === over.id);
-        overColumn.tickets.splice(overTicketIndex, 0, movedTicket);
+        // Same column
+        const newTickets = arrayMove(activeItems, activeIndex, overIndex);
+        const activeColIndex = newColumns.findIndex(c => c.id === activeColumn.id);
+        newColumns[activeColIndex] = { ...activeColumn, tickets: newTickets };
       } else {
-        // Moving to a different column
-        overColumn.tickets.push(movedTicket);
+        // Different columns
+        const [movedItem] = activeItems.splice(activeIndex, 1);
+
+        // Is the user dropping on a ticket or on the column?
+        const isDroppingOnTicket = overItems.some(t => t.id === overId);
+        
+        if (isDroppingOnTicket) {
+             overItems.splice(overIndex, 0, movedItem);
+        } else {
+             overItems.push(movedItem);
+        }
+        
+        const activeColIndex = newColumns.findIndex(c => c.id === activeColumn.id);
+        const overColIndex = newColumns.findIndex(c => c.id === overColumn.id);
+
+        newColumns[activeColIndex] = { ...activeColumn, tickets: [...activeItems] };
+        newColumns[overColIndex] = { ...overColumn, tickets: [...overItems] };
       }
-      
-      newColumns[activeColIndex] = { ...activeColumn };
-      newColumns[overColIndex] = { ...overColumn };
 
       return newColumns;
     });
