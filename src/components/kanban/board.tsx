@@ -1,6 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+  PointerSensor,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
 import { type Column, type ColumnId, type Ticket } from '@/lib/types';
 import KanbanColumn from './column';
 import TicketDetails from './ticket-details';
@@ -30,6 +43,49 @@ export default function KanbanBoard() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketDetailOpen, setIsTicketDetailOpen] = useState(false);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    // Find the columns
+    const activeColumn = columns.find((col) => col.tickets.some((t) => t.id === active.id));
+    const overColumn = columns.find((col) => col.id === over.id || col.tickets.some((t) => t.id === over.id));
+
+    if (!activeColumn || !overColumn) return;
+
+    setColumns((prevColumns) => {
+      const newColumns = [...prevColumns];
+      const activeColIndex = newColumns.findIndex((col) => col.id === activeColumn.id);
+      const overColIndex = newColumns.findIndex((col) => col.id === overColumn.id);
+
+      const activeTicketIndex = activeColumn.tickets.findIndex((t) => t.id === active.id);
+      const [movedTicket] = activeColumn.tickets.splice(activeTicketIndex, 1);
+
+      if (activeColumn.id === overColumn.id) {
+        // Moving within the same column
+        const overTicketIndex = overColumn.tickets.findIndex((t) => t.id === over.id);
+        overColumn.tickets.splice(overTicketIndex, 0, movedTicket);
+      } else {
+        // Moving to a different column
+        overColumn.tickets.push(movedTicket);
+      }
+      
+      newColumns[activeColIndex] = { ...activeColumn };
+      newColumns[overColIndex] = { ...overColumn };
+
+      return newColumns;
+    });
+  };
+
   const handleTicketClick = (ticket: Ticket) => {
     setSelectedTicket(ticket);
     setIsTicketDetailOpen(true);
@@ -42,15 +98,19 @@ export default function KanbanBoard() {
 
   return (
     <Dialog open={isTicketDetailOpen} onOpenChange={handleTicketDetailClose}>
-      <div className="flex h-full w-full gap-6 p-4 md:p-6 overflow-x-auto">
-        {columns.map((column) => (
-          <KanbanColumn
-            key={column.id}
-            column={column}
-            onTicketClick={handleTicketClick}
-          />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <div className="flex h-full w-full gap-6 p-4 md:p-6 overflow-x-auto">
+          <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+            {columns.map((column) => (
+              <KanbanColumn
+                key={column.id}
+                column={column}
+                onTicketClick={handleTicketClick}
+              />
+            ))}
+          </SortableContext>
+        </div>
+      </DndContext>
       {selectedTicket && <TicketDetails ticket={selectedTicket} />}
     </Dialog>
   );
