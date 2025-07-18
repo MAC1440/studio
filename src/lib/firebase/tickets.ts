@@ -3,6 +3,7 @@ import { db } from './config';
 import { collection, addDoc, getDocs, query, doc, setDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import type { Ticket, User, ColumnId, Tag, Comment, AppUser } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
+import { notifyUser } from '@/ai/flows/notify-user-flow';
 
 type CreateTicketArgs = {
   title: string;
@@ -26,6 +27,23 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
     };
 
     await setDoc(doc(db, "tickets", docRef.id), newTicketData);
+
+    // If assigned to a user, send a notification
+    if (newTicketData.assignedTo) {
+      try {
+          await notifyUser({
+              ticketId: newTicketData.id,
+              ticketTitle: newTicketData.title,
+              userName: newTicketData.assignedTo.name,
+              userEmail: newTicketData.assignedTo.email,
+          });
+      } catch (error) {
+          console.error("Failed to send notification email:", error);
+          // We don't re-throw, as the ticket creation itself was successful.
+          // In a production app, you might want to add this to a retry queue.
+      }
+    }
+
 
     return newTicketData;
 }
