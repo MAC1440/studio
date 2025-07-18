@@ -1,7 +1,48 @@
+
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Ticket, FolderKanban } from 'lucide-react';
+import { getUsers } from '@/lib/firebase/users';
+import { getTickets } from '@/lib/firebase/tickets';
+import { type User, type Ticket as TicketType } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminDashboard() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [tickets, setTickets] = useState<TicketType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [fetchedUsers, fetchedTickets] = await Promise.all([
+          getUsers(),
+          getTickets(),
+        ]);
+        setUsers(fetchedUsers);
+        setTickets(fetchedTickets);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+        toast({
+          title: 'Error',
+          description: 'Could not fetch dashboard data. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [toast]);
+
+  const openTicketsCount = tickets.filter(t => t.status !== 'done').length;
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
@@ -12,8 +53,12 @@ export default function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">10</div>
-            <p className="text-xs text-muted-foreground">+2 since last week</p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold">{users.length}</div>
+            )}
+            <p className="text-xs text-muted-foreground">Registered in the system</p>
           </CardContent>
         </Card>
         <Card>
@@ -22,8 +67,12 @@ export default function AdminDashboard() {
             <Ticket className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">125</div>
-            <p className="text-xs text-muted-foreground">+10 since yesterday</p>
+             {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+                <div className="text-2xl font-bold">{openTicketsCount}</div>
+            )}
+            <p className="text-xs text-muted-foreground">Tickets not in "Done" status</p>
           </CardContent>
         </Card>
         <Card>
@@ -32,10 +81,10 @@ export default function AdminDashboard() {
             <FolderKanban className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
-            <p className="text-xs text-muted-foreground">1 new epic this month</p>
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground">Feature not yet implemented</p>
           </CardContent>
-        </Card>
+        </card>
       </div>
     </div>
   );
