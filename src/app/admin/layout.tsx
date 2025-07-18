@@ -1,5 +1,5 @@
 import AppHeader from '@/components/layout/header';
-import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarContent } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarContent, SidebarInset } from '@/components/ui/sidebar';
 import { Home, Users, Ticket, FolderKanban } from 'lucide-react';
 import Link from 'next/link';
 
@@ -51,9 +51,11 @@ export default function AdminLayout({
               </SidebarMenu>
             </SidebarContent>
           </Sidebar>
-          <main className="flex-1 overflow-y-auto p-4 md:p-8">
-            {children}
-          </main>
+          <SidebarInset>
+            <main className="flex-1 overflow-y-auto p-4 md:p-8">
+              {children}
+            </main>
+          </SidebarInset>
         </div>
       </div>
     </SidebarProvider>
