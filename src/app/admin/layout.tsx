@@ -20,7 +20,7 @@ export default function AdminLayout({
   return (
     <AuthGuard role="admin">
       <SidebarProvider>
-        <div className="flex flex-col h-screen">
+        <div className="flex flex-col h-screen w-screen">
           <AppHeader />
           <div className="flex flex-1 overflow-hidden">
             <Sidebar>
