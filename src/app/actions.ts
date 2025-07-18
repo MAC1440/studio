@@ -1,5 +1,9 @@
+
 // src/app/actions.ts
 'use server';
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { adminAuth } from '@/lib/firebase/admin';
 
 type SendEmailArgs = {
