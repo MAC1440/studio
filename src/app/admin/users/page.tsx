@@ -124,7 +124,6 @@ export default function UsersPage() {
         title: "User Deleted",
         description: `User ${userToDelete.name} has been successfully deleted.`,
       });
-      setUserToDelete(null);
       // Refresh the list
       setUsers(users.filter(u => u.id !== userToDelete.id));
     } catch (error: any) {
@@ -141,7 +140,8 @@ export default function UsersPage() {
         variant: "destructive",
         duration: 9000,
       });
-      setUserToDelete(null);
+    } finally {
+        setUserToDelete(null);
     }
   };
 

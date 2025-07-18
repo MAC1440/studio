@@ -1,6 +1,6 @@
 
 import { auth, db } from './config';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, getAuth } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, getAuth } from 'firebase/auth';
 import { setDoc, doc, collection, getDocs, query, deleteDoc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { initializeApp, getApps, deleteApp } from 'firebase/app';
@@ -20,7 +20,9 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
 
     const secondaryAppConfig = auth.app.options;
     const secondaryAppName = `secondary-app-${Date.now()}`;
-    const secondaryApp = initializeApp(secondaryAppConfig, secondaryAppName);
+    
+    // Check if the app is already initialized to prevent errors
+    const secondaryApp = getApps().find(app => app.name === secondaryAppName) || initializeApp(secondaryAppConfig, secondaryAppName);
     const secondaryAuth = getAuth(secondaryApp);
 
     try {
@@ -37,13 +39,14 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
 
         await setDoc(doc(db, "users", user.uid), newUser);
         
-        await signOut(secondaryAuth);
+        // No need to sign out from the secondary app auth instance
         
         return newUser;
     } catch (error) {
         console.error("Error in createUser:", error);
         throw error;
     } finally {
+        // Clean up the secondary app instance
         if (getApps().some(app => app.name === secondaryAppName)) {
            await deleteApp(secondaryApp);
         }
@@ -71,15 +74,16 @@ export async function forgotPassword(email: string): Promise<void> {
 export async function deleteUser(userId: string): Promise<void> {
     // First, delete the user from Firestore.
     const userRef = doc(db, 'users', userId);
-    await deleteDoc(userRef);
-
+    
     // Then, call the server action to delete the user from Firebase Auth.
     const result = await deleteUserFromAuth(userId);
 
     if (!result.success) {
-      // If deleting from Auth fails, we should ideally re-create the Firestore document
-      // to avoid an inconsistent state, but for now, we'll just throw the error.
-      // A more robust implementation could use a transactional approach or a retry mechanism.
+      // If deleting from Auth fails, we should ideally NOT delete the Firestore document
+      // to avoid an inconsistent state. We'll throw an error to be handled by the caller.
       throw new Error(`Failed to delete user from Authentication: ${result.error}`);
     }
+
+    // Only delete from Firestore if the Auth deletion was successful.
+    await deleteDoc(userRef);
 }
