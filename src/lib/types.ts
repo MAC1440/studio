@@ -1,3 +1,6 @@
+
+import type { Timestamp } from 'firebase/firestore';
+
 export type User = {
   id: string;
   name: string;
@@ -5,6 +8,10 @@ export type User = {
   avatarUrl?: string;
   role: 'admin' | 'user';
 };
+
+// Renamed from User to avoid conflict with Firebase's User type
+export type AppUser = User;
+
 
 export type Tag = {
   id: string;
@@ -15,7 +22,7 @@ export type Tag = {
 export type Comment = {
   id:string;
   user: Pick<User, 'id' | 'name' | 'avatarUrl'>;
-  timestamp: string;
+  timestamp: Timestamp;
   message: string;
 };
 

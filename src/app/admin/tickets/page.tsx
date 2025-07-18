@@ -38,18 +38,20 @@ import { createTicket, getTickets } from '@/lib/firebase/tickets';
 import { getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Ticket as TicketIcon } from 'lucide-react';
+import TicketDetails from '@/components/kanban/ticket-details';
 
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
+  const fetchTicketsAndUsers = async () => {
+      // Don't set is loading to true on refetch
       try {
         const [fetchedTickets, fetchedUsers] = await Promise.all([getTickets(), getUsers()]);
         setTickets(fetchedTickets);
@@ -65,7 +67,10 @@ export default function TicketsPage() {
         setIsLoading(false);
       }
     };
-    fetchData();
+
+  useEffect(() => {
+    setIsLoading(true);
+    fetchTicketsAndUsers();
   }, [toast]);
 
 
@@ -75,19 +80,21 @@ export default function TicketsPage() {
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const assignedToId = formData.get('assignedTo') as string;
+    const tagsString = formData.get('tags') as string;
 
     const assignedTo = users.find(u => u.id === assignedToId) || null;
+    const tags = tagsString.split(',').map(tag => ({ id: tag.trim(), label: tag.trim(), color: 'gray' })).filter(t => t.label);
+
 
     if (title && description) {
         try {
-            const newTicket = await createTicket({ title, description, assignedTo });
-            const allTickets = await getTickets();
-            setTickets(allTickets);
+            await createTicket({ title, description, assignedTo, tags });
+            await fetchTicketsAndUsers();
             toast({
                 title: "Ticket Created",
                 description: `Ticket "${title}" has been created.`,
             });
-            setIsDialogOpen(false);
+            setIsCreateDialogOpen(false);
         } catch (error: any) {
             console.error("Failed to create ticket:", error);
             toast({
@@ -99,11 +106,26 @@ export default function TicketsPage() {
     }
   };
 
+  const handleViewTicket = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    setIsDetailDialogOpen(true);
+  }
+
+  const onTicketUpdate = async () => {
+    // Refetch the single ticket that was updated, or all for simplicity
+    await fetchTicketsAndUsers();
+    const freshTicket = (await getTickets()).find(t => t.id === selectedTicket?.id);
+    if(freshTicket) {
+      setSelectedTicket(freshTicket);
+    }
+  }
+
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Ticket Management</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>Create Ticket</Button>
           </DialogTrigger>
@@ -119,6 +141,11 @@ export default function TicketsPage() {
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" name="description" required />
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="tags">Tags</Label>
+                <Input id="tags" name="tags" placeholder="e.g. Frontend, Bug, High Priority" />
+                <p className="text-xs text-muted-foreground">Comma-separated values.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="assignedTo">Assign To</Label>
@@ -193,7 +220,7 @@ export default function TicketsPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => handleViewTicket(ticket)}>
                       View
                     </Button>
                   </TableCell>
@@ -205,7 +232,7 @@ export default function TicketsPage() {
                         <div className="flex flex-col items-center gap-2">
                             <TicketIcon className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">No tickets found.</p>
-                            <Button size="sm" onClick={() => setIsDialogOpen(true)}>Create Ticket</Button>
+                            <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>Create Ticket</Button>
                         </div>
                     </TableCell>
                 </TableRow>
@@ -213,6 +240,11 @@ export default function TicketsPage() {
           </TableBody>
         </Table>
       </div>
+      
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        {selectedTicket && <TicketDetails ticket={selectedTicket} onUpdate={onTicketUpdate} />}
+      </Dialog>
+
     </div>
   );
 }

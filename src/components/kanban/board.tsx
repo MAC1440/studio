@@ -40,12 +40,11 @@ export default function KanbanBoard() {
   const { toast } = useToast();
   const { ticketReloadKey } = useAuth();
 
-  useEffect(() => {
-    const fetchTickets = async () => {
+  const fetchBoardData = async () => {
       setIsLoading(true);
       try {
         const tickets = await getTickets();
-        const newColumns = [...initialColumns].map(c => ({...c, tickets: []})); // Reset tickets
+        const newColumns = initialColumns.map(c => ({...c, tickets: []})); // Reset tickets
         tickets.forEach(ticket => {
           const columnIndex = newColumns.findIndex(col => col.id === ticket.status);
           if (columnIndex !== -1) {
@@ -67,7 +66,9 @@ export default function KanbanBoard() {
         setIsLoading(false);
       }
     };
-    fetchTickets();
+
+  useEffect(() => {
+    fetchBoardData();
   }, [toast, ticketReloadKey]);
 
   const sensors = useSensors(
@@ -171,6 +172,16 @@ export default function KanbanBoard() {
     setSelectedTicket(null);
   }
 
+  const onTicketUpdate = async () => {
+    await fetchBoardData();
+    if(selectedTicket){
+      const freshTicket = (await getTickets()).find(t => t.id === selectedTicket?.id);
+      if(freshTicket) {
+        setSelectedTicket(freshTicket);
+      }
+    }
+  }
+
   return (
     <Dialog open={isTicketDetailOpen} onOpenChange={handleTicketDetailClose}>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -202,7 +213,7 @@ export default function KanbanBoard() {
           )}
         </div>
       </DndContext>
-      {selectedTicket && <TicketDetails ticket={selectedTicket} />}
+      {selectedTicket && <TicketDetails ticket={selectedTicket} onUpdate={onTicketUpdate} />}
     </Dialog>
   );
 }
