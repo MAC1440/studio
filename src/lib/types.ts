@@ -19,17 +19,18 @@ export type Comment = {
   message: string;
 };
 
+export type ColumnId = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
+
 export type Ticket = {
   id: string;
   title: string;
   description: string;
+  status: ColumnId;
   tags: Tag[];
   assignedTo?: User;
   epicId?: string;
   comments: Comment[];
 };
-
-export type ColumnId = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
 
 export type Column = {
   id: ColumnId;
