@@ -45,12 +45,22 @@ export default function UsersPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       setIsLoading(true);
-      const fetchedUsers = await getUsers();
-      setUsers(fetchedUsers);
-      setIsLoading(false);
+      try {
+        const fetchedUsers = await getUsers();
+        setUsers(fetchedUsers);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+        toast({
+            title: "Error Fetching Users",
+            description: "Could not load user data. Check security rules and console for errors.",
+            variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchUsers();
-  }, []);
+  }, [toast]);
 
 
   const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -73,9 +83,10 @@ export default function UsersPage() {
         } catch (error: any) {
             console.error("Failed to create user:", error);
             toast({
-                title: "Error",
-                description: error.message || "Could not create user.",
-                variant: "destructive"
+                title: "Error Creating User",
+                description: `Could not create user. Please ensure your Firestore security rules are configured correctly. Error: ${error.message}`,
+                variant: "destructive",
+                duration: 9000
             });
         }
     }

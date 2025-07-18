@@ -1,0 +1,31 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users Collection
+    // - Allow authenticated users to read the list of users (for assigning tickets, etc.)
+    // - Allow authenticated users to create their own user document
+    // - Allow users to update their own document
+    // - Only admins can create, update, or delete other users' documents
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId; // Let users create their own doc
+      allow update: if request.auth != null && request.auth.uid == userId; // Let users update their own info
+    }
+
+    // A more specific rule for admins managing users might look like this if you store roles.
+    // This allows a user whose `role` is 'admin' in Firestore to do anything.
+    match /users/{userId} {
+       allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Tickets Collection (assuming this will be added later)
+    // - Allow any authenticated user to create a ticket.
+    // - Allow any authenticated user to read all tickets.
+    // - Allow any authenticated user to update any ticket (for simplicity, can be locked down later).
+    match /tickets/{ticketId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
