@@ -39,6 +39,11 @@ export async function sendEmail({ to, subject, html }: SendEmailArgs) {
 }
 
 export async function deleteUserFromAuth(uid: string) {
+    if (!adminAuth) {
+      const errorMessage = 'Firebase Admin SDK not initialized. User deletion is disabled.';
+      console.error(errorMessage);
+      return { success: false, error: errorMessage };
+    }
     try {
         await adminAuth.deleteUser(uid);
         return { success: true };
