@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -32,39 +32,52 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { createUser, getUsers } from '@/lib/firebase/users';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const initialUsers: User[] = [
-    { id: 'user-1', name: 'Jane Doe', email: 'jane@example.com', role: 'user', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
-    { id: 'user-2', name: 'John Doe', email: 'john@example.com', role: 'user', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704e' },
-    { id: 'user-3', name: 'Admin User', email: 'admin@kanbanflow.app', role: 'admin', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
-];
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  const handleCreateUser = (event: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      const fetchedUsers = await getUsers();
+      setUsers(fetchedUsers);
+      setIsLoading(false);
+    };
+    fetchUsers();
+  }, []);
+
+
+  const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
     const role = formData.get('role') as 'admin' | 'user';
 
-    if (name && email && role) {
-        const newUser: User = {
-            id: `user-${Date.now()}`,
-            name,
-            email,
-            role,
-            avatarUrl: `https://i.pravatar.cc/150?u=${Date.now()}`
-        };
-        setUsers(prev => [...prev, newUser]);
-        toast({
-            title: "User Created",
-            description: `${name} has been added to the system.`,
-        });
-        setIsDialogOpen(false);
+    if (name && email && password && role) {
+        try {
+            const newUser = await createUser({ name, email, password, role });
+            setUsers(prev => [...prev, newUser]);
+            toast({
+                title: "User Created",
+                description: `${name} has been added to the system.`,
+            });
+            setIsDialogOpen(false);
+        } catch (error: any) {
+            console.error("Failed to create user:", error);
+            toast({
+                title: "Error",
+                description: error.message || "Could not create user.",
+                variant: "destructive"
+            });
+        }
     }
   };
 
@@ -88,6 +101,10 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input id="email" name="email" type="email" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" name="password" type="password" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
@@ -122,34 +139,56 @@ export default function UsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={user.avatarUrl} alt={user.name} />
-                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{user.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {user.email}
-                      </p>
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-48" />
+                      </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>
-                    {user.role}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm">
-                    Edit
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="h-8 w-20" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarImage src={user.avatarUrl} alt={user.name} />
+                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{user.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>
+                      {user.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm">
+                      Edit
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
