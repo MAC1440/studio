@@ -84,7 +84,7 @@ export default function AdminDashboard() {
             <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">Feature not yet implemented</p>
           </CardContent>
-        </card>
+        </Card>
       </div>
     </div>
   );

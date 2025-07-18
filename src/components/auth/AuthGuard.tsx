@@ -17,7 +17,7 @@ export default function AuthGuard({ children, role }: AuthGuardProps) {
     if (!loading) {
       if (!user) {
         // Not logged in, redirect to login page
-        router.push('/login');
+        router.push('/');
       } else if (role && userData?.role !== role) {
         // Logged in, but does not have the required role
         // For simplicity, redirecting to home. In a real app, you might show an "Access Denied" page.

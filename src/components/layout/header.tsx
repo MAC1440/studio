@@ -185,7 +185,7 @@ export default function AppHeader() {
             </>
           ) : (
             <Button asChild>
-              <Link href="/login">
+              <Link href="/">
                 <LogIn className="mr-2 h-4 w-4" />
                 Login
               </Link>
