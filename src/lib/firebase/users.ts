@@ -1,7 +1,7 @@
 
 import { auth, db } from './config';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, getAuth } from 'firebase/auth';
-import { setDoc, doc, collection, getDocs, query, deleteDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, getAuth, type User as FirebaseUser } from 'firebase/auth';
+import { setDoc, doc, collection, getDocs, query, deleteDoc, getDoc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { initializeApp, getApps, deleteApp } from 'firebase/app';
 
@@ -11,6 +11,27 @@ type CreateUserArgs = {
     name: string;
     role: 'admin' | 'user';
 };
+
+// This function checks if a user record exists in Firestore and creates one if it doesn't.
+// This is crucial for the first admin user, whose record might not be created on sign-up.
+export async function ensureUserRecord(firebaseUser: FirebaseUser): Promise<void> {
+    const userRef = doc(db, 'users', firebaseUser.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+        // User record doesn't exist, let's create it.
+        // This typically happens for the very first user (the admin).
+        const newUser: User = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || firebaseUser.email || 'Admin User',
+            email: firebaseUser.email!,
+            role: 'admin', // Default to admin for the user ensuring their own record
+            avatarUrl: firebaseUser.photoURL || `https://placehold.co/150x150.png`
+        };
+        await setDoc(userRef, newUser);
+    }
+}
+
 
 // IMPORTANT: This implementation has a limitation. It only creates a user record in Firestore
 // and an authentication entry. It does not provide a secure way to delete the user
