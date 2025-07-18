@@ -15,7 +15,7 @@ interface AuthContextType {
   user: FirebaseUser | null;
   userData: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass: string) => Promise<User | null>;
   logout: () => Promise<void>;
   users: User[];
   ticketReloadKey: number;
@@ -36,22 +36,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setTicketReloadKey(oldKey => oldKey + 1);
   }, []);
 
+  const fetchCurrentUserData = useCallback(async (firebaseUser: FirebaseUser) => {
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+      const currentData = userDocSnap.data() as User;
+      setUserData(currentData);
+      return currentData;
+    }
+    return null;
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
       if (firebaseUser) {
         setUser(firebaseUser);
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const [userDocSnap, allUsers] = await Promise.all([
-          getDoc(userDocRef),
-          getUsers()
+        const [allUsers] = await Promise.all([
+          getUsers(),
+          fetchCurrentUserData(firebaseUser),
         ]);
-        
-        if (userDocSnap.exists()) {
-          setUserData(userDocSnap.data() as User);
-        } else {
-            setUserData(null);
-        }
         setUsers(allUsers);
       } else {
         setUser(null);
@@ -62,19 +66,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [fetchCurrentUserData]);
 
   const login = async (email: string, pass: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
     if (!userCredential.user) {
         throw new Error("Login failed: no user returned");
     }
+    // Fetch and return user data after login
+    return fetchCurrentUserData(userCredential.user);
   };
 
 
   const logout = async () => {
     await signOut(auth);
-    router.push('/');
+    router.push('/login');
   };
 
   return (

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -10,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
+import { forgotPassword } from '@/lib/firebase/users';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,14 +21,19 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
     try {
-      await login(email, password);
-      router.push('/board');
+      const userData = await login(email, password);
+      if (userData?.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/board');
+      }
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential') {
         setError('Invalid email or password. Please try again.');
@@ -35,6 +43,28 @@ export default function LoginPage() {
       console.error(err);
     } finally {
         setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Please enter your email address to reset your password.");
+      return;
+    }
+    setError(null);
+    try {
+      await forgotPassword(email);
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Please check your inbox for instructions to reset your password.",
+      });
+    } catch (error: any) {
+      setError(error.message);
+      toast({
+        title: "Error",
+        description: "Could not send password reset email. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -71,7 +101,12 @@ export default function LoginPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
+                <div className="flex items-center">
+                    <Label htmlFor="password">Password</Label>
+                    <Button type="button" variant="link" className="ml-auto p-0 h-auto" onClick={handleForgotPassword}>
+                        Forgot password?
+                    </Button>
+                </div>
               <Input 
                 id="password" 
                 type="password" 

@@ -21,8 +21,8 @@ function ProfilePageContent() {
         <div className="container mx-auto max-w-2xl">
           <h1 className="text-3xl font-bold mb-6">User Profile</h1>
           <Card>
-            {loading || !userData ? (
-              <CardHeader>
+            <CardHeader>
+              {loading || !userData ? (
                 <div className="flex items-center gap-4">
                   <Skeleton className="h-20 w-20 rounded-full" />
                   <div className="space-y-2">
@@ -30,19 +30,19 @@ function ProfilePageContent() {
                     <Skeleton className="h-4 w-64" />
                   </div>
                 </div>
-              </CardHeader>
-            ) : (
-              <CardHeader className="flex flex-row items-center gap-4">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={userData.avatarUrl} alt={userData.name} />
-                  <AvatarFallback>{userData.name.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <CardTitle className="text-2xl">{userData.name}</CardTitle>
-                  <CardDescription>Update your profile information and settings.</CardDescription>
+              ) : (
+                <div className="flex flex-row items-center gap-4">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={userData.avatarUrl} alt={userData.name} />
+                    <AvatarFallback>{userData.name.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <CardTitle className="text-2xl">{userData.name}</CardTitle>
+                    <CardDescription>Update your profile information and settings.</CardDescription>
+                  </div>
                 </div>
-              </CardHeader>
-            )}
+              )}
+            </CardHeader>
             <CardContent className="space-y-6">
               {loading || !userData ? (
                 <>
@@ -53,6 +53,10 @@ function ProfilePageContent() {
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-24" />
                     <Skeleton className="h-10 w-full" />
+                  </div>
+                   <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
                   </div>
                 </>
               ) : (

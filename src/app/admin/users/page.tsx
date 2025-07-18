@@ -36,37 +36,46 @@ import { useToast } from '@/hooks/use-toast';
 import { createUser, getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users as UsersIcon } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { user: currentUser } = useAuth(); // Get current admin user
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const fetchedUsers = await getUsers();
+      setUsers(fetchedUsers);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      toast({
+          title: "Error Fetching Users",
+          description: "Could not load user data. Check security rules and console for errors.",
+          variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      setIsLoading(true);
-      try {
-        const fetchedUsers = await getUsers();
-        setUsers(fetchedUsers);
-      } catch (error) {
-        console.error("Failed to fetch users:", error);
-        toast({
-            title: "Error Fetching Users",
-            description: "Could not load user data. Check security rules and console for errors.",
-            variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchUsers();
   }, [toast]);
 
 
   const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    if (!currentUser) {
+        toast({ title: "Authentication Error", description: "You must be logged in to create users.", variant: "destructive"});
+        return;
+    }
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
@@ -74,18 +83,22 @@ export default function UsersPage() {
 
     if (name && email && password && role) {
         try {
-            const newUser = await createUser({ name, email, password, role });
-            setUsers(prev => [...prev, newUser]);
+            const newUser = await createUser({ name, email, password, role }, currentUser.uid);
+            // Instead of setUsers(prev => [...prev, newUser]);
+            // We refetch the whole list to ensure consistency
+            await fetchUsers();
+
             toast({
                 title: "User Created",
                 description: `${name} has been added to the system.`,
             });
             setIsDialogOpen(false);
+            form.reset();
         } catch (error: any) {
             console.error("Failed to create user:", error);
             toast({
                 title: "Error Creating User",
-                description: `Could not create user. Please ensure your Firestore security rules are configured correctly. Error: ${error.message}`,
+                description: `Could not create user. Error: ${error.message}`,
                 variant: "destructive",
                 duration: 9000
             });
