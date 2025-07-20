@@ -1,7 +1,7 @@
 
 import { auth, db } from './config';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, getAuth } from 'firebase/auth';
-import { setDoc, doc, collection, getDocs, query, deleteDoc } from 'firebase/firestore';
+import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { initializeApp, getApps, deleteApp } from 'firebase/app';
 
@@ -52,12 +52,19 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
     }
 }
 
+export async function updateUser(uid: string, data: Partial<User>): Promise<void> {
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, data);
+}
 
 export async function getUsers(): Promise<User[]> {
     const usersCol = collection(db, 'users');
     const q = query(usersCol);
     const userSnapshot = await getDocs(q);
-    const userList = userSnapshot.docs.map(doc => doc.data() as User);
+    const userList = userSnapshot.docs.map(doc => {
+      const data = doc.data() as Omit<User, 'id'>;
+      return { ...data, id: doc.id };
+    });
     return userList;
 }
 
