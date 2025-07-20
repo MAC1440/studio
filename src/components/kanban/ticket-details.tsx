@@ -5,8 +5,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogClose
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -30,7 +28,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { addCommentToTicket, deleteTicket, updateTicket } from '@/lib/firebase/tickets';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Calendar, Flame, Trash2, User as UserIcon } from 'lucide-react';
+import { Calendar, Trash2, User as UserIcon } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -38,7 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '../ui/label';
 
 
 type TicketDetailsProps = {
@@ -71,6 +68,7 @@ function Comment({ comment }: { comment: CommentType }) {
 
 export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) {
   const [newComment, setNewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { userData, user, users } = useAuth();
   const { toast } = useToast();
 
@@ -79,7 +77,7 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
     if (!newComment.trim() || !user) {
       return;
     }
-
+    setIsSubmitting(true);
     try {
       await addCommentToTicket(ticket.id, {
         userId: user.uid,
@@ -91,10 +89,13 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
     } catch (error) {
       console.error('Failed to add comment:', error);
       toast({ title: 'Error', description: 'Could not add comment.', variant: 'destructive' });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
   const handleDeleteTicket = async () => {
+    setIsSubmitting(true);
     try {
         await deleteTicket(ticket.id);
         toast({
@@ -109,6 +110,8 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
             description: `Could not delete ticket. ${error.message}`,
             variant: "destructive",
         });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
@@ -264,15 +267,18 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                     className="mb-2"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
+                    disabled={isSubmitting}
                     />
                     <div className="flex justify-end">
-                    <Button type="submit" disabled={!newComment.trim()}>Comment</Button>
+                    <Button type="submit" disabled={isSubmitting || !newComment.trim()}>
+                        {isSubmitting ? 'Commenting...' : 'Comment'}
+                    </Button>
                     </div>
                 </form>
                 </div>
             </div>
         )}
-         <DialogFooter className="mt-4">
+         <div className="mt-4 flex justify-end">
               {userData?.role === 'admin' && (
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="sm" className="mr-auto">
@@ -281,7 +287,7 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                     </Button>
                   </AlertDialogTrigger>
               )}
-        </DialogFooter>
+        </div>
       </div>
       
        <AlertDialogContent>
@@ -294,7 +300,9 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDeleteTicket}>Continue</AlertDialogAction>
+          <AlertDialogAction onClick={handleDeleteTicket} disabled={isSubmitting}>
+            {isSubmitting ? 'Deleting...' : 'Continue'}
+            </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
       </AlertDialog>

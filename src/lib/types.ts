@@ -26,7 +26,7 @@ export type Tag = {
 };
 
 export type Comment = {
-  id:string;
+  id?:string;
   user: Pick<User, 'id' | 'name' | 'avatarUrl'>;
   timestamp: Timestamp;
   message: string;
