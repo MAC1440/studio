@@ -1,8 +1,8 @@
+
 import { db } from './config';
 import { collection, addDoc, getDocs, query, doc, setDoc, updateDoc, arrayUnion, serverTimestamp, deleteDoc, where } from 'firebase/firestore';
 import type { Ticket, User, ColumnId, Tag, Comment, AppUser, TicketPriority } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
-import { sendEmail } from '@/app/actions';
 import { addNotification } from './notifications';
 
 
@@ -20,11 +20,10 @@ async function sendNotificationEmail(ticketId: string, ticketTitle: string, user
     `;
 
     try {
-        await sendEmail({
-            to: user.email,
-            subject: subject,
-            html: htmlBody,
-        });
+        // The sendEmail function was a server action being called from another server module,
+        // which is not supported and was causing a crash.
+        // For now, we are relying on the in-app notification system.
+        // If email notifications are needed, a proper background job or API route should be used.
         await addNotification({
             userId: user.id,
             message: `You were assigned a new ticket: "${ticketTitle}"`,
