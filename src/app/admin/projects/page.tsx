@@ -158,7 +158,7 @@ export default function ProjectsPage() {
         <Button onClick={openCreateDialog}>Create Project</Button>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{projectToEdit ? 'Edit Project' : 'Create New Project'}</DialogTitle>

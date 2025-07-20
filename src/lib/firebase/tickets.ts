@@ -41,7 +41,7 @@ type CreateTicketArgs = {
   title: string;
   description: string;
   projectId: string;
-  assignedTo: User | null;
+  assignedTo?: User | null;
   status?: ColumnId;
   priority?: TicketPriority;
   tags?: Tag[];
