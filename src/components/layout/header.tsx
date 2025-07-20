@@ -212,7 +212,7 @@ function NotificationBell() {
                                     <div className="flex-1">
                                         <p className="text-sm">{n.message}</p>
                                         <p className="text-xs text-muted-foreground mt-1">
-                                            {formatDistanceToNow(n.createdAt.toDate(), { addSuffix: true })}
+                                            {n.createdAt ? formatDistanceToNow(n.createdAt.toDate(), { addSuffix: true }) : 'just now'}
                                         </p>
                                     </div>
                                 </div>
