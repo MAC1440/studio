@@ -18,6 +18,21 @@ npm run dev
 
 Open [http://localhost:9002](http://localhost:9002) with your browser to see the result.
 
+## Important: Enabling Forgot Password Emails
+
+For the "Forgot Password" feature to work, you must configure the email template in your Firebase project.
+
+1.  Go to the [Firebase Console](https://console.firebase.google.com/).
+2.  Select your project (`kanban-b3129`).
+3.  In the left-hand navigation, go to **Build > Authentication**.
+4.  Click on the **Templates** tab.
+5.  Select the **Password reset** template from the list.
+6.  By default, you might see a message asking you to customize the template. You can simply use the default settings or customize the sender name and message.
+7.  Ensure the **email address link** shown in the template editor is valid and points to your application.
+8.  Click **Save**.
+
+After saving the template, the password reset emails should be sent successfully. Check your spam folder if you don't see them immediately.
+
 ## Deployment to Firebase App Hosting
 
 This project is configured for easy deployment on Firebase App Hosting. Follow these steps to get your application live.
