@@ -7,16 +7,20 @@ import { useAuth } from '@/context/AuthContext';
 import LoginPage from './(login)/page';
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { user, userData, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
-      if (user) {
-        router.replace('/board');
+      if (user && userData) {
+        if (userData.role === 'admin') {
+            router.replace('/admin');
+        } else {
+            router.replace('/board');
+        }
       }
     }
-  }, [user, loading, router]);
+  }, [user, userData, loading, router]);
 
   if (loading) {
     return (

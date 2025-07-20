@@ -71,7 +71,7 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
        <div className="absolute top-8 left-8">
-         <Link href="/" className="flex items-center gap-2">
+         <Link href="/board" className="flex items-center gap-2">
             <LayoutGrid className="h-6 w-6 text-primary" />
             <span className="text-lg font-bold tracking-tight">KanbanFlow</span>
         </Link>
