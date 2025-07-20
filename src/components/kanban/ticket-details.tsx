@@ -1,6 +1,6 @@
 
 'use client';
-import { type Ticket, type Comment as CommentType, User } from '@/lib/types';
+import { type Ticket, type Comment as CommentType, User, TicketPriority } from '@/lib/types';
 import {
   DialogContent,
   DialogHeader,
@@ -30,7 +30,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { addCommentToTicket, deleteTicket, updateTicket } from '@/lib/firebase/tickets';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Calendar, Trash2, User as UserIcon } from 'lucide-react';
+import { Calendar, Flame, Trash2, User as UserIcon } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Label } from '../ui/label';
 
 
 type TicketDetailsProps = {
@@ -126,6 +127,20 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
     }
   };
 
+  const handlePriorityChange = async (priority: TicketPriority) => {
+    try {
+      await updateTicket(ticket.id, { priority });
+      onUpdate();
+      toast({
+        title: "Priority Updated",
+        description: `Ticket priority set to ${priority}.`,
+      });
+    } catch (error: any) {
+       console.error('Failed to update priority:', error);
+       toast({ title: 'Error', description: 'Could not update priority.', variant: 'destructive' });
+    }
+  };
+
 
   const sortedComments = ticket.comments?.sort((a, b) => {
     const dateA = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
@@ -210,6 +225,22 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                                 {users.map(u => (
                                     <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                                 ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div>
+                        <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Priority</h3>
+                        <Select onValueChange={handlePriorityChange} defaultValue={ticket.priority}>
+                            <SelectTrigger>
+                                <SelectValue>
+                                    <span className="capitalize">{ticket.priority}</span>
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                                <SelectItem value="critical">Critical</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
