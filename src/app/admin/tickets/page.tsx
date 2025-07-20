@@ -32,10 +32,11 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { type User, type Ticket, TicketPriority } from '@/lib/types';
+import { type User, type Ticket, TicketPriority, Project } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createTicket, getTickets } from '@/lib/firebase/tickets';
 import { getUsers } from '@/lib/firebase/users';
+import { getProjects } from '@/lib/firebase/projects';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Ticket as TicketIcon } from 'lucide-react';
 import TicketDetails from '@/components/kanban/ticket-details';
@@ -44,6 +45,7 @@ import TicketDetails from '@/components/kanban/ticket-details';
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -54,14 +56,19 @@ export default function TicketsPage() {
   const fetchTicketsAndUsers = async () => {
       // Don't set is loading to true on refetch
       try {
-        const [fetchedTickets, fetchedUsers] = await Promise.all([getTickets(), getUsers()]);
+        const [fetchedTickets, fetchedUsers, fetchedProjects] = await Promise.all([
+          getTickets({}), 
+          getUsers(),
+          getProjects()
+        ]);
         setTickets(fetchedTickets.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
         setUsers(fetchedUsers);
+        setProjects(fetchedProjects);
       } catch (error) {
         console.error("Failed to fetch data:", error);
         toast({
             title: "Error Fetching Data",
-            description: "Could not load tickets or users. Please try again later.",
+            description: "Could not load tickets, users, or projects. Please try again later.",
             variant: "destructive"
         });
       } finally {
@@ -84,14 +91,15 @@ export default function TicketsPage() {
     const assignedToId = formData.get('assignedTo') as string;
     const tagsString = formData.get('tags') as string;
     const priority = formData.get('priority') as TicketPriority;
+    const projectId = formData.get('projectId') as string;
 
     const assignedTo = users.find(u => u.id === assignedToId) || null;
     const tags = tagsString.split(',').map(tag => ({ id: tag.trim(), label: tag.trim(), color: 'gray' })).filter(t => t.label);
 
 
-    if (title && description) {
+    if (title && description && projectId) {
         try {
-            await createTicket({ title, description, assignedTo, tags, priority });
+            await createTicket({ title, description, assignedTo, tags, priority, projectId });
             await fetchTicketsAndUsers();
             toast({
                 title: "Ticket Created",
@@ -109,6 +117,13 @@ export default function TicketsPage() {
             setIsSubmitting(false);
         }
     } else {
+        if (!projectId) {
+             toast({
+                title: "Project Required",
+                description: `Please select a project for the ticket.`,
+                variant: "destructive",
+            });
+        }
         setIsSubmitting(false);
     }
   };
@@ -124,7 +139,7 @@ export default function TicketsPage() {
         setIsDetailDialogOpen(false);
         setSelectedTicket(null);
     } else if (selectedTicket) {
-        const freshTicket = (await getTickets()).find(t => t.id === selectedTicket?.id);
+        const freshTicket = (await getTickets({})).find(t => t.id === selectedTicket?.id);
         if(freshTicket) {
           setSelectedTicket(freshTicket);
         } else {
@@ -149,6 +164,19 @@ export default function TicketsPage() {
               <DialogTitle>Create New Ticket</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateTicket} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="projectId">Project</Label>
+                <Select name="projectId" required disabled={isSubmitting}>
+                  <SelectTrigger id="projectId">
+                    <SelectValue placeholder="Select a project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map(project => (
+                         <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input id="title" name="title" required disabled={isSubmitting} />

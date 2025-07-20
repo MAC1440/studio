@@ -43,13 +43,14 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createTicket } from '@/lib/firebase/tickets';
-import { type User, type Notification } from '@/lib/types';
+import { getProjects } from '@/lib/firebase/projects';
+import { type User, type Notification, Project } from '@/lib/types';
 import { subscribeToNotifications, markNotificationAsRead } from '@/lib/firebase/notifications';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Separator } from '../ui/separator';
 
-function CreateTicketDialog({ users, onTicketCreated }: { users: User[], onTicketCreated: () => void }) {
+function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[], projects: Project[], onTicketCreated: () => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
@@ -61,12 +62,13 @@ function CreateTicketDialog({ users, onTicketCreated }: { users: User[], onTicke
         const title = formData.get('title') as string;
         const description = formData.get('description') as string;
         const assignedToId = formData.get('assignedTo') as string;
+        const projectId = formData.get('projectId') as string;
 
         const assignedTo = users.find(u => u.id === assignedToId) || null;
 
-        if (title && description) {
+        if (title && description && projectId) {
             try {
-                await createTicket({ title, description, assignedTo });
+                await createTicket({ title, description, assignedTo, projectId });
                 toast({
                     title: "Ticket Created",
                     description: `Ticket "${title}" has been created.`,
@@ -84,6 +86,13 @@ function CreateTicketDialog({ users, onTicketCreated }: { users: User[], onTicke
                 setIsSubmitting(false);
             }
         } else {
+             if (!projectId) {
+                toast({
+                    title: "Project Required",
+                    description: `Please select a project for the ticket.`,
+                    variant: "destructive",
+                });
+            }
             setIsSubmitting(false);
         }
     };
@@ -98,6 +107,19 @@ function CreateTicketDialog({ users, onTicketCreated }: { users: User[], onTicke
                     <DialogTitle>Create New Ticket</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleCreateTicket} className="space-y-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="projectId">Project</Label>
+                        <Select name="projectId" required disabled={isSubmitting}>
+                            <SelectTrigger id="projectId">
+                                <SelectValue placeholder="Select a project" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {projects.map(project => (
+                                    <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="title">Title</Label>
                         <Input id="title" name="title" required disabled={isSubmitting} />
@@ -208,6 +230,13 @@ function NotificationBell() {
 
 export default function AppHeader() {
   const { user, userData, logout, loading, users, reloadTickets } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+      if(user) {
+          getProjects().then(setProjects).catch(console.error);
+      }
+  }, [user]);
   
   const handleTicketCreated = () => {
     if (reloadTickets) {
@@ -218,7 +247,7 @@ export default function AppHeader() {
   return (
     <header className="border-b border-border/60">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/board" className="flex items-center gap-2">
           <LayoutGrid className="h-6 w-6 text-primary" />
           <span className="text-lg font-bold tracking-tight">KanbanFlow</span>
         </Link>
@@ -230,7 +259,7 @@ export default function AppHeader() {
             </div>
           ) : user ? (
             <>
-              <CreateTicketDialog users={users} onTicketCreated={handleTicketCreated}/>
+              <CreateTicketDialog users={users} projects={projects} onTicketCreated={handleTicketCreated}/>
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

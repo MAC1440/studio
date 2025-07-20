@@ -1,5 +1,5 @@
 import { db } from './config';
-import { collection, addDoc, getDocs, query, doc, setDoc, updateDoc, arrayUnion, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, doc, setDoc, updateDoc, arrayUnion, serverTimestamp, deleteDoc, where } from 'firebase/firestore';
 import type { Ticket, User, ColumnId, Tag, Comment, AppUser, TicketPriority } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
 import { sendEmail } from '@/app/actions';
@@ -40,6 +40,7 @@ async function sendNotificationEmail(ticketId: string, ticketTitle: string, user
 type CreateTicketArgs = {
   title: string;
   description: string;
+  projectId: string;
   assignedTo: User | null;
   status?: ColumnId;
   priority?: TicketPriority;
@@ -52,6 +53,7 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
     const newTicketData: Omit<Ticket, 'id'> = {
         title: args.title,
         description: args.description,
+        projectId: args.projectId,
         status: args.status || 'backlog',
         priority: args.priority || 'medium',
         tags: args.tags || [],
@@ -70,9 +72,16 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
     return { ...newTicketData, id: docRef.id } as Ticket;
 }
 
-export async function getTickets(): Promise<Ticket[]> {
+export async function getTickets({ projectId }: { projectId?: string }): Promise<Ticket[]> {
     const ticketsCol = collection(db, 'tickets');
-    const q = query(ticketsCol);
+    
+    const conditions = [];
+    if (projectId) {
+      conditions.push(where('projectId', '==', projectId));
+    }
+    
+    const q = query(ticketsCol, ...conditions);
+    
     const ticketSnapshot = await getDocs(q);
     const ticketList = ticketSnapshot.docs.map(doc => {
       const data = doc.data();

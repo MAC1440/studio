@@ -6,13 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Ticket, FolderKanban } from 'lucide-react';
 import { getUsers } from '@/lib/firebase/users';
 import { getTickets } from '@/lib/firebase/tickets';
-import { type User, type Ticket as TicketType } from '@/lib/types';
+import { getProjects } from '@/lib/firebase/projects';
+import { type User, type Ticket as TicketType, type Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [tickets, setTickets] = useState<TicketType[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -20,12 +22,14 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [fetchedUsers, fetchedTickets] = await Promise.all([
+        const [fetchedUsers, fetchedTickets, fetchedProjects] = await Promise.all([
           getUsers(),
-          getTickets(),
+          getTickets({}),
+          getProjects(),
         ]);
         setUsers(fetchedUsers);
         setTickets(fetchedTickets);
+        setProjects(fetchedProjects);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
         toast({
@@ -77,12 +81,16 @@ export default function AdminDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Epics</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
             <FolderKanban className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">Feature not yet implemented</p>
+            {isLoading ? (
+                <Skeleton className="h-8 w-16" />
+            ) : (
+                <div className="text-2xl font-bold">{projects.length}</div>
+            )}
+            <p className="text-xs text-muted-foreground">Active projects in the system</p>
           </CardContent>
         </Card>
       </div>

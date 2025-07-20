@@ -12,6 +12,12 @@ export type User = {
 // Renamed from User to avoid conflict with Firebase's User type
 export type AppUser = User;
 
+export type Project = {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: Timestamp;
+};
 
 export type Tag = {
   id: string;
@@ -38,7 +44,7 @@ export type Ticket = {
   priority: TicketPriority;
   tags: Tag[];
   assignedTo?: User;
-  epicId?: string;
+  projectId: string;
   comments: Comment[];
   createdAt: Timestamp;
 };

@@ -23,6 +23,10 @@ import { getTickets, updateTicketStatus } from '@/lib/firebase/tickets';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
+import { getProject } from '@/lib/firebase/projects';
+import Link from 'next/link';
+import { Button } from '../ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 const initialColumns: Column[] = [
   { id: 'backlog', title: 'Sprint Backlog', tickets: [] },
@@ -32,8 +36,9 @@ const initialColumns: Column[] = [
   { id: 'done', title: 'Done', tickets: [] },
 ];
 
-export default function KanbanBoard() {
+export default function KanbanBoard({ projectId }: { projectId: string }) {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
+  const [projectName, setProjectName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketDetailOpen, setIsTicketDetailOpen] = useState(false);
@@ -43,7 +48,23 @@ export default function KanbanBoard() {
   const fetchBoardData = async () => {
       setIsLoading(true);
       try {
-        const tickets = await getTickets();
+        const [tickets, projectData] = await Promise.all([
+          getTickets({ projectId }),
+          getProject(projectId)
+        ]);
+
+        if(!projectData) {
+            toast({
+              title: "Project not found",
+              description: "The project you are looking for does not exist.",
+              variant: "destructive"
+            });
+            // Consider redirecting here
+            setProjectName("Project Not Found");
+        } else {
+            setProjectName(projectData.name);
+        }
+
         const newColumns = initialColumns.map(c => ({...c, tickets: []})); // Reset tickets
         
         tickets.forEach(ticket => {
@@ -60,7 +81,7 @@ export default function KanbanBoard() {
         console.error("Failed to fetch tickets:", error);
         toast({
           title: "Error",
-          description: "Could not fetch tickets from the database.",
+          description: "Could not fetch board data from the database.",
           variant: "destructive"
         });
       } finally {
@@ -70,7 +91,7 @@ export default function KanbanBoard() {
 
   useEffect(() => {
     fetchBoardData();
-  }, [toast, ticketReloadKey]);
+  }, [projectId, toast, ticketReloadKey]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -178,7 +199,7 @@ export default function KanbanBoard() {
     if(isDeleted) {
         handleTicketDetailClose();
     } else if (selectedTicket) {
-      const freshTicket = (await getTickets()).find(t => t.id === selectedTicket?.id);
+      const freshTicket = (await getTickets({ projectId })).find(t => t.id === selectedTicket?.id);
       if(freshTicket) {
         setSelectedTicket(freshTicket);
       } else {
@@ -191,32 +212,43 @@ export default function KanbanBoard() {
   return (
     <Dialog open={isTicketDetailOpen} onOpenChange={handleTicketDetailClose}>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <div className="flex h-full w-full gap-6 p-4 md:p-6 overflow-x-auto">
-          {isLoading ? (
-            Array.from({length: 5}).map((_, i) => (
-                <div key={i} className="flex flex-col w-72 md:w-80 shrink-0">
-                    <div className="flex items-center justify-between p-2 mb-2">
-                        <Skeleton className="h-6 w-32" />
-                        <Skeleton className="h-6 w-8 rounded-md" />
+        <div className="flex flex-col h-full w-full">
+            <div className="flex items-center gap-4 px-4 md:px-6 pt-4">
+                <Button variant="outline" size="sm" asChild>
+                    <Link href="/board">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        All Projects
+                    </Link>
+                </Button>
+                <h1 className="text-xl font-semibold text-foreground truncate">{projectName}</h1>
+            </div>
+            <div className="flex h-full w-full gap-6 p-4 md:p-6 pt-2 overflow-x-auto">
+            {isLoading ? (
+                Array.from({length: 5}).map((_, i) => (
+                    <div key={i} className="flex flex-col w-72 md:w-80 shrink-0">
+                        <div className="flex items-center justify-between p-2 mb-2">
+                            <Skeleton className="h-6 w-32" />
+                            <Skeleton className="h-6 w-8 rounded-md" />
+                        </div>
+                        <div className="flex-1 rounded-md bg-secondary/50 p-2 space-y-3">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                        </div>
                     </div>
-                    <div className="flex-1 rounded-md bg-secondary/50 p-2 space-y-3">
-                        <Skeleton className="h-24 w-full" />
-                        <Skeleton className="h-24 w-full" />
-                        <Skeleton className="h-24 w-full" />
-                    </div>
-                </div>
-            ))
-          ) : (
-            <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
-              {columns.map((column) => (
-                <KanbanColumn
-                  key={column.id}
-                  column={column}
-                  onTicketClick={handleTicketClick}
-                />
-              ))}
-            </SortableContext>
-          )}
+                ))
+            ) : (
+                <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+                {columns.map((column) => (
+                    <KanbanColumn
+                    key={column.id}
+                    column={column}
+                    onTicketClick={handleTicketClick}
+                    />
+                ))}
+                </SortableContext>
+            )}
+            </div>
         </div>
       </DndContext>
       {selectedTicket && <TicketDetails ticket={selectedTicket} onUpdate={onTicketUpdate} />}
