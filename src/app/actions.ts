@@ -1,7 +1,6 @@
 
 // src/app/actions.ts
 'use server';
-import 'dotenv/config'
 
 import { adminAuth } from '@/lib/firebase/admin';
 
