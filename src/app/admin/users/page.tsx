@@ -44,8 +44,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { createUser, getUsers, deleteUser, updateUser } from '@/lib/firebase/users';
-import { updateUserAuth } from '@/app/actions';
+import { createUser, getUsers, deleteUser } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users as UsersIcon, Trash2, Edit } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -55,7 +54,6 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
@@ -81,12 +79,7 @@ export default function UsersPage() {
     fetchUsers();
   }, []);
 
-  const closeDialog = () => {
-    setIsDialogOpen(false);
-    setUserToEdit(null);
-  };
-
-  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     const form = event.currentTarget;
@@ -96,44 +89,27 @@ export default function UsersPage() {
     const password = formData.get('password') as string;
     const role = formData.get('role') as 'admin' | 'user';
 
-    try {
-      if (userToEdit) {
-        // --- EDIT USER LOGIC ---
-        // Update Firestore document
-        await updateUser(userToEdit.id, { name, email, role });
-
-        // Update Auth if email or password changed
-        if (email !== userToEdit.email || password) {
-          const authResult = await updateUserAuth({ uid: userToEdit.id, email, password });
-          if (!authResult.success) {
-            throw new Error(authResult.error);
-          }
-        }
-        
-        toast({ title: "User Updated", description: `${name}'s details have been updated.` });
-      } else {
-        // --- CREATE USER LOGIC ---
-        if (!password) {
-            toast({ title: "Password Required", description: "A password is required for new users.", variant: "destructive" });
-            setIsSubmitting(false);
-            return;
-        }
+    if (name && email && password && role) {
+      try {
         await createUser({ name, email, password, role });
-        toast({ title: "User Created", description: `${name} has been added to the system.` });
+        await fetchUsers();
+        toast({
+          title: "User Created",
+          description: `${name} has been added to the system.`,
+        });
+        setIsDialogOpen(false);
+      } catch (error: any) {
+        console.error("Failed to create user:", error);
+        toast({
+          title: "Error Creating User",
+          description: `Could not create user. Error: ${error.message}`,
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
       }
-
-      await fetchUsers();
-      closeDialog();
-    } catch (error: any) {
-      console.error("Failed to save user:", error);
-      toast({
-        title: userToEdit ? "Error Updating User" : "Error Creating User",
-        description: `Could not save user. Error: ${error.message}`,
-        variant: "destructive",
-        duration: 9000
-      });
-    } finally {
-      setIsSubmitting(false);
+    } else {
+        setIsSubmitting(false);
     }
   };
 
@@ -161,37 +137,28 @@ export default function UsersPage() {
     }
   };
   
-  const openEditDialog = (user: User) => {
-    setUserToEdit(user);
-    setIsDialogOpen(true);
-  };
-  
-  const openCreateDialog = () => {
-    setUserToEdit(null);
-    setIsDialogOpen(true);
-  };
 
   return (
     <AlertDialog>
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">User Management</h1>
-        <Button onClick={openCreateDialog}>Create User</Button>
-      </div>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>Create User</Button>
+          </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{userToEdit ? 'Edit User' : 'Create New User'}</DialogTitle>
+              <DialogTitle>Create New User</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleFormSubmit} className="space-y-4">
+            <form onSubmit={handleCreateUser} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" name="name" required disabled={isSubmitting} defaultValue={userToEdit?.name ?? ''}/>
+                <Input id="name" name="name" required disabled={isSubmitting}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
-                <Input id="email" name="email" type="email" required disabled={isSubmitting} defaultValue={userToEdit?.email ?? ''}/>
+                <Input id="email" name="email" type="email" required disabled={isSubmitting}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
@@ -199,13 +166,12 @@ export default function UsersPage() {
                   id="password" 
                   name="password" 
                   type="password" 
-                  required={!userToEdit}
-                  placeholder={userToEdit ? 'Leave blank to keep current password' : ''}
+                  required
                   disabled={isSubmitting}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <Select name="role" defaultValue={userToEdit?.role ?? 'user'} disabled={isSubmitting}>
+                <Select name="role" defaultValue="user" disabled={isSubmitting}>
                   <SelectTrigger id="role">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
@@ -217,14 +183,14 @@ export default function UsersPage() {
               </div>
               <DialogFooter>
                 <DialogClose asChild>
-                    <Button type="button" variant="outline" onClick={closeDialog} disabled={isSubmitting}>Cancel</Button>
+                    <Button type="button" variant="outline" disabled={isSubmitting}>Cancel</Button>
                 </DialogClose>
-                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creating...' : 'Create User'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
-
+      </div>
 
       <div className="border rounded-lg">
         <Table>
@@ -283,7 +249,7 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)}>
+                      <Button variant="ghost" size="sm" disabled>
                         <Edit className="mr-2 h-4 w-4"/>
                         Edit
                       </Button>
@@ -308,7 +274,7 @@ export default function UsersPage() {
                         <div className="flex flex-col items-center gap-2">
                             <UsersIcon className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">No users found.</p>
-                            <Button size="sm" onClick={openCreateDialog}>Create User</Button>
+                            <Button size="sm" onClick={() => setIsDialogOpen(true)}>Create User</Button>
                         </div>
                     </TableCell>
                 </TableRow>
