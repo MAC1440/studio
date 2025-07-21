@@ -10,8 +10,6 @@ import { getProjects } from '@/lib/firebase/projects';
 import { type User, type Ticket as TicketType, type Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import EmailTester from '@/components/admin/EmailTester';
-import { Separator } from '@/components/ui/separator';
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
@@ -80,7 +78,7 @@ export default function AdminDashboard() {
             )}
             <p className="text-xs text-muted-foreground">Tickets not in "Done" status</p>
           </CardContent>
-        </Card>
+        </card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
@@ -95,12 +93,6 @@ export default function AdminDashboard() {
             <p className="text-xs text-muted-foreground">Active projects in the system</p>
           </CardContent>
         </Card>
-      </div>
-
-      <Separator className="my-8" />
-      
-      <div className="mt-6">
-          <EmailTester />
       </div>
 
     </div>
