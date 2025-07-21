@@ -10,6 +10,8 @@ import { getProjects } from '@/lib/firebase/projects';
 import { type User, type Ticket as TicketType, type Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import EmailTester from '@/components/admin/EmailTester';
+import { Separator } from '@/components/ui/separator';
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
@@ -94,6 +96,13 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Separator className="my-8" />
+      
+      <div className="mt-6">
+          <EmailTester />
+      </div>
+
     </div>
   );
 }
