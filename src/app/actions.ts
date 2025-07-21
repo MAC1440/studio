@@ -18,17 +18,21 @@ function getErrorMessage(error: unknown): string {
 }
 
 
-export async function sendTestEmail({
-  to,
-  fromName,
-}: {
-  to: string;
-  fromName: string;
-}) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-      return { success: false, error: "Resend API key is not configured. Please set RESEND_API_KEY." };
-  }
+export async function sendTestEmail(
+    prevState: any,
+    formData: FormData
+  ) {
+    const to = formData.get('email') as string;
+    const fromName = formData.get('fromName') as string;
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+        return { success: false, message: "Resend API key is not configured. Please set RESEND_API_KEY." };
+    }
+
+    if (!to || !fromName) {
+        return { success: false, message: "Recipient email and sender name are required." };
+    }
 
   const resend = new Resend(apiKey);
 
@@ -42,12 +46,12 @@ export async function sendTestEmail({
 
     if (error) {
       console.error('Resend error:', error);
-      return {success: false, error: getErrorMessage(error)};
+      return {success: false, message: getErrorMessage(error)};
     }
 
-    return {success: true, data};
+    return {success: true, message: `A test email has been sent to ${to}.`};
   } catch (error: unknown) {
     console.error('Failed to send email:', error);
-    return {success: false, error: getErrorMessage(error)};
+    return {success: false, message: getErrorMessage(error)};
   }
 }
