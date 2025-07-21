@@ -3,6 +3,20 @@
 
 import {Resend} from 'resend';
 
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+    if (typeof error === 'string') {
+        return error;
+    }
+    if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+        return error.message;
+    }
+    return 'An unknown error occurred.';
+}
+
+
 export async function sendTestEmail({
   to,
   fromName,
@@ -22,12 +36,12 @@ export async function sendTestEmail({
 
     if (error) {
       console.error('Resend error:', error);
-      return {success: false, error: error.message};
+      return {success: false, error: getErrorMessage(error)};
     }
 
     return {success: true, data};
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to send email:', error);
-    return {success: false, error: error.message};
+    return {success: false, error: getErrorMessage(error)};
   }
 }
