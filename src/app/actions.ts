@@ -3,19 +3,21 @@
 
 import {Resend} from 'resend';
 
-function getErrorMessage(error: unknown): string {
-    let message: string;
-    if (error instanceof Error) {
-        message = error.message;
-    } else if (error && typeof error === 'object' && 'message' in error) {
-        message = String(error.message);
-    } else if (typeof error === 'string') {
-        message = error;
-    } else {
-        message = 'Oops! Something went wrong.';
-    }
-    return message;
-}
+// This function is being replaced with a more direct error handling approach
+// inside the server action itself to better capture specific API errors.
+// function getErrorMessage(error: unknown): string {
+//     let message: string;
+//     if (error instanceof Error) {
+//         message = error.message;
+//     } else if (error && typeof error === 'object' && 'message' in error) {
+//         message = String(error.message);
+//     } else if (typeof error === 'string') {
+//         message = error;
+//     } else {
+//         message = 'Oops! Something went wrong.';
+//     }
+//     return message;
+// }
 
 
 export async function sendTestEmail(
@@ -45,13 +47,18 @@ export async function sendTestEmail(
     });
 
     if (error) {
-      console.error('Resend error:', error);
-      return {success: false, message: getErrorMessage(error)};
+      // Directly return the error message from the Resend API response.
+      // This is more reliable than a generic error handler.
+      return {success: false, message: error.message};
     }
 
     return {success: true, message: `A test email has been sent to ${to}.`};
-  } catch (error: unknown) {
-    console.error('Failed to send email:', error);
-    return {success: false, message: getErrorMessage(error)};
+  } catch (exception: unknown) {
+    // This will catch network errors or other exceptions during the request.
+    console.error('Failed to send email:', exception);
+     if (exception instanceof Error) {
+        return { success: false, message: exception.message };
+    }
+    return {success: false, message: 'An unexpected error occurred.'};
   }
 }
