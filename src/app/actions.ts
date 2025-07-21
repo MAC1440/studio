@@ -4,16 +4,17 @@
 import {Resend} from 'resend';
 
 function getErrorMessage(error: unknown): string {
+    let message: string;
     if (error instanceof Error) {
-        return error.message;
+        message = error.message;
+    } else if (error && typeof error === 'object' && 'message' in error) {
+        message = String(error.message);
+    } else if (typeof error === 'string') {
+        message = error;
+    } else {
+        message = 'An unknown error occurred.';
     }
-    if (typeof error === 'string') {
-        return error;
-    }
-    if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-        return error.message;
-    }
-    return 'An unknown error occurred.';
+    return message;
 }
 
 
