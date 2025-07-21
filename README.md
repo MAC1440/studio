@@ -36,15 +36,24 @@ For features like "Forgot Password" and email notifications to work, you must co
 
 This application uses [Resend](https://resend.com/) to send emails for ticket assignments and tests.
 
-1.  **Get a Resend API Key:** Sign up for a free account at Resend and get your API key.
-2.  **Set Environment Variable:** You must set the `RESEND_API_KEY` environment variable.
-    *   **For local development:** Create a `.env.local` file in the root of your project and add the line:
+1.  **Get a Resend API Key:**
+    *   Sign up for a free account at [Resend](https://resend.com/).
+    *   Navigate to the [API Keys](https://resend.com/api-keys) section in your dashboard.
+    *   Click **"Create API Key"**. Give it a name (e.g., "KanbanFlow App") and set the permission to **"Full access"**.
+    *   Copy the generated API key immediately. You will not be able to see it again.
+
+2.  **Verify Your Domain (Recommended):**
+    *   To send emails from your own domain (e.g., `notifications@yourdomain.com`), you must add and verify it in the [Domains](https://resend.com/domains) section of Resend.
+    *   This is required for production use and improves email deliverability. For initial testing, you can send from `onboarding@resend.dev`.
+
+3.  **Set Environment Variable:** You must set the `RESEND_API_KEY` environment variable.
+    *   **For local development:** Create or open the `.env` file in the root of your project and add the line:
         ```
-        RESEND_API_KEY=your_api_key_here
+        RESEND_API_KEY=your_new_api_key_here
         ```
     *   **For production (Vercel, Firebase App Hosting, etc.):** Add `RESEND_API_KEY` to the environment variable settings in your hosting provider's dashboard.
 
-After these configurations, the email features should work correctly. Check your spam folder if you don't see emails immediately.
+After these configurations, the email features should work correctly. If you get an "API key is invalid" error, the most common solution is to generate a new key.
 
 ## Deployment to Firebase App Hosting
 
