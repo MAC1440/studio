@@ -12,7 +12,7 @@ function getErrorMessage(error: unknown): string {
     } else if (typeof error === 'string') {
         message = error;
     } else {
-        message = 'An unknown error occurred.';
+        message = 'Oops! Something went wrong.';
     }
     return message;
 }
@@ -25,7 +25,12 @@ export async function sendTestEmail({
   to: string;
   fromName: string;
 }) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+      return { success: false, error: "Resend API key is not configured. Please set RESEND_API_KEY." };
+  }
+
+  const resend = new Resend(apiKey);
 
   try {
     const {data, error} = await resend.emails.send({

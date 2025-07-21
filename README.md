@@ -18,20 +18,33 @@ npm run dev
 
 Open [http://localhost:9002](http://localhost:9002) with your browser to see the result.
 
-## Important: Enabling Forgot Password Emails
+## Important: Enabling Email Features
 
-For the "Forgot Password" feature to work, you must configure the email template in your Firebase project.
+For features like "Forgot Password" and email notifications to work, you must configure your Firebase project and your deployment environment.
+
+### 1. Configure Firebase for Password Resets
 
 1.  Go to the [Firebase Console](https://console.firebase.google.com/).
 2.  Select your project (`kanban-b3129`).
 3.  In the left-hand navigation, go to **Build > Authentication**.
 4.  Click on the **Templates** tab.
 5.  Select the **Password reset** template from the list.
-6.  By default, you might see a message asking you to customize the template. You can simply use the default settings or customize the sender name and message.
-7.  Ensure the **email address link** shown in the template editor is valid and points to your application.
-8.  Click **Save**.
+6.  Ensure the template is customized and saved. You can use the default settings.
+7.  Click **Save**.
 
-After saving the template, the password reset emails should be sent successfully. Check your spam folder if you don't see them immediately.
+### 2. Configure Resend for Sending Emails
+
+This application uses [Resend](https://resend.com/) to send emails for ticket assignments and tests.
+
+1.  **Get a Resend API Key:** Sign up for a free account at Resend and get your API key.
+2.  **Set Environment Variable:** You must set the `RESEND_API_KEY` environment variable.
+    *   **For local development:** Create a `.env.local` file in the root of your project and add the line:
+        ```
+        RESEND_API_KEY=your_api_key_here
+        ```
+    *   **For production (Vercel, Firebase App Hosting, etc.):** Add `RESEND_API_KEY` to the environment variable settings in your hosting provider's dashboard.
+
+After these configurations, the email features should work correctly. Check your spam folder if you don't see emails immediately.
 
 ## Deployment to Firebase App Hosting
 
