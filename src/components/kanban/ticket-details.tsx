@@ -44,7 +44,7 @@ type TicketDetailsProps = {
 };
 
 function Comment({ comment }: { comment: CommentType }) {
-  const commentTimestamp = comment.timestamp?.toDate ? comment.timestamp.toDate() : new Date();
+  const commentTimestamp = comment.timestamp instanceof Date ? comment.timestamp : comment.timestamp.toDate();
   
   return (
      <div key={comment.id} className="flex gap-3">
@@ -146,8 +146,8 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
 
 
   const sortedComments = ticket.comments?.sort((a, b) => {
-    const dateA = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
-    const dateB = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+    const dateA = a.timestamp instanceof Date ? a.timestamp.getTime() : a.timestamp.toDate().getTime();
+    const dateB = b.timestamp instanceof Date ? b.timestamp.getTime() : b.timestamp.toDate().getTime();
     return dateA - dateB;
   }) || [];
 

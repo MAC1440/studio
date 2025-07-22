@@ -1,6 +1,6 @@
 
 import { db } from './config';
-import { collection, addDoc, getDocs, query, doc, setDoc, updateDoc, arrayUnion, serverTimestamp, deleteDoc, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, doc, setDoc, updateDoc, arrayUnion, serverTimestamp, deleteDoc, where, Timestamp } from 'firebase/firestore';
 import type { Ticket, User, ColumnId, Tag, Comment, AppUser, TicketPriority, Project } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
 import { addNotification } from './notifications';
@@ -145,7 +145,7 @@ export async function addCommentToTicket(ticketId: string, {userId, message}: Ad
             avatarUrl: userData.avatarUrl
         },
         message: message,
-        timestamp: serverTimestamp()
+        timestamp: Timestamp.fromDate(new Date())
     };
     
     const ticketRef = doc(db, 'tickets', ticketId);
