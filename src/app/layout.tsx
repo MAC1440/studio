@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'KanbanFlow',
+  title: 'BoardR',
   description: 'A modern Kanban board application.',
 };
 

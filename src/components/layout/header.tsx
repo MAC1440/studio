@@ -259,7 +259,7 @@ export default function AppHeader() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
         <Link href="/board" className="flex items-center gap-2">
           <LayoutGrid className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold tracking-tight">KanbanFlow</span>
+          <span className="text-lg font-bold tracking-tight">BoardR</span>
         </Link>
         <div className="flex items-center gap-2">
           {loading ? (
