@@ -34,42 +34,12 @@ For features like "Forgot Password" and email notifications to work, you must co
 
 This project uses a service called **Resend** to send some email notifications. If you wish to enable this, you will need to create a Resend account, generate an API key, and add it as an environment variable named `RESEND_API_KEY`.
 
-## Deployment to Firebase App Hosting
+## Deployment to Vercel
 
-This project is configured for easy deployment on Firebase App Hosting. The GitHub repository includes workflows that will automatically build and deploy your application when you push changes to the `master` branch.
+This project is configured for easy deployment on Vercel.
 
-### Prerequisites
+The application is already live at: [https://boardr.vercel.app](https://boardr.vercel.app)
 
-1.  **Node.js**: Ensure you have Node.js installed on your machine. You can download it from [nodejs.org](https://nodejs.org/).
-2.  **Firebase CLI**: You'll need the Firebase Command Line Interface (CLI). If you don't have it, install it globally by running this command in your terminal:
-    ```bash
-    npm install -g firebase-tools
-    ```
-
-### Manual Deployment
-
-If you need to deploy manually, follow these steps:
-
-1.  **Login to Firebase**:
-    Open your terminal and log in to your Firebase account. This will open a browser window for you to authenticate.
-    ```bash
-    firebase login
-    ```
-
-2.  **Initialize Firebase in Your Project**:
-    Navigate to your project's root directory in the terminal. Since your project is already configured, you just need to link it to your Firebase project on the cloud. Run:
-    ```bash
-    firebase init hosting
-    ```
-    - When prompted, select **"Use an existing project"** and choose `kanban-b3129` from the list.
-    - It will detect your `firebase.json` and `apphosting.yaml` files. Confirm that you want to proceed with App Hosting.
-
-3.  **Deploy Your Application**:
-    Once the initialization is complete, you can deploy your application with a single command:
-    ```bash
-    firebase deploy
-    ```
-
-The CLI will build your Next.js application and upload it to Firebase App Hosting. After a few moments, it will provide you with a URL where your live application can be accessed.
+To deploy your own version, you can use the Vercel platform. After connecting your Git repository to Vercel, it will automatically build and deploy your application upon every push to the `master` branch. You will also need to add all the required environment variables to your Vercel project settings.
 
 It has been a pleasure building this with you! Congratulations on creating a complete application.
