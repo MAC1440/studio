@@ -20,10 +20,6 @@ async function sendAssignmentNotification(ticketId: string, ticketTitle: string,
     }
     
     try {
-        // The sendEmail function was a server action being called from another server module,
-        // which is not supported and was causing a crash.
-        // For now, we are relying on the in-app notification system.
-        // If email notifications are needed, a proper background job or API route should be used.
         await addNotification({
             userId: user.id,
             message: `You were assigned a new ticket: "${ticketTitle}"`,
@@ -32,7 +28,7 @@ async function sendAssignmentNotification(ticketId: string, ticketTitle: string,
             projectName: projectName,
         });
     } catch (error) {
-        console.error("Failed to send notification email or add notification:", error);
+        console.error("Failed to add notification:", error);
         // We don't re-throw, as the ticket creation/update itself was successful.
     }
 }
