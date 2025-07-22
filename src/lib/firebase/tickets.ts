@@ -1,24 +1,24 @@
 
 import { db } from './config';
 import { collection, addDoc, getDocs, query, doc, setDoc, updateDoc, arrayUnion, serverTimestamp, deleteDoc, where } from 'firebase/firestore';
-import type { Ticket, User, ColumnId, Tag, Comment, AppUser, TicketPriority } from '@/lib/types';
+import type { Ticket, User, ColumnId, Tag, Comment, AppUser, TicketPriority, Project } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
 import { addNotification } from './notifications';
+import { getProject } from './projects';
 
 
-async function sendNotificationEmail(ticketId: string, ticketTitle: string, user: User) {
+async function sendAssignmentNotification(ticketId: string, ticketTitle: string, projectId: string, user: User) {
     
-    const subject = `You've been assigned a new ticket: "${ticketTitle}"`;
-    const htmlBody = `
-      <h1>New Ticket Assignment</h1>
-      <p>Hi ${user.name},</p>
-      <p>You have been assigned a new ticket on KanbanFlow:</p>
-      <p><b>Title:</b> ${ticketTitle}</p>
-      <p>You can view the ticket on the board.</p>
-      <p>Thank you,</p>
-      <p>The KanbanFlow Team</p>
-    `;
-
+    let projectName = 'Unknown Project';
+    try {
+        const project = await getProject(projectId);
+        if (project) {
+            projectName = project.name;
+        }
+    } catch (e) {
+        console.error("Could not fetch project name for notification", e);
+    }
+    
     try {
         // The sendEmail function was a server action being called from another server module,
         // which is not supported and was causing a crash.
@@ -28,6 +28,8 @@ async function sendNotificationEmail(ticketId: string, ticketTitle: string, user
             userId: user.id,
             message: `You were assigned a new ticket: "${ticketTitle}"`,
             ticketId: ticketId,
+            projectId: projectId,
+            projectName: projectName,
         });
     } catch (error) {
         console.error("Failed to send notification email or add notification:", error);
@@ -65,7 +67,7 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
 
     // If assigned to a user, send a notification
     if (newTicketData.assignedTo) {
-      await sendNotificationEmail(docRef.id, newTicketData.title, newTicketData.assignedTo);
+      await sendAssignmentNotification(docRef.id, newTicketData.title, newTicketData.projectId, newTicketData.assignedTo);
     }
 
     return { ...newTicketData, id: docRef.id } as Ticket;
@@ -109,7 +111,7 @@ export async function updateTicket(ticketId: string, updates: Partial<Omit<Ticke
       const wasAssignedToNewUser = hasNewAssignee && (!hadOldAssignee || newAssignee.id !== currentTicket.assignedTo?.id);
 
       if (wasAssignedToNewUser && newAssignee) {
-        await sendNotificationEmail(ticketId, updates.title || currentTicket.title, newAssignee);
+        await sendAssignmentNotification(ticketId, updates.title || currentTicket.title, currentTicket.projectId, newAssignee);
       }
     }
     

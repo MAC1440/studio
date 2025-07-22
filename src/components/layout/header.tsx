@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket } from 'lucide-react';
+import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +49,7 @@ import { subscribeToNotifications, markNotificationAsRead } from '@/lib/firebase
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Separator } from '../ui/separator';
+import { useRouter } from 'next/navigation';
 
 function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[], projects: Project[], onTicketCreated: () => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -160,6 +161,7 @@ function NotificationBell() {
     const { user } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isOpen, setIsOpen] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         if (user?.uid) {
@@ -172,7 +174,9 @@ function NotificationBell() {
         if (!notification.read) {
             await markNotificationAsRead(notification.id);
         }
-        // TODO: Navigate to the ticket, for now, just close popover
+        if(notification.projectId) {
+            router.push(`/board/${notification.projectId}`);
+        }
         setIsOpen(false);
     };
     
@@ -211,6 +215,12 @@ function NotificationBell() {
                                     </div>
                                     <div className="flex-1">
                                         <p className="text-sm">{n.message}</p>
+                                        {n.projectName && (
+                                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                                                <FolderKanban className="h-3 w-3" />
+                                                {n.projectName}
+                                            </p>
+                                        )}
                                         <p className="text-xs text-muted-foreground mt-1">
                                             {n.createdAt ? formatDistanceToNow(n.createdAt.toDate(), { addSuffix: true }) : 'just now'}
                                         </p>

@@ -63,4 +63,6 @@ export type Notification = {
     read: boolean;
     createdAt: Timestamp;
     expiresAt: Timestamp;
+    projectId?: string;
+    projectName?: string;
 }
