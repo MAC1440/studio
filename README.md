@@ -20,9 +20,9 @@ Open [http://localhost:9002](http://localhost:9002) with your browser to see the
 
 ## Important: Enabling Email Features
 
-For features like "Forgot Password" and email notifications to work, you must configure your Firebase project and your deployment environment.
+For features like "Forgot Password" and email notifications to work, you must configure your Firebase project.
 
-### 1. Configure Firebase for Password Resets
+### Configure Firebase for Password Resets
 
 1.  Go to the [Firebase Console](https://console.firebase.google.com/).
 2.  Select your project (`kanban-b3129`).
@@ -32,32 +32,11 @@ For features like "Forgot Password" and email notifications to work, you must co
 6.  Ensure the template is customized and saved. You can use the default settings.
 7.  Click **Save**.
 
-### 2. Configure Resend for Sending Emails
-
-This application uses [Resend](https://resend.com/) to send emails for ticket assignments and tests.
-
-1.  **Get a Resend API Key:**
-    *   Sign up for a free account at [Resend](https://resend.com/).
-    *   Navigate to the [API Keys](https://resend.com/api-keys) section in your dashboard.
-    *   Click **"Create API Key"**. Give it a name (e.g., "KanbanFlow App") and set the permission to **"Full access"**.
-    *   Copy the generated API key immediately. You will not be able to see it again.
-
-2.  **Verify Your Domain (Recommended):**
-    *   To send emails from your own domain (e.g., `notifications@yourdomain.com`), you must add and verify it in the [Domains](https://resend.com/domains) section of Resend.
-    *   This is required for production use and improves email deliverability. For initial testing, you can send from `onboarding@resend.dev`.
-
-3.  **Set Environment Variable:** You must set the `RESEND_API_KEY` environment variable.
-    *   **For local development:** Create or open the `.env` file in the root of your project and add the line:
-        ```
-        RESEND_API_KEY=your_new_api_key_here
-        ```
-    *   **For production (Vercel, Firebase App Hosting, etc.):** Add `RESEND_API_KEY` to the environment variable settings in your hosting provider's dashboard.
-
-After these configurations, the email features should work correctly. If you get an "API key is invalid" error, the most common solution is to generate a new key.
+This project uses a service called **Resend** to send some email notifications. If you wish to enable this, you will need to create a Resend account, generate an API key, and add it as an environment variable named `RESEND_API_KEY`.
 
 ## Deployment to Firebase App Hosting
 
-This project is configured for easy deployment on Firebase App Hosting. Follow these steps to get your application live.
+This project is configured for easy deployment on Firebase App Hosting. The GitHub repository includes workflows that will automatically build and deploy your application when you push changes to the `master` branch.
 
 ### Prerequisites
 
@@ -67,7 +46,9 @@ This project is configured for easy deployment on Firebase App Hosting. Follow t
     npm install -g firebase-tools
     ```
 
-### Step-by-Step Guide
+### Manual Deployment
+
+If you need to deploy manually, follow these steps:
 
 1.  **Login to Firebase**:
     Open your terminal and log in to your Firebase account. This will open a browser window for you to authenticate.
