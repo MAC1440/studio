@@ -41,5 +41,3 @@ This project is configured for easy deployment on Vercel.
 The application is already live at: [https://boardr.vercel.app](https://boardr.vercel.app)
 
 To deploy your own version, you can use the Vercel platform. After connecting your Git repository to Vercel, it will automatically build and deploy your application upon every push to the `master` branch. You will also need to add all the required environment variables to your Vercel project settings.
-
-It has been a pleasure building this with you! Congratulations on creating a complete application.
