@@ -25,6 +25,7 @@ export type Proposal = {
   content: string; // Rich text content
   clientId: string;
   clientName: string; // denormalized for easy display
+  projectId: string; // Added to link proposal to a project
   status: 'draft' | 'sent' | 'accepted' | 'declined' | 'changes-requested';
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -71,7 +72,8 @@ export type Notification = {
     id: string;
     userId: string;
     message: string;
-    ticketId: string;
+    ticketId?: string; // Optional
+    proposalId?: string; // Optional
     read: boolean;
     createdAt: Timestamp;
     expiresAt: Timestamp;

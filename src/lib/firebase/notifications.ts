@@ -14,31 +14,46 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import type { Notification } from '@/lib/types';
+import { getProject } from './projects';
 
 type AddNotificationArgs = {
   userId: string;
   message: string;
-  ticketId: string;
+  ticketId?: string;
+  proposalId?: string;
   projectId: string;
-  projectName: string;
+  projectName?: string;
 };
 
-export async function addNotification({ userId, message, ticketId, projectId, projectName }: AddNotificationArgs): Promise<string> {
+export async function addNotification({ userId, message, ticketId, proposalId, projectId, projectName }: AddNotificationArgs): Promise<string> {
   const notificationsCol = collection(db, 'notifications');
   
   // Set an expiration date 7 days from now for TTL policy
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  const newNotification = {
+  let finalProjectName = projectName;
+  if (!finalProjectName) {
+      try {
+          const project = await getProject(projectId);
+          if (project) {
+              finalProjectName = project.name;
+          }
+      } catch (e) {
+          console.error("Could not fetch project name for notification", e);
+      }
+  }
+
+  const newNotification: Omit<Notification, 'id'> = {
     userId,
     message,
-    ticketId,
-    projectId,
-    projectName,
     read: false,
-    createdAt: serverTimestamp(),
+    createdAt: serverTimestamp() as Timestamp,
     expiresAt: Timestamp.fromDate(expiresAt),
+    projectId,
+    projectName: finalProjectName || 'Unknown Project',
+    ...(ticketId && { ticketId }),
+    ...(proposalId && { proposalId }),
   };
   const docRef = await addDoc(notificationsCol, newNotification);
   return docRef.id;

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban } from 'lucide-react';
+import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -174,13 +174,20 @@ function NotificationBell() {
         if (!notification.read) {
             await markNotificationAsRead(notification.id);
         }
-        if(notification.projectId) {
+        if (notification.proposalId) {
+            router.push(`/admin/proposals?open=${notification.proposalId}`);
+        } else if(notification.projectId) {
             router.push(`/board/${notification.projectId}`);
         }
         setIsOpen(false);
     };
     
     const unreadCount = notifications.filter(n => !n.read).length;
+
+    const getIconForNotification = (n: Notification) => {
+        if(n.proposalId) return <FileText className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
+        return <Ticket className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
+    }
 
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -211,7 +218,7 @@ function NotificationBell() {
                                     onClick={() => handleNotificationClick(n)}
                                 >
                                     <div className="mt-1">
-                                        <Ticket className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />
+                                        {getIconForNotification(n)}
                                     </div>
                                     <div className="flex-1">
                                         <p className="text-sm">{n.message}</p>

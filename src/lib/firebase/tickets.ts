@@ -8,24 +8,12 @@ import { getProject } from './projects';
 
 
 async function sendAssignmentNotification(ticketId: string, ticketTitle: string, projectId: string, user: User) {
-    
-    let projectName = 'Unknown Project';
-    try {
-        const project = await getProject(projectId);
-        if (project) {
-            projectName = project.name;
-        }
-    } catch (e) {
-        console.error("Could not fetch project name for notification", e);
-    }
-    
     try {
         await addNotification({
             userId: user.id,
             message: `You were assigned a new ticket: "${ticketTitle}"`,
             ticketId: ticketId,
             projectId: projectId,
-            projectName: projectName,
         });
     } catch (error) {
         console.error("Failed to add notification:", error);

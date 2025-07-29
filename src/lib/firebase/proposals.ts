@@ -3,12 +3,16 @@ import { db } from './config';
 import { collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where, arrayUnion, Timestamp } from 'firebase/firestore';
 import type { Proposal, AppUser } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
+import { addNotification } from './notifications';
+import { getProject } from './projects';
+import { getUsers } from './users';
 
 type CreateProposalArgs = {
   title: string;
   content: string;
   clientId: string;
   clientName: string;
+  projectId: string;
   status: Proposal['status'];
 };
 
@@ -27,11 +31,14 @@ export async function createProposal(args: CreateProposalArgs): Promise<Proposal
     return { ...newProposalData, id: docRef.id } as Proposal;
 }
 
-export async function getProposals(filters: { clientId?: string } = {}): Promise<Proposal[]> {
+export async function getProposals(filters: { clientId?: string, projectId?: string } = {}): Promise<Proposal[]> {
     const proposalsCol = collection(db, 'proposals');
     const conditions = [];
     if(filters.clientId) {
         conditions.push(where('clientId', '==', filters.clientId));
+    }
+    if (filters.projectId) {
+        conditions.push(where('projectId', '==', filters.projectId));
     }
     const q = query(proposalsCol, ...conditions);
     const proposalSnapshot = await getDocs(q);
@@ -61,11 +68,17 @@ type AddFeedbackArgs = {
 export async function addFeedbackToProposal(proposalId: string, {userId, message}: AddFeedbackArgs): Promise<void> {
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
-
-    if(!userSnap.exists()){
+    if (!userSnap.exists()){
         throw new Error("User not found");
     }
     const userData = userSnap.data() as AppUser;
+
+    const proposalRef = doc(db, 'proposals', proposalId);
+    const proposalSnap = await getDoc(proposalRef);
+    if (!proposalSnap.exists()) {
+        throw new Error("Proposal not found");
+    }
+    const proposalData = proposalSnap.data() as Proposal;
 
     const feedbackComment = {
         user: {
@@ -77,12 +90,28 @@ export async function addFeedbackToProposal(proposalId: string, {userId, message
         timestamp: Timestamp.fromDate(new Date())
     };
     
-    const proposalRef = doc(db, 'proposals', proposalId);
     await updateDoc(proposalRef, {
         feedback: arrayUnion(feedbackComment),
         status: 'changes-requested',
         updatedAt: serverTimestamp(),
     });
+    
+    // --- Send notification to admins ---
+    const allUsers = await getUsers();
+    const admins = allUsers.filter(u => u.role === 'admin');
+    const project = await getProject(proposalData.projectId);
+
+    const notificationPromises = admins.map(admin => {
+        return addNotification({
+            userId: admin.id,
+            message: `Feedback received from ${userData.name} for proposal: "${proposalData.title}"`,
+            proposalId: proposalId,
+            projectId: proposalData.projectId,
+            projectName: project?.name || 'Unknown Project',
+        });
+    });
+
+    await Promise.all(notificationPromises);
 }
 
 

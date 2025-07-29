@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { type User, type Proposal, type Comment } from '@/lib/types';
+import { type User, type Proposal, type Comment, type Project } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -22,7 +22,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 type ProposalEditorProps = {
   clients: User[];
-  onSave: (data: { title: string; content: string; clientId: string, status: Proposal['status'] }) => Promise<void>;
+  projects: Project[];
+  onSave: (data: { title: string; content: string; clientId: string, projectId: string; status: Proposal['status'] }) => Promise<void>;
   onClose: () => void;
   proposal: Proposal | null; 
 };
@@ -51,10 +52,11 @@ function FeedbackComment({ comment }: { comment: Comment }) {
   )
 }
 
-export default function ProposalEditor({ clients, onSave, onClose, proposal }: ProposalEditorProps) {
+export default function ProposalEditor({ clients, projects, onSave, onClose, proposal }: ProposalEditorProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [clientId, setClientId] = useState('');
+  const [projectId, setProjectId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
@@ -63,10 +65,12 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal }: P
         setTitle(proposal.title || '');
         setContent(proposal.content || '');
         setClientId(proposal.clientId || '');
+        setProjectId(proposal.projectId || '');
     } else {
         setTitle('');
         setContent('');
         setClientId('');
+        setProjectId('');
     }
   }, [proposal]);
 
@@ -74,7 +78,7 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal }: P
   const handleSubmit = async (status: Proposal['status']) => {
     setIsSubmitting(true);
     try {
-        await onSave({ title, content, clientId, status });
+        await onSave({ title, content, clientId, projectId, status });
     } catch(e) {
         console.error("Failed to save from editor", e);
         toast({title: "An unexpected error occurred", variant: "destructive"});
@@ -83,7 +87,7 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal }: P
     }
   };
   
-  const isFormValid = title && clientId && content;
+  const isFormValid = title && clientId && projectId && content;
   const isViewOnly = proposal && !['draft', 'changes-requested'].includes(proposal.status);
   const hasFeedback = proposal && proposal.feedback && proposal.feedback.length > 0;
 
@@ -117,7 +121,22 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal }: P
                 disabled={isSubmitting || isViewOnly}
               />
             </div>
-            <div className="space-y-2">
+             <div className="space-y-2">
+              <Label htmlFor="project">Project</Label>
+              <Select onValueChange={setProjectId} value={projectId} disabled={isSubmitting || isViewOnly}>
+                <SelectTrigger id="project">
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map(project => (
+                    <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+           <div className="space-y-2">
               <Label htmlFor="client">Client</Label>
               <Select onValueChange={setClientId} value={clientId} disabled={isSubmitting || isViewOnly}>
                 <SelectTrigger id="client">
@@ -130,7 +149,7 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal }: P
                 </SelectContent>
               </Select>
             </div>
-          </div>
+
 
           <div className="space-y-2 flex-1 flex flex-col">
             <Label>Content</Label>

@@ -180,12 +180,17 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         const [projectData, ticketData, proposalData] = await Promise.all([
           getProject(projectId),
           getTickets({ projectId }),
-          getProposals({ clientId: user.uid })
+          getProposals({ projectId })
         ]);
 
         setProject(projectData);
         setTickets(ticketData);
-        setProposals(proposalData.filter(p => p.status !== 'draft').sort((a,b) => b.updatedAt.toMillis() - a.updatedAt.toMillis()));
+        // Only show proposals relevant to the logged-in client that are not drafts
+        setProposals(
+            proposalData
+                .filter(p => p.clientId === user.uid && p.status !== 'draft')
+                .sort((a,b) => b.updatedAt.toMillis() - a.updatedAt.toMillis())
+        );
 
       } catch (error) {
         console.error("Failed to fetch project data:", error);
@@ -416,5 +421,3 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     </Dialog>
   );
 }
-
-    

@@ -15,7 +15,8 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { getProposals, updateProposal, createProposal } from '@/lib/firebase/proposals';
 import { getUsers } from '@/lib/firebase/users';
-import { type Proposal, type User } from '@/lib/types';
+import { getProjects } from '@/lib/firebase/projects';
+import { type Proposal, type User, type Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileText, PlusCircle, Edit, Send, MessageSquareWarning } from 'lucide-react';
 import { format } from 'date-fns';
@@ -25,6 +26,7 @@ import ProposalEditor from './proposal-editor';
 export default function ProposalsPage() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [clients, setClients] = useState<User[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
@@ -33,12 +35,14 @@ export default function ProposalsPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [fetchedProposals, fetchedUsers] = await Promise.all([
+      const [fetchedProposals, fetchedUsers, fetchedProjects] = await Promise.all([
         getProposals(),
-        getUsers()
+        getUsers(),
+        getProjects(),
       ]);
       setProposals(fetchedProposals.sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis()));
       setClients(fetchedUsers.filter(u => u.role === 'client'));
+      setProjects(fetchedProjects);
     } catch (error) {
       console.error('Failed to fetch data:', error);
       toast({
@@ -70,7 +74,7 @@ export default function ProposalsPage() {
     setEditingProposal(null);
   }
 
-  const handleSaveProposal = async (data: { title: string; content: string; clientId: string; status: Proposal['status'] }) => {
+  const handleSaveProposal = async (data: { title: string; content: string; clientId: string; projectId: string; status: Proposal['status'] }) => {
     const client = clients.find(c => c.id === data.clientId);
     if (!client) {
         toast({ title: 'Client not found', variant: 'destructive' });
@@ -226,6 +230,7 @@ export default function ProposalsPage() {
         <DialogContent className="max-w-4xl h-[90vh]">
           <ProposalEditor
             clients={clients}
+            projects={projects}
             onSave={handleSaveProposal}
             onClose={handleCloseEditor}
             proposal={editingProposal}
