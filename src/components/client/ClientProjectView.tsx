@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { getProject } from '@/lib/firebase/projects';
 import { getTickets } from '@/lib/firebase/tickets';
 import { getProposals, updateProposal, addFeedbackToProposal } from '@/lib/firebase/proposals';
-import { type Project, type Ticket, type Proposal } from '@/lib/types';
+import { type Project, type Ticket, type Proposal, type Comment } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -28,10 +28,36 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
+
+
+function FeedbackComment({ comment }: { comment: Comment }) {
+  const commentTimestamp = comment.timestamp && 'toDate' in comment.timestamp 
+    ? comment.timestamp.toDate() 
+    : comment.timestamp as Date;
+  
+  return (
+     <div key={comment.id} className="flex gap-3">
+        <Avatar>
+            <AvatarImage src={comment.user.avatarUrl} alt={comment.user.name} />
+            <AvatarFallback>{comment.user.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 rounded-md border bg-muted/50 p-3">
+            <div className="flex items-center gap-2">
+                <span className="font-semibold">{comment.user.name}</span>
+                <span className="text-xs text-muted-foreground">
+                    {commentTimestamp ? formatDistanceToNow(commentTimestamp, { addSuffix: true }) : 'just now'}
+                </span>
+            </div>
+            <p className="text-sm text-foreground/80 mt-1 whitespace-pre-wrap">{comment.message}</p>
+        </div>
+    </div>
+  )
+}
 
 function ProposalDetailDialog({ 
     proposal, 
@@ -47,6 +73,7 @@ function ProposalDetailDialog({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFeedbackMode, setIsFeedbackMode] = useState(false);
     const [feedback, setFeedback] = useState('');
+    const hasFeedback = proposal && proposal.feedback && proposal.feedback.length > 0;
 
     const handleStatusChange = async (status: 'accepted' | 'declined') => {
         setIsSubmitting(true);
@@ -78,9 +105,22 @@ function ProposalDetailDialog({
                     </span>
                 </div>
             </DialogHeader>
-            <ScrollArea className="flex-1 my-4">
-              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                  {proposal.content}
+            <ScrollArea className="flex-1 my-4 -mx-6">
+              <div className="px-6 space-y-4">
+                 {hasFeedback && (
+                    <div className="space-y-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
+                      <h3 className="font-semibold text-amber-700 dark:text-amber-400">Feedback History</h3>
+                      <div className="space-y-4">
+                        {proposal.feedback?.map((comment, index) => (
+                          <FeedbackComment key={index} comment={comment} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+                      {proposal.content}
+                  </div>
               </div>
             </ScrollArea>
             {proposal.status === 'sent' && !isFeedbackMode && (
@@ -90,6 +130,11 @@ function ProposalDetailDialog({
                         {isSubmitting ? 'Accepting...' : 'Accept Proposal'}
                     </Button>
                 </DialogFooter>
+            )}
+             {proposal.status === 'changes-requested' && (
+                 <div className="mt-auto pt-4 border-t text-center text-sm text-muted-foreground">
+                    The team has been notified of your feedback. This proposal will be updated soon.
+                </div>
             )}
             {isFeedbackMode && (
                 <div className="mt-auto pt-4 border-t">
@@ -371,3 +416,5 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     </Dialog>
   );
 }
+
+    
