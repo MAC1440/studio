@@ -152,7 +152,7 @@ export default function ClientsPage() {
                 <Label htmlFor="email">Email Address</Label>
                 <Input id="email" name="email" type="email" required disabled={isSubmitting}/>
               </div>
-              <p className="text-sm text-muted-foreground">The client will receive an email to set their password if this is their first time signing in.</p>
+              <p className="text-sm text-muted-foreground">The client will be created in the system. They will need to use the "Forgot Password" link on the login page to set their password.</p>
               <DialogFooter>
                 <DialogClose asChild>
                     <Button type="button" variant="outline" disabled={isSubmitting}>Cancel</Button>
