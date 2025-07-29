@@ -1,13 +1,14 @@
-
 import { db } from './config';
-import { collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where } from 'firebase/firestore';
-import type { Proposal } from '@/lib/types';
+import { collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where, arrayUnion, Timestamp } from 'firebase/firestore';
+import type { Proposal, AppUser } from '@/lib/types';
+import { getDoc } from 'firebase/firestore';
 
 type CreateProposalArgs = {
   title: string;
   content: string;
   clientId: string;
   clientName: string;
+  status: Proposal['status'];
 };
 
 export async function createProposal(args: CreateProposalArgs): Promise<Proposal> {
@@ -15,7 +16,6 @@ export async function createProposal(args: CreateProposalArgs): Promise<Proposal
 
     const newProposalData: Omit<Proposal, 'id'> = {
         ...args,
-        status: 'draft',
         createdAt: serverTimestamp() as any,
         updatedAt: serverTimestamp() as any,
     };
@@ -50,6 +50,39 @@ export async function updateProposal(proposalId: string, updates: Partial<Omit<P
         updatedAt: serverTimestamp(),
     });
 }
+
+type AddFeedbackArgs = {
+    userId: string;
+    message: string;
+}
+
+export async function addFeedbackToProposal(proposalId: string, {userId, message}: AddFeedbackArgs): Promise<void> {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+
+    if(!userSnap.exists()){
+        throw new Error("User not found");
+    }
+    const userData = userSnap.data() as AppUser;
+
+    const feedbackComment = {
+        user: {
+            id: userData.id,
+            name: userData.name,
+            avatarUrl: userData.avatarUrl
+        },
+        message: message,
+        timestamp: Timestamp.fromDate(new Date())
+    };
+    
+    const proposalRef = doc(db, 'proposals', proposalId);
+    await updateDoc(proposalRef, {
+        feedback: arrayUnion(feedbackComment),
+        status: 'changes-requested',
+        updatedAt: serverTimestamp(),
+    });
+}
+
 
 export async function deleteProposal(proposalId: string): Promise<void> {
     const proposalRef = doc(db, 'proposals', proposalId);

@@ -1,4 +1,3 @@
-
 import type { Timestamp } from 'firebase/firestore';
 
 export type User = {
@@ -21,14 +20,15 @@ export type Project = {
 };
 
 export type Proposal = {
-  id: string;
+  id:string;
   title: string;
   content: string; // Rich text content
   clientId: string;
   clientName: string; // denormalized for easy display
-  status: 'draft' | 'sent' | 'accepted' | 'declined';
+  status: 'draft' | 'sent' | 'accepted' | 'declined' | 'changes-requested';
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  feedback?: Comment[];
 }
 
 export type Tag = {

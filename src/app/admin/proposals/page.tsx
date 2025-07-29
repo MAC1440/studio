@@ -17,7 +17,7 @@ import { getProposals, updateProposal } from '@/lib/firebase/proposals';
 import { getUsers } from '@/lib/firebase/users';
 import { type Proposal, type User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, PlusCircle, Edit, Send } from 'lucide-react';
+import { FileText, PlusCircle, Edit, Send, MessageSquareWarning } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import ProposalEditor from './proposal-editor';
@@ -37,7 +37,7 @@ export default function ProposalsPage() {
         getProposals(),
         getUsers()
       ]);
-      setProposals(fetchedProposals.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()));
+      setProposals(fetchedProposals.sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis()));
       setClients(fetchedUsers.filter(u => u.role === 'client'));
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -80,7 +80,13 @@ export default function ProposalsPage() {
     try {
       let toastMessage = 'Proposal Saved';
       if (editingProposal) {
-        await updateProposal(editingProposal.id, { ...data, clientName: client.name });
+        // When admin re-sends, clear feedback and set status to 'sent'
+        const updates: Partial<Proposal> = { ...data, clientName: client.name };
+        if (editingProposal.status === 'changes-requested' && data.status === 'sent') {
+          updates.feedback = []; // Clear feedback
+        }
+
+        await updateProposal(editingProposal.id, updates);
         toastMessage = data.status === 'sent' ? 'Proposal sent to client.' : 'Proposal updated.';
       } else {
         // This flow is now handled inside the editor
@@ -102,7 +108,7 @@ export default function ProposalsPage() {
 
   const handleSendProposal = async (proposal: Proposal) => {
     try {
-      await updateProposal(proposal.id, { status: 'sent' });
+      await updateProposal(proposal.id, { status: 'sent', feedback: [] }); // Clear feedback on send
       toast({
         title: 'Proposal Sent',
         description: `The proposal "${proposal.title}" has been sent to the client.`,
@@ -124,6 +130,8 @@ export default function ProposalsPage() {
         return 'default';
       case 'declined':
         return 'destructive';
+      case 'changes-requested':
+        return 'secondary';
       case 'sent':
         return 'secondary';
       case 'draft':
@@ -169,19 +177,24 @@ export default function ProposalsPage() {
                   <TableRow key={proposal.id}>
                     <TableCell className="font-medium">{proposal.title}</TableCell>
                     <TableCell>{proposal.clientName}</TableCell>
-                    <TableCell><Badge variant={getStatusBadgeVariant(proposal.status)} className="capitalize">{proposal.status}</Badge></TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={getStatusBadgeVariant(proposal.status)} className="capitalize">{proposal.status.replace('-', ' ')}</Badge>
+                        {proposal.status === 'changes-requested' && <MessageSquareWarning className="h-4 w-4 text-amber-500" />}
+                      </div>
+                    </TableCell>
                     <TableCell>{format(proposal.updatedAt.toDate(), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end items-center gap-2">
-                          {proposal.status === 'draft' && (
+                          {(proposal.status === 'draft' || proposal.status === 'changes-requested') && (
                             <Button variant="ghost" size="sm" onClick={() => handleSendProposal(proposal)}>
                                 <Send className="mr-2 h-4 w-4" />
-                                Send
+                                {proposal.status === 'changes-requested' ? 'Re-send' : 'Send'}
                             </Button>
                           )}
                           <Button variant="ghost" size="sm" onClick={() => handleEditClick(proposal)}>
                             <Edit className="mr-2 h-4 w-4" />
-                            {proposal.status === 'draft' ? 'Edit' : 'View'}
+                            {proposal.status === 'draft' || proposal.status === 'changes-requested' ? 'Edit' : 'View'}
                           </Button>
                       </div>
                     </TableCell>

@@ -4,12 +4,12 @@
 import { useState, useEffect } from 'react';
 import { getProject } from '@/lib/firebase/projects';
 import { getTickets } from '@/lib/firebase/tickets';
-import { getProposals, updateProposal } from '@/lib/firebase/proposals';
+import { getProposals, updateProposal, addFeedbackToProposal } from '@/lib/firebase/proposals';
 import { type Project, type Ticket, type Proposal } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, BarChart, FileText, GanttChartSquare } from 'lucide-react';
+import { ArrowLeft, BarChart, FileText, GanttChartSquare, MessageSquarePlus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -25,19 +25,46 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
+import { Textarea } from '../ui/textarea';
 
-function ProposalDetailDialog({ proposal, onClose, onStatusChange }: { proposal: Proposal, onClose: () => void, onStatusChange: (status: 'accepted' | 'declined') => void }) {
+function ProposalDetailDialog({ 
+    proposal, 
+    onClose, 
+    onStatusChange,
+    onFeedbackSubmit 
+}: { 
+    proposal: Proposal, 
+    onClose: () => void, 
+    onStatusChange: (status: 'accepted' | 'declined') => void,
+    onFeedbackSubmit: (feedback: string) => Promise<void>
+}) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isFeedbackMode, setIsFeedbackMode] = useState(false);
+    const [feedback, setFeedback] = useState('');
 
     const handleStatusChange = async (status: 'accepted' | 'declined') => {
         setIsSubmitting(true);
         await onStatusChange(status);
         setIsSubmitting(false);
+    }
+
+    const handleFeedbackRequest = () => {
+        setIsFeedbackMode(true);
+    }
+    
+    const handleSubmitFeedback = async () => {
+        if (!feedback.trim()) return;
+        setIsSubmitting(true);
+        await onFeedbackSubmit(feedback);
+        setIsSubmitting(false);
+        setFeedback('');
+        setIsFeedbackMode(false);
     }
     
     return (
@@ -45,7 +72,7 @@ function ProposalDetailDialog({ proposal, onClose, onStatusChange }: { proposal:
             <DialogHeader>
                 <DialogTitle>{proposal.title}</DialogTitle>
                 <div className="flex items-center gap-2 pt-2">
-                    <Badge variant={proposal.status === 'accepted' ? 'default' : proposal.status === 'declined' ? 'destructive' : 'secondary'} className="capitalize">{proposal.status}</Badge>
+                    <Badge variant={proposal.status === 'accepted' ? 'default' : proposal.status === 'declined' || proposal.status === 'changes-requested' ? 'destructive' : 'secondary'} className="capitalize">{proposal.status.replace('-', ' ')}</Badge>
                     <span className="text-sm text-muted-foreground">
                         Last updated: {format(proposal.updatedAt.toDate(), 'MMM d, yyyy')}
                     </span>
@@ -56,13 +83,36 @@ function ProposalDetailDialog({ proposal, onClose, onStatusChange }: { proposal:
                   {proposal.content}
               </div>
             </ScrollArea>
-            {proposal.status === 'sent' && (
+            {proposal.status === 'sent' && !isFeedbackMode && (
                 <DialogFooter className="mt-auto pt-4 border-t">
-                    <Button variant="outline" onClick={() => handleStatusChange('declined')} disabled={isSubmitting}>Decline</Button>
+                    <Button variant="outline" onClick={handleFeedbackRequest}>Request Changes</Button>
                     <Button onClick={() => handleStatusChange('accepted')} disabled={isSubmitting}>
                         {isSubmitting ? 'Accepting...' : 'Accept Proposal'}
                     </Button>
                 </DialogFooter>
+            )}
+            {isFeedbackMode && (
+                <div className="mt-auto pt-4 border-t">
+                    <DialogHeader>
+                        <DialogTitle>Request Changes</DialogTitle>
+                        <DialogDescription>Please provide your feedback below. This will send the proposal back to the team for revisions.</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Textarea
+                            placeholder="e.g. 'Can we adjust the timeline for phase 2?'"
+                            value={feedback}
+                            onChange={(e) => setFeedback(e.target.value)}
+                            className="min-h-[100px]"
+                            disabled={isSubmitting}
+                        />
+                    </div>
+                     <DialogFooter>
+                        <Button variant="ghost" onClick={() => setIsFeedbackMode(false)} disabled={isSubmitting}>Cancel</Button>
+                        <Button onClick={handleSubmitFeedback} disabled={isSubmitting || !feedback.trim()}>
+                            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+                        </Button>
+                    </DialogFooter>
+                </div>
             )}
         </DialogContent>
     );
@@ -90,7 +140,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
 
         setProject(projectData);
         setTickets(ticketData);
-        setProposals(proposalData.filter(p => p.status !== 'draft').sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()));
+        setProposals(proposalData.filter(p => p.status !== 'draft').sort((a,b) => b.updatedAt.toMillis() - a.updatedAt.toMillis()));
 
       } catch (error) {
         console.error("Failed to fetch project data:", error);
@@ -119,6 +169,29 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         toast({
             title: 'Error',
             description: 'Could not update the proposal status.',
+            variant: 'destructive'
+        });
+    }
+  }
+  
+  const handleProposalFeedbackSubmit = async (feedback: string) => {
+    if(!selectedProposal || !user) return;
+    try {
+        await addFeedbackToProposal(selectedProposal.id, {
+            userId: user.uid,
+            message: feedback
+        });
+        toast({
+            title: "Feedback Submitted",
+            description: "Your feedback has been sent to the team.",
+        });
+        setSelectedProposal(null);
+        await fetchClientData();
+    } catch(error) {
+        console.error("Failed to submit feedback", error);
+        toast({
+            title: 'Error',
+            description: 'Could not submit your feedback.',
             variant: 'destructive'
         });
     }
@@ -263,7 +336,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                         <TableRow>
                             <TableHead>Title</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Created</TableHead>
+                            <TableHead>Last Updated</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -271,11 +344,11 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                         {proposals.length > 0 ? proposals.map(proposal => (
                             <TableRow key={proposal.id}>
                                 <TableCell className="font-medium">{proposal.title}</TableCell>
-                                <TableCell><Badge variant={proposal.status === 'accepted' ? 'default' : proposal.status === 'declined' ? 'destructive' : 'secondary'} className="capitalize">{proposal.status}</Badge></TableCell>
-                                <TableCell>{format(proposal.createdAt.toDate(), 'MMM d, yyyy')}</TableCell>
+                                <TableCell><Badge variant={proposal.status === 'accepted' ? 'default' : (proposal.status === 'declined' || proposal.status === 'changes-requested') ? 'destructive' : 'secondary'} className="capitalize">{proposal.status.replace('-', ' ')}</Badge></TableCell>
+                                <TableCell>{format(proposal.updatedAt.toDate(), 'MMM d, yyyy')}</TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="sm" onClick={() => setSelectedProposal(proposal)}>
-                                        View
+                                        {proposal.status === 'sent' ? 'Review' : 'View'}
                                     </Button>
                                 </TableCell>
                             </TableRow>
@@ -288,7 +361,12 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         </main>
       </div>
 
-       {selectedProposal && <ProposalDetailDialog proposal={selectedProposal} onClose={() => setSelectedProposal(null)} onStatusChange={handleProposalStatusChange} />}
+       {selectedProposal && <ProposalDetailDialog 
+            proposal={selectedProposal} 
+            onClose={() => setSelectedProposal(null)} 
+            onStatusChange={handleProposalStatusChange}
+            onFeedbackSubmit={handleProposalFeedbackSubmit}
+        />}
     </div>
     </Dialog>
   );
