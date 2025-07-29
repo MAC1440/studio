@@ -269,7 +269,7 @@ export default function AppHeader() {
             </div>
           ) : user ? (
             <>
-              <CreateTicketDialog users={users} projects={projects} onTicketCreated={handleTicketCreated}/>
+              {userData?.role !== 'client' && <CreateTicketDialog users={users} projects={projects} onTicketCreated={handleTicketCreated}/>}
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
