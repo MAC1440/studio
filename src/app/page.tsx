@@ -31,6 +31,8 @@ function LoginPage() {
       const userData = await login(email, password);
       if (userData?.role === 'admin') {
         router.push('/admin');
+      } else if (userData?.role === 'client') {
+        router.push('/client');
       } else {
         router.push('/board');
       }
@@ -138,6 +140,8 @@ export default function Home() {
       if (user && userData) {
         if (userData.role === 'admin') {
             router.replace('/admin');
+        } else if (userData.role === 'client') {
+            router.replace('/client');
         } else {
             router.replace('/board');
         }

@@ -7,12 +7,13 @@ import { Skeleton } from '../ui/skeleton';
 
 type AuthGuardProps = {
   children: React.ReactNode;
-  role?: 'admin' | 'user';
+  role?: 'admin' | 'user' | 'client';
 };
 
 export default function AuthGuard({ children, role }: AuthGuardProps) {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
+
   useEffect(() => {
     if (!loading) {
       if (!user) {
@@ -21,7 +22,9 @@ export default function AuthGuard({ children, role }: AuthGuardProps) {
       } else if (role && userData?.role !== role) {
         // Logged in, but does not have the required role
         // For simplicity, redirecting to home. In a real app, you might show an "Access Denied" page.
-        router.push('/board');
+        if(userData?.role === 'admin') router.push('/admin');
+        else if (userData?.role === 'client') router.push('/client');
+        else router.push('/board');
       }
     }
   }, [user, userData, loading, role, router]);
