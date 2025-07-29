@@ -116,8 +116,8 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal, onC
         <DialogTitle>{proposal ? (isViewOnly ? 'View Proposal' : 'Edit Proposal') : 'Create New Proposal'}</DialogTitle>
       </DialogHeader>
       
-      <div className="flex-1 py-4 overflow-y-auto -mx-6 px-6">
-        <div className="space-y-4">
+      <div className="flex flex-col flex-1 py-4 overflow-y-auto min-h-0">
+        <div className="space-y-4 px-1 flex flex-col flex-1">
           {hasFeedback && (
             <div className="space-y-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
               <h3 className="font-semibold text-amber-700 dark:text-amber-400">Client Feedback</h3>
@@ -155,12 +155,12 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal, onC
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 flex-1 flex flex-col">
             <Label>Content</Label>
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="min-h-[300px] w-full"
+              className="flex-1 w-full"
               placeholder="Write your proposal content here..."
               disabled={isSubmitting || isViewOnly}
             />
