@@ -6,6 +6,7 @@ import type { Project } from '@/lib/types';
 type CreateProjectArgs = {
   name: string;
   description?: string;
+  clientIds?: string[];
 };
 
 export async function createProject(args: CreateProjectArgs): Promise<Project> {
@@ -14,6 +15,7 @@ export async function createProject(args: CreateProjectArgs): Promise<Project> {
     const newProjectData: Omit<Project, 'id'> = {
         name: args.name,
         description: args.description || '',
+        clientIds: args.clientIds || [],
         createdAt: serverTimestamp() as any,
     };
 

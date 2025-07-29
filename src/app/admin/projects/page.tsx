@@ -34,31 +34,98 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { type Project } from '@/lib/types';
+import { type Project, type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createProject, getProjects, updateProject, deleteProject } from '@/lib/firebase/projects';
+import { getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FolderKanban, Trash2, Edit } from 'lucide-react';
+import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown } from 'lucide-react';
 import { format } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+
+
+function MultiSelectClients({ allClients, selectedClientIds, onSelectionChange }: { allClients: User[], selectedClientIds: string[], onSelectionChange: (ids: string[]) => void }) {
+  const [open, setOpen] = useState(false);
+  
+  const selectedClients = allClients.filter(c => selectedClientIds.includes(c.id));
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between"
+        >
+          <span className="truncate">
+            {selectedClients.length > 0 ? selectedClients.map(c => c.name).join(', ') : "Select clients..."}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+        <Command>
+          <CommandInput placeholder="Search clients..." />
+          <CommandList>
+            <CommandEmpty>No clients found.</CommandEmpty>
+            <CommandGroup>
+              {allClients.map((client) => (
+                <CommandItem
+                  key={client.id}
+                  value={client.email}
+                  onSelect={() => {
+                    const newSelection = selectedClientIds.includes(client.id)
+                      ? selectedClientIds.filter(id => id !== client.id)
+                      : [...selectedClientIds, client.id];
+                    onSelectionChange(newSelection);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selectedClientIds.includes(client.id) ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {client.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [clients, setClients] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
   const { toast } = useToast();
 
-  const fetchProjects = async () => {
+  const fetchData = async () => {
     try {
-      const fetchedProjects = await getProjects();
+      const [fetchedProjects, fetchedUsers] = await Promise.all([
+        getProjects(),
+        getUsers()
+      ]);
       setProjects(fetchedProjects.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
+      setClients(fetchedUsers.filter(u => u.role === 'client'));
     } catch (error) {
-      console.error("Failed to fetch projects:", error);
+      console.error("Failed to fetch data:", error);
       toast({
-          title: "Error Fetching Projects",
-          description: "Could not load project data.",
+          title: "Error Fetching Data",
+          description: "Could not load project or client data.",
           variant: "destructive"
       });
     } finally {
@@ -68,7 +135,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    fetchProjects();
+    fetchData();
   }, []);
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -79,22 +146,28 @@ export default function ProjectsPage() {
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
 
+    const projectData = {
+        name,
+        description,
+        clientIds: selectedClientIds
+    };
+
     if (name) {
         try {
             if(projectToEdit) {
-                await updateProject(projectToEdit.id, { name, description });
+                await updateProject(projectToEdit.id, projectData);
                  toast({
                     title: "Project Updated",
                     description: `Project "${name}" has been updated.`,
                 });
             } else {
-                 await createProject({ name, description });
+                 await createProject(projectData);
                 toast({
                     title: "Project Created",
                     description: `Project "${name}" has been created.`,
                 });
             }
-            await fetchProjects();
+            await fetchData();
             closeDialog();
         } catch (error: any) {
             console.error("Failed to save project:", error);
@@ -136,17 +209,20 @@ export default function ProjectsPage() {
 
   const openEditDialog = (project: Project) => {
     setProjectToEdit(project);
+    setSelectedClientIds(project.clientIds || []);
     setIsDialogOpen(true);
   };
   
   const openCreateDialog = () => {
     setProjectToEdit(null);
+    setSelectedClientIds([]);
     setIsDialogOpen(true);
   };
 
   const closeDialog = () => {
     setIsDialogOpen(false);
     setProjectToEdit(null);
+    setSelectedClientIds([]);
   }
 
 
@@ -159,7 +235,7 @@ export default function ProjectsPage() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent onInteractOutside={e => { if(isSubmitting) e.preventDefault(); }}>
           <DialogHeader>
             <DialogTitle>{projectToEdit ? 'Edit Project' : 'Create New Project'}</DialogTitle>
           </DialogHeader>
@@ -171,6 +247,14 @@ export default function ProjectsPage() {
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea id="description" name="description" disabled={isSubmitting} defaultValue={projectToEdit?.description}/>
+            </div>
+             <div className="space-y-2">
+              <Label>Assign Clients</Label>
+              <MultiSelectClients
+                allClients={clients}
+                selectedClientIds={selectedClientIds}
+                onSelectionChange={setSelectedClientIds}
+              />
             </div>
             <DialogFooter>
               <DialogClose asChild>
@@ -188,6 +272,7 @@ export default function ProjectsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Project Name</TableHead>
+              <TableHead>Assigned Clients</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -198,6 +283,9 @@ export default function ProjectsPage() {
                 <TableRow key={i}>
                   <TableCell>
                     <Skeleton className="h-4 w-48" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
                   </TableCell>
                   <TableCell>
                     <Skeleton className="h-4 w-32" />
@@ -216,6 +304,17 @@ export default function ProjectsPage() {
                   <TableCell>
                     <p className="font-medium">{project.name}</p>
                     <p className="text-sm text-muted-foreground truncate max-w-md">{project.description}</p>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {(project.clientIds || []).length > 0 ?
+                        project.clientIds?.map(id => {
+                          const client = clients.find(c => c.id === id);
+                          return client ? <Badge key={id} variant="secondary">{client.name}</Badge> : null;
+                        })
+                        : <span className="text-xs text-muted-foreground">None</span>
+                      }
+                    </div>
                   </TableCell>
                    <TableCell>
                     {project.createdAt ? format(project.createdAt.toDate(), 'MMM d, yyyy') : 'N/A'}
@@ -242,7 +341,7 @@ export default function ProjectsPage() {
               ))
             ) : (
                 <TableRow>
-                    <TableCell colSpan={3} className="h-24 text-center">
+                    <TableCell colSpan={4} className="h-24 text-center">
                         <div className="flex flex-col items-center gap-2">
                             <FolderKanban className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">No projects found.</p>
