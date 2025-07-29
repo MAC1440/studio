@@ -43,7 +43,7 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketDetailOpen, setIsTicketDetailOpen] = useState(false);
   const { toast } = useToast();
-  const { ticketReloadKey } = useAuth();
+  const { userData, ticketReloadKey } = useAuth();
 
   const fetchBoardData = async () => {
       setIsLoading(true);
@@ -209,13 +209,15 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
     }
   }
 
+  const backLinkHref = userData?.role === 'client' ? '/client' : '/board';
+
   return (
     <Dialog open={isTicketDetailOpen} onOpenChange={handleTicketDetailClose}>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="flex flex-col h-full w-full">
             <div className="flex items-center gap-4 px-4 md:px-6 pt-4">
                 <Button variant="outline" size="sm" asChild>
-                    <Link href="/board">
+                    <Link href={backLinkHref}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         All Projects
                     </Link>
