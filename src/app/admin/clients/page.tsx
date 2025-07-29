@@ -79,7 +79,7 @@ export default function ClientsPage() {
     const formData = new FormData(form);
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
-    // Auto-generate a random password for clients
+    // Auto-generate a random password for clients, as it's required but they will set their own.
     const password = Math.random().toString(36).slice(-8);
 
     if (name && email) {
@@ -88,7 +88,7 @@ export default function ClientsPage() {
         await fetchClients();
         toast({
           title: "Client Invited",
-          description: `${name} has been added to the system and can now log in.`,
+          description: `${name} has been sent an email to set up their password.`,
         });
         setIsDialogOpen(false);
       } catch (error: any) {
@@ -152,7 +152,7 @@ export default function ClientsPage() {
                 <Label htmlFor="email">Email Address</Label>
                 <Input id="email" name="email" type="email" required disabled={isSubmitting}/>
               </div>
-              <p className="text-sm text-muted-foreground">The client will be created in the system. They will need to use the "Forgot Password" link on the login page to set their password.</p>
+              <p className="text-sm text-muted-foreground">An email will be sent to the client with a link to set their password and access their dashboard.</p>
               <DialogFooter>
                 <DialogClose asChild>
                     <Button type="button" variant="outline" disabled={isSubmitting}>Cancel</Button>

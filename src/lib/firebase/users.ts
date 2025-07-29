@@ -13,19 +13,27 @@ type CreateUserArgs = {
 };
 
 export async function createUser(args: CreateUserArgs): Promise<User> {
+    const isClientInvite = args.role === 'client';
     if (!args.password) {
-        throw new Error("Password is required to create a user.");
+        if(isClientInvite){
+            // We can proceed, will auto-generate password
+        } else {
+           throw new Error("Password is required to create a user.");
+        }
     }
+    
+    // For clients, we generate a password because they will set their own via the reset link.
+    const password = args.password || Math.random().toString(36).slice(-8);
 
+    // Use a temporary, secondary Firebase app instance to create the user.
+    // This prevents the current admin from being signed out.
     const secondaryAppConfig = auth.app.options;
     const secondaryAppName = `secondary-app-${Date.now()}`;
-    
-    // Check if the app is already initialized to prevent errors
     const secondaryApp = getApps().find(app => app.name === secondaryAppName) || initializeApp(secondaryAppConfig, secondaryAppName);
     const secondaryAuth = getAuth(secondaryApp);
 
     try {
-        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, args.email, args.password);
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, args.email, password);
         const user = userCredential.user;
 
         const newUser: User = {
@@ -38,7 +46,10 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
 
         await setDoc(doc(db, "users", user.uid), newUser);
         
-        // No need to sign out from the secondary app auth instance
+        // If it's a client, send them a password reset email which acts as a "welcome" email.
+        if (isClientInvite) {
+            await sendPasswordResetEmail(auth, args.email);
+        }
         
         return newUser;
     } catch (error) {
