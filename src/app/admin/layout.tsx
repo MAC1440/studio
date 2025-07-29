@@ -1,3 +1,4 @@
+
 import AuthGuard from "@/components/auth/AuthGuard";
 import AppHeader from "@/components/layout/header";
 import {
@@ -9,7 +10,7 @@ import {
   SidebarContent,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { Home, Users, Ticket, FolderKanban, Briefcase } from "lucide-react";
+import { Home, Users, Ticket, FolderKanban, Briefcase, FileText } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminLayout({
@@ -47,6 +48,14 @@ export default function AdminLayout({
                       <Link href="/admin/clients">
                         <Briefcase />
                         Clients
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/admin/proposals">
+                        <FileText />
+                        Proposals
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

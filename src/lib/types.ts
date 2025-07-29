@@ -20,6 +20,16 @@ export type Project = {
   clientIds?: string[];
 };
 
+export type Proposal = {
+  id: string;
+  title: string;
+  content: string; // Rich text content
+  clientId: string;
+  status: 'draft' | 'sent' | 'accepted' | 'declined';
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 export type Tag = {
   id: string;
   label: string;
