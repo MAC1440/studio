@@ -1,3 +1,4 @@
+
 import { db } from './config';
 import { collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where, arrayUnion, Timestamp } from 'firebase/firestore';
 import type { Proposal, AppUser } from '@/lib/types';
@@ -18,6 +19,7 @@ export async function createProposal(args: CreateProposalArgs): Promise<Proposal
         ...args,
         createdAt: serverTimestamp() as any,
         updatedAt: serverTimestamp() as any,
+        feedback: [], // Initialize with an empty feedback array
     };
 
     await setDoc(doc(db, "proposals", docRef.id), newProposalData);

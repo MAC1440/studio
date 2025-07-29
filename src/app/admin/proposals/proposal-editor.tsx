@@ -15,12 +15,9 @@ import {
 import { DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { type User, type Proposal, type Comment } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
-import { createProposal, updateProposal } from '@/lib/firebase/proposals';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 
 
 type ProposalEditorProps = {
@@ -28,7 +25,6 @@ type ProposalEditorProps = {
   onSave: (data: { title: string; content: string; clientId: string, status: Proposal['status'] }) => Promise<void>;
   onClose: () => void;
   proposal: Proposal | null; 
-  onCreate: () => Promise<void>;
 };
 
 function FeedbackComment({ comment }: { comment: Comment }) {
@@ -55,7 +51,7 @@ function FeedbackComment({ comment }: { comment: Comment }) {
   )
 }
 
-export default function ProposalEditor({ clients, onSave, onClose, proposal, onCreate }: ProposalEditorProps) {
+export default function ProposalEditor({ clients, onSave, onClose, proposal }: ProposalEditorProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [clientId, setClientId] = useState('');
@@ -77,33 +73,14 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal, onC
 
   const handleSubmit = async (status: Proposal['status']) => {
     setIsSubmitting(true);
-     const client = clients.find(c => c.id === clientId);
-    if (!client) {
-        toast({ title: 'Client not found', variant: 'destructive' });
-        setIsSubmitting(false);
-        return;
-    }
-    
-    // When re-sending a proposal that had changes requested, clear the feedback.
-    const feedback = (status === 'sent' && proposal?.status === 'changes-requested') ? [] : proposal?.feedback;
-
-    const proposalData = { title, content, clientId, status, clientName: client.name, feedback };
-
     try {
-        if (proposal) {
-            await updateProposal(proposal.id, proposalData);
-            toast({ title: status === 'sent' ? 'Proposal sent!' : 'Proposal updated!' });
-        } else {
-            await createProposal(proposalData);
-            toast({ title: status === 'sent' ? 'Proposal created and sent!' : 'Proposal saved as draft.' });
-            await onCreate(); // Refresh the list in the parent
-        }
-        onClose();
-    } catch (e) {
-        console.error("Failed to save proposal", e);
-        toast({ title: 'Error saving proposal', variant: 'destructive' });
+        await onSave({ title, content, clientId, status });
+    } catch(e) {
+        console.error("Failed to save from editor", e);
+        toast({title: "An unexpected error occurred", variant: "destructive"});
+    } finally {
+        setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
   
   const isFormValid = title && clientId && content;
@@ -116,8 +93,8 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal, onC
         <DialogTitle>{proposal ? (isViewOnly ? 'View Proposal' : 'Edit Proposal') : 'Create New Proposal'}</DialogTitle>
       </DialogHeader>
       
-      <div className="flex flex-col flex-1 py-4 overflow-y-auto min-h-0">
-        <div className="space-y-4 px-1 flex flex-col flex-1">
+       <div className="flex flex-col flex-1 py-4 overflow-y-auto min-h-0">
+          <div className="space-y-4 px-1 flex flex-col flex-1">
           {hasFeedback && (
             <div className="space-y-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
               <h3 className="font-semibold text-amber-700 dark:text-amber-400">Client Feedback</h3>

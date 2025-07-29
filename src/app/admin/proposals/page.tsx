@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getProposals, updateProposal } from '@/lib/firebase/proposals';
+import { getProposals, updateProposal, createProposal } from '@/lib/firebase/proposals';
 import { getUsers } from '@/lib/firebase/users';
 import { type Proposal, type User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -79,18 +79,22 @@ export default function ProposalsPage() {
 
     try {
       let toastMessage = 'Proposal Saved';
+      
       if (editingProposal) {
-        // When admin re-sends, clear feedback and set status to 'sent'
         const updates: Partial<Proposal> = { ...data, clientName: client.name };
+        
+        // When admin re-sends a proposal with requested changes, clear the feedback.
         if (editingProposal.status === 'changes-requested' && data.status === 'sent') {
-          updates.feedback = []; // Clear feedback
+          updates.feedback = []; 
         }
 
         await updateProposal(editingProposal.id, updates);
         toastMessage = data.status === 'sent' ? 'Proposal sent to client.' : 'Proposal updated.';
       } else {
-        // This flow is now handled inside the editor
+        await createProposal({ ...data, clientName: client.name });
+        toastMessage = data.status === 'sent' ? 'Proposal created and sent.' : 'Proposal saved as draft.';
       }
+      
       toast({
           title: toastMessage
       });
@@ -225,7 +229,6 @@ export default function ProposalsPage() {
             onSave={handleSaveProposal}
             onClose={handleCloseEditor}
             proposal={editingProposal}
-            onCreate={fetchData} // Pass the fetchData to refresh list on create
           />
         </DialogContent>
       </div>
