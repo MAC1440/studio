@@ -25,6 +25,7 @@ export type Proposal = {
   title: string;
   content: string; // Rich text content
   clientId: string;
+  clientName: string; // denormalized for easy display
   status: 'draft' | 'sent' | 'accepted' | 'declined';
   createdAt: Timestamp;
   updatedAt: Timestamp;
