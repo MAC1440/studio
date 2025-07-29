@@ -13,11 +13,11 @@ import {
 } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getProposals, createProposal } from '@/lib/firebase/proposals';
+import { getProposals, createProposal, updateProposal } from '@/lib/firebase/proposals';
 import { getUsers } from '@/lib/firebase/users';
 import { type Proposal, type User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, PlusCircle } from 'lucide-react';
+import { FileText, PlusCircle, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import ProposalEditor from './proposal-editor';
@@ -27,6 +27,7 @@ export default function ProposalsPage() {
   const [clients, setClients] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -54,6 +55,21 @@ export default function ProposalsPage() {
     fetchData();
   }, [toast]);
 
+  const handleCreateClick = () => {
+    setEditingProposal(null);
+    setIsEditorOpen(true);
+  };
+
+  const handleEditClick = (proposal: Proposal) => {
+    setEditingProposal(proposal);
+    setIsEditorOpen(true);
+  };
+  
+  const handleCloseEditor = () => {
+    setIsEditorOpen(false);
+    setEditingProposal(null);
+  }
+
   const handleSaveProposal = async (data: { title: string; content: string; clientId: string; }) => {
     const client = clients.find(c => c.id === data.clientId);
     if (!client) {
@@ -62,12 +78,20 @@ export default function ProposalsPage() {
     }
 
     try {
-      await createProposal({ ...data, clientName: client.name });
-      toast({
-        title: 'Proposal Saved',
-        description: 'Your new proposal has been saved as a draft.',
-      });
-      setIsEditorOpen(false);
+      if(editingProposal) {
+        await updateProposal(editingProposal.id, { ...data, clientName: client.name });
+        toast({
+            title: 'Proposal Updated',
+            description: 'Your proposal has been successfully updated.',
+        });
+      } else {
+         await createProposal({ ...data, clientName: client.name });
+          toast({
+            title: 'Proposal Saved',
+            description: 'Your new proposal has been saved as a draft.',
+          });
+      }
+      handleCloseEditor();
       await fetchData(); // Refresh data
     } catch (error) {
       console.error('Failed to save proposal:', error);
@@ -84,12 +108,10 @@ export default function ProposalsPage() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Proposals</h1>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create Proposal
-            </Button>
-          </DialogTrigger>
+          <Button onClick={handleCreateClick}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Proposal
+          </Button>
         </div>
         <div className="border rounded-lg">
           <Table>
@@ -121,7 +143,10 @@ export default function ProposalsPage() {
                     <TableCell><Badge variant="secondary" className="capitalize">{proposal.status}</Badge></TableCell>
                     <TableCell>{format(proposal.createdAt.toDate(), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">View</Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditClick(proposal)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -132,7 +157,7 @@ export default function ProposalsPage() {
                       <FileText className="h-12 w-12" />
                       <h2 className="text-lg font-semibold">No Proposals Yet</h2>
                       <p>Click "Create Proposal" to get started.</p>
-                      <Button size="sm" className="mt-2" onClick={() => setIsEditorOpen(true)}>
+                      <Button size="sm" className="mt-2" onClick={handleCreateClick}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Create Proposal
                       </Button>
@@ -148,7 +173,8 @@ export default function ProposalsPage() {
           <ProposalEditor
             clients={clients}
             onSave={handleSaveProposal}
-            onClose={() => setIsEditorOpen(false)}
+            onClose={handleCloseEditor}
+            proposal={editingProposal}
           />
         </DialogContent>
       </div>

@@ -39,7 +39,7 @@ export async function getProposals(): Promise<Proposal[]> {
     return proposalList;
 }
 
-export async function updateProposal(proposalId: string, updates: Partial<Omit<Proposal, 'id'>>): Promise<void> {
+export async function updateProposal(proposalId: string, updates: Partial<Omit<Proposal, 'id' | 'createdAt'>>): Promise<void> {
     const proposalRef = doc(db, 'proposals', proposalId);
     await updateDoc(proposalRef, {
         ...updates,

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { type User } from '@/lib/types';
+import { type User, type Proposal } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
 
 
@@ -21,14 +21,27 @@ type ProposalEditorProps = {
   clients: User[];
   onSave: (data: { title: string; content: string; clientId: string }) => Promise<void>;
   onClose: () => void;
-  proposal?: any; // Add proposal prop for editing in the future
+  proposal: Proposal | null; 
 };
 
 export default function ProposalEditor({ clients, onSave, onClose, proposal }: ProposalEditorProps) {
-  const [title, setTitle] = useState(proposal?.title || '');
-  const [content, setContent] = useState(proposal?.content || '');
-  const [clientId, setClientId] = useState(proposal?.clientId || '');
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [clientId, setClientId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  useEffect(() => {
+    if (proposal) {
+        setTitle(proposal.title || '');
+        setContent(proposal.content || '');
+        setClientId(proposal.clientId || '');
+    } else {
+        setTitle('');
+        setContent('');
+        setClientId('');
+    }
+  }, [proposal]);
+
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -89,7 +102,7 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal }: P
           onClick={handleSubmit}
           disabled={!title || !clientId || !content || isSubmitting}
         >
-          {isSubmitting ? 'Saving...' : 'Save Draft'}
+          {isSubmitting ? 'Saving...' : 'Save Proposal'}
         </Button>
       </DialogFooter>
     </div>
