@@ -187,10 +187,11 @@ function ClientProjectView({ projectId }: { projectId: string }) {
 
 
 export default function ClientProjectBoardPage({ params }: { params: { projectId: string } }) {
+  const { projectId } = params;
   return (
     <div className="flex flex-col h-full bg-background">
       <main className="flex-1 overflow-hidden">
-        <ClientProjectView projectId={params.projectId} />
+        <ClientProjectView projectId={projectId} />
       </main>
     </div>
   );
