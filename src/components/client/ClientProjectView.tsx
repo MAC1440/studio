@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { getProject } from '@/lib/firebase/projects';
 import { getTickets } from '@/lib/firebase/tickets';
-import { getProposals } from '@/lib/firebase/proposals';
+import { getProposals, updateProposal } from '@/lib/firebase/proposals';
 import { type Project, type Ticket, type Proposal } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -19,8 +19,55 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '../ui/scroll-area';
+
+function ProposalDetailDialog({ proposal, onClose, onStatusChange }: { proposal: Proposal, onClose: () => void, onStatusChange: (status: 'accepted' | 'declined') => void }) {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleStatusChange = async (status: 'accepted' | 'declined') => {
+        setIsSubmitting(true);
+        await onStatusChange(status);
+        setIsSubmitting(false);
+    }
+    
+    return (
+        <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+            <DialogHeader>
+                <DialogTitle>{proposal.title}</DialogTitle>
+                <div className="flex items-center gap-2 pt-2">
+                    <Badge variant={proposal.status === 'accepted' ? 'default' : proposal.status === 'declined' ? 'destructive' : 'secondary'} className="capitalize">{proposal.status}</Badge>
+                    <span className="text-sm text-muted-foreground">
+                        Last updated: {format(proposal.updatedAt.toDate(), 'MMM d, yyyy')}
+                    </span>
+                </div>
+            </DialogHeader>
+            <ScrollArea className="flex-1 my-4">
+              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+                  {proposal.content}
+              </div>
+            </ScrollArea>
+            {proposal.status === 'sent' && (
+                <DialogFooter className="mt-auto pt-4 border-t">
+                    <Button variant="outline" onClick={() => handleStatusChange('declined')} disabled={isSubmitting}>Decline</Button>
+                    <Button onClick={() => handleStatusChange('accepted')} disabled={isSubmitting}>
+                        {isSubmitting ? 'Accepting...' : 'Accept Proposal'}
+                    </Button>
+                </DialogFooter>
+            )}
+        </DialogContent>
+    );
+}
+
 
 export default function ClientProjectView({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
@@ -28,12 +75,12 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState('progress');
+  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchClientData = async () => {
       if (!user) return;
-      setIsLoading(true);
       try {
         const [projectData, ticketData, proposalData] = await Promise.all([
           getProject(projectId),
@@ -43,7 +90,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
 
         setProject(projectData);
         setTickets(ticketData);
-        setProposals(proposalData);
+        setProposals(proposalData.filter(p => p.status !== 'draft').sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()));
 
       } catch (error) {
         console.error("Failed to fetch project data:", error);
@@ -51,8 +98,32 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         setIsLoading(false);
       }
     };
-    fetchData();
+
+  useEffect(() => {
+    setIsLoading(true);
+    fetchClientData();
   }, [projectId, user]);
+
+  const handleProposalStatusChange = async (status: 'accepted' | 'declined') => {
+    if (!selectedProposal) return;
+    try {
+        await updateProposal(selectedProposal.id, { status });
+        toast({
+            title: `Proposal ${status}`,
+            description: `You have successfully ${status} the proposal.`,
+        });
+        setSelectedProposal(null);
+        await fetchClientData(); // Refresh data
+    } catch (error) {
+        console.error(`Failed to ${status} proposal:`, error);
+        toast({
+            title: 'Error',
+            description: 'Could not update the proposal status.',
+            variant: 'destructive'
+        });
+    }
+  }
+
 
   if (isLoading) {
     return (
@@ -81,6 +152,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
 
 
   return (
+    <Dialog open={!!selectedProposal} onOpenChange={(isOpen) => !isOpen && setSelectedProposal(null)}>
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-4 p-4 md:px-6 border-b">
          <Button variant="outline" size="sm" asChild>
@@ -192,16 +264,22 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                             <TableHead>Title</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Created</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {proposals.length > 0 ? proposals.map(proposal => (
                             <TableRow key={proposal.id}>
-                                <TableCell>{proposal.title}</TableCell>
-                                <TableCell><Badge variant="secondary" className="capitalize">{proposal.status}</Badge></TableCell>
+                                <TableCell className="font-medium">{proposal.title}</TableCell>
+                                <TableCell><Badge variant={proposal.status === 'accepted' ? 'default' : proposal.status === 'declined' ? 'destructive' : 'secondary'} className="capitalize">{proposal.status}</Badge></TableCell>
                                 <TableCell>{format(proposal.createdAt.toDate(), 'MMM d, yyyy')}</TableCell>
+                                <TableCell className="text-right">
+                                    <Button variant="ghost" size="sm" onClick={() => setSelectedProposal(proposal)}>
+                                        View
+                                    </Button>
+                                </TableCell>
                             </TableRow>
-                        )) : <TableRow><TableCell colSpan={3} className="text-center h-24">No proposals found for this project.</TableCell></TableRow>}
+                        )) : <TableRow><TableCell colSpan={4} className="text-center h-24">No proposals found for this project.</TableCell></TableRow>}
                     </TableBody>
                 </Table>
                 </div>
@@ -209,6 +287,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
            )}
         </main>
       </div>
+
+       {selectedProposal && <ProposalDetailDialog proposal={selectedProposal} onClose={() => setSelectedProposal(null)} onStatusChange={handleProposalStatusChange} />}
     </div>
+    </Dialog>
   );
 }

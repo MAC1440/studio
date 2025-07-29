@@ -11,13 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getProposals, createProposal, updateProposal } from '@/lib/firebase/proposals';
+import { getProposals, updateProposal } from '@/lib/firebase/proposals';
 import { getUsers } from '@/lib/firebase/users';
 import { type Proposal, type User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, PlusCircle, Edit } from 'lucide-react';
+import { FileText, PlusCircle, Edit, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import ProposalEditor from './proposal-editor';
@@ -53,7 +53,7 @@ export default function ProposalsPage() {
 
   useEffect(() => {
     fetchData();
-  }, [toast]);
+  }, []);
 
   const handleCreateClick = () => {
     setEditingProposal(null);
@@ -70,7 +70,7 @@ export default function ProposalsPage() {
     setEditingProposal(null);
   }
 
-  const handleSaveProposal = async (data: { title: string; content: string; clientId: string; }) => {
+  const handleSaveProposal = async (data: { title: string; content: string; clientId: string; status: Proposal['status'] }) => {
     const client = clients.find(c => c.id === data.clientId);
     if (!client) {
         toast({ title: 'Client not found', variant: 'destructive' });
@@ -78,19 +78,16 @@ export default function ProposalsPage() {
     }
 
     try {
-      if(editingProposal) {
+      let toastMessage = 'Proposal Saved';
+      if (editingProposal) {
         await updateProposal(editingProposal.id, { ...data, clientName: client.name });
-        toast({
-            title: 'Proposal Updated',
-            description: 'Your proposal has been successfully updated.',
-        });
+        toastMessage = data.status === 'sent' ? 'Proposal sent to client.' : 'Proposal updated.';
       } else {
-         await createProposal({ ...data, clientName: client.name });
-          toast({
-            title: 'Proposal Saved',
-            description: 'Your new proposal has been saved as a draft.',
-          });
+        // This flow is now handled inside the editor
       }
+      toast({
+          title: toastMessage
+      });
       handleCloseEditor();
       await fetchData(); // Refresh data
     } catch (error) {
@@ -102,6 +99,38 @@ export default function ProposalsPage() {
       });
     }
   };
+
+  const handleSendProposal = async (proposal: Proposal) => {
+    try {
+      await updateProposal(proposal.id, { status: 'sent' });
+      toast({
+        title: 'Proposal Sent',
+        description: `The proposal "${proposal.title}" has been sent to the client.`,
+      });
+      await fetchData();
+    } catch (error) {
+      console.error('Failed to send proposal:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not send the proposal.',
+        variant: 'destructive',
+      });
+    }
+  }
+
+  const getStatusBadgeVariant = (status: Proposal['status']) => {
+    switch (status) {
+      case 'accepted':
+        return 'default';
+      case 'declined':
+        return 'destructive';
+      case 'sent':
+        return 'secondary';
+      case 'draft':
+      default:
+        return 'outline';
+    }
+  }
 
   return (
     <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
@@ -120,7 +149,7 @@ export default function ProposalsPage() {
                 <TableHead>Title</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead>Last Updated</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -140,13 +169,21 @@ export default function ProposalsPage() {
                   <TableRow key={proposal.id}>
                     <TableCell className="font-medium">{proposal.title}</TableCell>
                     <TableCell>{proposal.clientName}</TableCell>
-                    <TableCell><Badge variant="secondary" className="capitalize">{proposal.status}</Badge></TableCell>
-                    <TableCell>{format(proposal.createdAt.toDate(), 'MMM d, yyyy')}</TableCell>
+                    <TableCell><Badge variant={getStatusBadgeVariant(proposal.status)} className="capitalize">{proposal.status}</Badge></TableCell>
+                    <TableCell>{format(proposal.updatedAt.toDate(), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditClick(proposal)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                      </Button>
+                      <div className="flex justify-end items-center gap-2">
+                          {proposal.status === 'draft' && (
+                            <Button variant="ghost" size="sm" onClick={() => handleSendProposal(proposal)}>
+                                <Send className="mr-2 h-4 w-4" />
+                                Send
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" onClick={() => handleEditClick(proposal)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            {proposal.status === 'draft' ? 'Edit' : 'View'}
+                          </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -175,6 +212,7 @@ export default function ProposalsPage() {
             onSave={handleSaveProposal}
             onClose={handleCloseEditor}
             proposal={editingProposal}
+            onCreate={fetchData} // Pass the fetchData to refresh list on create
           />
         </DialogContent>
       </div>

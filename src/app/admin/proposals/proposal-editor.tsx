@@ -15,20 +15,24 @@ import {
 import { DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { type User, type Proposal } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
+import { createProposal, updateProposal } from '@/lib/firebase/proposals';
+import { useToast } from '@/hooks/use-toast';
 
 
 type ProposalEditorProps = {
   clients: User[];
-  onSave: (data: { title: string; content: string; clientId: string }) => Promise<void>;
+  onSave: (data: { title: string; content: string; clientId: string, status: Proposal['status'] }) => Promise<void>;
   onClose: () => void;
   proposal: Proposal | null; 
+  onCreate: () => Promise<void>;
 };
 
-export default function ProposalEditor({ clients, onSave, onClose, proposal }: ProposalEditorProps) {
+export default function ProposalEditor({ clients, onSave, onClose, proposal, onCreate }: ProposalEditorProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [clientId, setClientId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
   useEffect(() => {
     if (proposal) {
@@ -43,16 +47,42 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal }: P
   }, [proposal]);
 
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (status: Proposal['status']) => {
     setIsSubmitting(true);
-    await onSave({ title, content, clientId });
+     const client = clients.find(c => c.id === clientId);
+    if (!client) {
+        toast({ title: 'Client not found', variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+    }
+    
+    const proposalData = { title, content, clientId, status, clientName: client.name };
+
+    try {
+        if (proposal) {
+            await updateProposal(proposal.id, proposalData);
+            toast({ title: status === 'sent' ? 'Proposal sent!' : 'Proposal updated!' });
+        } else {
+            await createProposal(proposalData);
+            toast({ title: status === 'sent' ? 'Proposal created and sent!' : 'Proposal saved as draft.' });
+            await onCreate(); // Refresh the list in the parent
+        }
+        onClose();
+    } catch (e) {
+        console.error("Failed to save proposal", e);
+        toast({ title: 'Error saving proposal', variant: 'destructive' });
+    }
     setIsSubmitting(false);
   };
+  
+  const isFormValid = title && clientId && content;
+  const isViewOnly = proposal && proposal.status !== 'draft';
+
 
   return (
     <div className="flex flex-col h-full">
       <DialogHeader>
-        <DialogTitle>{proposal ? 'Edit Proposal' : 'Create New Proposal'}</DialogTitle>
+        <DialogTitle>{proposal ? (isViewOnly ? 'View Proposal' : 'Edit Proposal') : 'Create New Proposal'}</DialogTitle>
       </DialogHeader>
       
       <div className="py-4 flex-1 flex flex-col gap-4 overflow-y-auto">
@@ -64,12 +94,12 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal }: P
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. New Website Design & Development"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isViewOnly}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="client">Client</Label>
-            <Select onValueChange={setClientId} value={clientId} disabled={isSubmitting}>
+            <Select onValueChange={setClientId} value={clientId} disabled={isSubmitting || isViewOnly}>
               <SelectTrigger id="client">
                 <SelectValue placeholder="Select a client" />
               </SelectTrigger>
@@ -89,21 +119,34 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal }: P
             onChange={(e) => setContent(e.target.value)}
             className="h-full w-full"
             placeholder="Write your proposal content here..."
+            disabled={isSubmitting || isViewOnly}
           />
         </div>
       </div>
 
       <DialogFooter className="mt-auto pt-4 border-t">
         <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-          Cancel
+          {isViewOnly ? 'Close' : 'Cancel'}
         </Button>
-        <Button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!title || !clientId || !content || isSubmitting}
-        >
-          {isSubmitting ? 'Saving...' : 'Save Proposal'}
-        </Button>
+        {!isViewOnly && (
+            <div className="flex gap-2">
+                 <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => handleSubmit('draft')}
+                    disabled={!isFormValid || isSubmitting}
+                >
+                    {isSubmitting ? 'Saving...' : 'Save as Draft'}
+                </Button>
+                <Button
+                    type="button"
+                    onClick={() => handleSubmit('sent')}
+                    disabled={!isFormValid || isSubmitting}
+                >
+                    {isSubmitting ? 'Sending...' : (proposal ? 'Update & Send' : 'Save & Send')}
+                </Button>
+            </div>
+        )}
       </DialogFooter>
     </div>
   );
