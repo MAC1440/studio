@@ -158,7 +158,7 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
 }
 
 function NotificationBell() {
-    const { user } = useAuth();
+    const { user, userData } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const router = useRouter();
@@ -174,14 +174,28 @@ function NotificationBell() {
         if (!notification.read) {
             await markNotificationAsRead(notification.id);
         }
-        if (notification.proposalId) {
-            router.push(`/admin/proposals?open=${notification.proposalId}`);
-        } else if(notification.projectId) {
-            router.push(`/board/${notification.projectId}`);
+        
+        // Handle redirect based on user role and notification type
+        if (userData?.role === 'admin') {
+            if (notification.proposalId) {
+                // Admins are redirected to the main proposals page. A modal could be opened via query params.
+                router.push(`/admin/proposals?open_proposal=${notification.proposalId}`);
+            } else if(notification.projectId) {
+                 // Fallback for other admin notifications
+                router.push(`/board/${notification.projectId}`);
+            }
+        } else if (userData?.role === 'client') {
+            if (notification.proposalId && notification.projectId) {
+                // Clients are taken to their specific project view, where a modal can be triggered.
+                router.push(`/client/project/${notification.projectId}?open_proposal=${notification.proposalId}`);
+            } else if (notification.projectId) {
+                // Fallback for other client notifications
+                router.push(`/client/project/${notification.projectId}`);
+            }
         }
         setIsOpen(false);
     };
-    
+
     const unreadCount = notifications.filter(n => !n.read).length;
 
     const getIconForNotification = (n: Notification) => {
@@ -254,7 +268,7 @@ export default function AppHeader() {
           getProjects().then(setProjects).catch(console.error);
       }
   }, [user]);
-  
+
   const handleTicketCreated = () => {
     if (reloadTickets) {
         reloadTickets();
@@ -266,7 +280,7 @@ export default function AppHeader() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
         <Link href="/board" className="flex items-center gap-2">
           <LayoutGrid className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold tracking-tight">BoardR</span>
+          <span className="text-lg font-bold tracking-tight">KanbanFlow</span>
         </Link>
         <div className="flex items-center gap-2">
           {loading ? (
@@ -330,3 +344,5 @@ export default function AppHeader() {
     </header>
   );
 }
+
+    

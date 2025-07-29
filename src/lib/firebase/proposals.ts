@@ -27,7 +27,7 @@ export async function createProposal(args: CreateProposalArgs): Promise<Proposal
     };
 
     await setDoc(doc(db, "proposals", docRef.id), newProposalData);
-    
+
     if (newProposalData.status === 'sent') {
         const project = await getProject(newProposalData.projectId);
         await addNotification({
@@ -65,29 +65,57 @@ export async function getProposals(filters: { clientId?: string, projectId?: str
 
 export async function updateProposal(proposalId: string, updates: Partial<Omit<Proposal, 'id' | 'createdAt'>>): Promise<void> {
     const proposalRef = doc(db, 'proposals', proposalId);
-    
-    // If status is being set to 'sent', we might need to send a notification
-    if (updates.status === 'sent') {
-        const proposalSnap = await getDoc(proposalRef);
-        if (proposalSnap.exists()) {
-            const currentData = proposalSnap.data() as Proposal;
-            // Only notify if the status is changing to 'sent' from something else
-            if (currentData.status !== 'sent') {
-                 await addNotification({
-                    userId: currentData.clientId,
-                    message: `A proposal has been updated for your review: "${currentData.title}"`,
+    const proposalSnap = await getDoc(proposalRef);
+    if (!proposalSnap.exists()) {
+        throw new Error("Proposal not found to update.");
+    }
+    const currentData = proposalSnap.data() as Proposal;
+
+    // --- Handle Notifications ---
+    const isStatusChanging = updates.status && updates.status !== currentData.status;
+
+    if (isStatusChanging) {
+        const project = await getProject(currentData.projectId);
+        const projectName = project?.name || 'a project';
+        
+        // 1. Notify client when proposal is SENT
+        if (updates.status === 'sent') {
+             await addNotification({
+                userId: currentData.clientId,
+                message: `A proposal has been updated for your review: "${currentData.title}"`,
+                proposalId: proposalId,
+                projectId: currentData.projectId,
+                projectName: projectName,
+            });
+        }
+
+        // 2. Notify admins when proposal is ACCEPTED or DECLINED
+        if ((updates.status === 'accepted' || updates.status === 'declined') && updates.actingUser) {
+            const allUsers = await getUsers();
+            const admins = allUsers.filter(u => u.role === 'admin');
+            const notificationPromises = admins.map(admin => {
+                return addNotification({
+                    userId: admin.id,
+                    message: `${updates.actingUser?.name} has ${updates.status} the proposal: "${currentData.title}"`,
                     proposalId: proposalId,
                     projectId: currentData.projectId,
-                    projectName: (await getProject(currentData.projectId))?.name,
+                    projectName: projectName,
                 });
-            }
+            });
+            await Promise.all(notificationPromises);
         }
     }
-    
-    await updateDoc(proposalRef, {
+
+    const finalUpdates = {
         ...updates,
         updatedAt: serverTimestamp(),
-    });
+    };
+    // Remove the temporary 'actingUser' field before updating the document
+    if ('actingUser' in finalUpdates) {
+        delete (finalUpdates as any).actingUser;
+    }
+
+    await updateDoc(proposalRef, finalUpdates);
 }
 
 type AddFeedbackArgs = {
@@ -119,13 +147,13 @@ export async function addFeedbackToProposal(proposalId: string, {userId, message
         message: message,
         timestamp: Timestamp.fromDate(new Date())
     };
-    
+
     await updateDoc(proposalRef, {
         feedback: arrayUnion(feedbackComment),
         status: 'changes-requested',
         updatedAt: serverTimestamp(),
     });
-    
+
     // --- Send notification to admins ---
     const allUsers = await getUsers();
     const admins = allUsers.filter(u => u.role === 'admin');
@@ -149,3 +177,5 @@ export async function deleteProposal(proposalId: string): Promise<void> {
     const proposalRef = doc(db, 'proposals', proposalId);
     await deleteDoc(proposalRef);
 }
+
+    

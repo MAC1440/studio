@@ -33,13 +33,14 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
+import { useSearchParams } from 'next/navigation';
 
 
 function FeedbackComment({ comment }: { comment: Comment }) {
-  const commentTimestamp = comment.timestamp && 'toDate' in comment.timestamp 
-    ? comment.timestamp.toDate() 
+  const commentTimestamp = comment.timestamp && 'toDate' in comment.timestamp
+    ? comment.timestamp.toDate()
     : comment.timestamp as Date;
-  
+
   return (
      <div key={comment.id} className="flex gap-3">
         <Avatar>
@@ -59,14 +60,14 @@ function FeedbackComment({ comment }: { comment: Comment }) {
   )
 }
 
-function ProposalDetailDialog({ 
-    proposal, 
-    onClose, 
+function ProposalDetailDialog({
+    proposal,
+    onClose,
     onStatusChange,
-    onFeedbackSubmit 
-}: { 
-    proposal: Proposal, 
-    onClose: () => void, 
+    onFeedbackSubmit
+}: {
+    proposal: Proposal,
+    onClose: () => void,
     onStatusChange: (status: 'accepted' | 'declined') => void,
     onFeedbackSubmit: (feedback: string) => Promise<void>
 }) {
@@ -84,7 +85,7 @@ function ProposalDetailDialog({
     const handleFeedbackRequest = () => {
         setIsFeedbackMode(true);
     }
-    
+
     const handleSubmitFeedback = async () => {
         if (!feedback.trim()) return;
         setIsSubmitting(true);
@@ -93,7 +94,7 @@ function ProposalDetailDialog({
         setFeedback('');
         setIsFeedbackMode(false);
     }
-    
+
     return (
         <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
             <DialogHeader>
@@ -128,6 +129,9 @@ function ProposalDetailDialog({
                     <Button variant="outline" onClick={handleFeedbackRequest}>Request Changes</Button>
                     <Button onClick={() => handleStatusChange('accepted')} disabled={isSubmitting}>
                         {isSubmitting ? 'Accepting...' : 'Accept Proposal'}
+                    </Button>
+                     <Button variant="destructive" onClick={() => handleStatusChange('declined')} disabled={isSubmitting}>
+                        {isSubmitting ? 'Declining...' : 'Decline'}
                     </Button>
                 </DialogFooter>
             )}
@@ -171,10 +175,11 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const [isLoading, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState('progress');
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
 
-  const fetchClientData = async () => {
+  const fetchClientData = async (proposalToOpenId?: string) => {
       if (!user) return;
       try {
         const [projectData, ticketData, proposalData] = await Promise.all([
@@ -185,12 +190,18 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
 
         setProject(projectData);
         setTickets(ticketData);
-        // Only show proposals relevant to the logged-in client that are not drafts
-        setProposals(
-            proposalData
-                .filter(p => p.clientId === user.uid && p.status !== 'draft')
-                .sort((a,b) => b.updatedAt.toMillis() - a.updatedAt.toMillis())
-        );
+        const filteredProposals = proposalData
+            .filter(p => p.clientId === user.uid && p.status !== 'draft')
+            .sort((a,b) => b.updatedAt.toMillis() - a.updatedAt.toMillis())
+        setProposals(filteredProposals);
+        
+        if (proposalToOpenId) {
+            const proposalToOpen = filteredProposals.find(p => p.id === proposalToOpenId);
+            if (proposalToOpen) {
+                setSelectedProposal(proposalToOpen);
+                setActiveView('proposals');
+            }
+        }
 
       } catch (error) {
         console.error("Failed to fetch project data:", error);
@@ -201,13 +212,17 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
 
   useEffect(() => {
     setIsLoading(true);
-    fetchClientData();
-  }, [projectId, user]);
+    const proposalToOpen = searchParams.get('open_proposal');
+    fetchClientData(proposalToOpen || undefined);
+  }, [projectId, user, searchParams]);
 
   const handleProposalStatusChange = async (status: 'accepted' | 'declined') => {
-    if (!selectedProposal) return;
+    if (!selectedProposal || !user || !userData) return;
     try {
-        await updateProposal(selectedProposal.id, { status });
+        await updateProposal(selectedProposal.id, { 
+            status,
+            actingUser: { id: user.uid, name: userData.name }
+        });
         toast({
             title: `Proposal ${status}`,
             description: `You have successfully ${status} the proposal.`,
@@ -223,7 +238,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         });
     }
   }
-  
+
   const handleProposalFeedbackSubmit = async (feedback: string) => {
     if(!selectedProposal || !user) return;
     try {
@@ -269,7 +284,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   if (!project) {
     return <div>Project not found.</div>;
   }
-  
+
   const inProgressTickets = tickets.filter(t => t.status === 'in-progress' || t.status === 'review');
   const doneTickets = tickets.filter(t => t.status === 'done');
 
@@ -411,9 +426,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         </main>
       </div>
 
-       {selectedProposal && <ProposalDetailDialog 
-            proposal={selectedProposal} 
-            onClose={() => setSelectedProposal(null)} 
+       {selectedProposal && <ProposalDetailDialog
+            proposal={selectedProposal}
+            onClose={() => setSelectedProposal(null)}
             onStatusChange={handleProposalStatusChange}
             onFeedbackSubmit={handleProposalFeedbackSubmit}
         />}
@@ -421,3 +436,5 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     </Dialog>
   );
 }
+
+    

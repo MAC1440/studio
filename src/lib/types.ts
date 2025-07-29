@@ -30,6 +30,7 @@ export type Proposal = {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   feedback?: Comment[];
+  actingUser?: { id: string; name: string }; // Temporary field for notifications
 }
 
 export type Tag = {
@@ -80,3 +81,5 @@ export type Notification = {
     projectId?: string;
     projectName?: string;
 }
+
+    
