@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import { getProject } from '@/lib/firebase/projects';
 import { getTickets } from '@/lib/firebase/tickets';
-import { type Project, type Ticket } from '@/lib/types';
+import { getProposals } from '@/lib/firebase/proposals';
+import { type Project, type Ticket, type Proposal } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -18,23 +19,32 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useAuth } from '@/context/AuthContext';
+import { format } from 'date-fns';
 
 export default function ClientProjectView({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState('progress');
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!user) return;
       setIsLoading(true);
       try {
-        const [projectData, ticketData] = await Promise.all([
+        const [projectData, ticketData, proposalData] = await Promise.all([
           getProject(projectId),
           getTickets({ projectId }),
+          getProposals({ clientId: user.uid })
         ]);
+
         setProject(projectData);
         setTickets(ticketData);
+        setProposals(proposalData);
+
       } catch (error) {
         console.error("Failed to fetch project data:", error);
       } finally {
@@ -42,7 +52,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
       }
     };
     fetchData();
-  }, [projectId]);
+  }, [projectId, user]);
 
   if (isLoading) {
     return (
@@ -173,11 +183,29 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
              </div>
            )}
            {activeView === 'proposals' && (
-              <div className="text-center text-muted-foreground p-8">
-                <BarChart className="mx-auto h-12 w-12 mb-4" />
-                <h3 className="text-xl font-semibold">Proposals Coming Soon</h3>
-                <p>This section will display project proposals and contracts.</p>
-            </div>
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Proposals</h2>
+                <div className="border rounded-lg">
+                   <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Created</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {proposals.length > 0 ? proposals.map(proposal => (
+                            <TableRow key={proposal.id}>
+                                <TableCell>{proposal.title}</TableCell>
+                                <TableCell><Badge variant="secondary" className="capitalize">{proposal.status}</Badge></TableCell>
+                                <TableCell>{format(proposal.createdAt.toDate(), 'MMM d, yyyy')}</TableCell>
+                            </TableRow>
+                        )) : <TableRow><TableCell colSpan={3} className="text-center h-24">No proposals found for this project.</TableCell></TableRow>}
+                    </TableBody>
+                </Table>
+                </div>
+              </div>
            )}
         </main>
       </div>

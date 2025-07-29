@@ -1,6 +1,6 @@
 
 import { db } from './config';
-import { collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import type { Proposal } from '@/lib/types';
 
 type CreateProposalArgs = {
@@ -25,9 +25,13 @@ export async function createProposal(args: CreateProposalArgs): Promise<Proposal
     return { ...newProposalData, id: docRef.id } as Proposal;
 }
 
-export async function getProposals(): Promise<Proposal[]> {
+export async function getProposals(filters: { clientId?: string } = {}): Promise<Proposal[]> {
     const proposalsCol = collection(db, 'proposals');
-    const q = query(proposalsCol);
+    const conditions = [];
+    if(filters.clientId) {
+        conditions.push(where('clientId', '==', filters.clientId));
+    }
+    const q = query(proposalsCol, ...conditions);
     const proposalSnapshot = await getDocs(q);
     const proposalList = proposalSnapshot.docs.map(doc => {
       const data = doc.data();

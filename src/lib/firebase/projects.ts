@@ -1,5 +1,5 @@
 import { db } from './config';
-import { collection, addDoc, getDocs, getDoc, query, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, where, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, query, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, where, writeBatch, orderBy } from 'firebase/firestore';
 import type { Project } from '@/lib/types';
 
 
@@ -26,7 +26,7 @@ export async function createProject(args: CreateProjectArgs): Promise<Project> {
 
 export async function getProjects(): Promise<Project[]> {
     const projectsCol = collection(db, 'projects');
-    const q = query(projectsCol);
+    const q = query(projectsCol, orderBy('createdAt', 'desc'));
     const projectSnapshot = await getDocs(q);
     const projectList = projectSnapshot.docs.map(doc => {
       const data = doc.data();
