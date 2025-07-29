@@ -6,7 +6,7 @@ export type User = {
   name: string;
   email: string;
   avatarUrl?: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'client';
 };
 
 // Renamed from User to avoid conflict with Firebase's User type
@@ -17,6 +17,7 @@ export type Project = {
   name: string;
   description: string;
   createdAt: Timestamp;
+  clientIds?: string[];
 };
 
 export type Tag = {

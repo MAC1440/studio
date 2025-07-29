@@ -87,7 +87,7 @@ export default function UsersPage() {
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-    const role = formData.get('role') as 'admin' | 'user';
+    const role = formData.get('role') as 'admin' | 'user' | 'client';
 
     if (name && email && password && role) {
       try {
@@ -178,6 +178,7 @@ export default function UsersPage() {
                   <SelectContent>
                     <SelectItem value="user">User</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="client">Client</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -243,7 +244,7 @@ export default function UsersPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>
+                    <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'client' ? 'secondary' : 'default'}>
                       {user.role}
                     </Badge>
                   </TableCell>

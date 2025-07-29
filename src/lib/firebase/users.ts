@@ -9,7 +9,7 @@ type CreateUserArgs = {
     email: string;
     password?: string;
     name: string;
-    role: 'admin' | 'user';
+    role: 'admin' | 'user' | 'client';
 };
 
 export async function createUser(args: CreateUserArgs): Promise<User> {
