@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,8 +14,8 @@ import {
 } from '@/components/ui/select';
 import { DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { type User } from '@/lib/types';
-import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css'; // import styles
+import { Textarea } from '@/components/ui/textarea';
+
 
 type ProposalEditorProps = {
   clients: User[];
@@ -30,23 +30,10 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal }: P
   const [clientId, setClientId] = useState(proposal?.clientId || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Use dynamic import for react-quill to avoid SSR issues
-  const ReactQuill = useMemo(() => dynamic(() => import('react-quill'), { ssr: false }), []);
-
   const handleSubmit = async () => {
     setIsSubmitting(true);
     await onSave({ title, content, clientId });
     setIsSubmitting(false);
-  };
-
-  const quillModules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-      [{'list': 'ordered'}, {'list': 'bullet'}, {'indent': '-1'}, {'indent': '+1'}],
-      ['link', 'image'],
-      ['clean']
-    ],
   };
 
   return (
@@ -84,15 +71,12 @@ export default function ProposalEditor({ clients, onSave, onClose, proposal }: P
 
         <div className="space-y-2 flex-1 flex flex-col min-h-[300px]">
           <Label>Content</Label>
-          <div className="h-full w-full bg-background rounded-md border border-input">
-            <ReactQuill
-                theme="snow"
-                value={content}
-                onChange={setContent}
-                modules={quillModules}
-                className="h-[calc(100%-42px)]"
-              />
-          </div>
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="h-full w-full"
+            placeholder="Write your proposal content here..."
+          />
         </div>
       </div>
 
