@@ -85,7 +85,7 @@ export default function ProposalsPage() {
       let toastMessage = 'Proposal Saved';
       
       if (editingProposal) {
-        const updates: Partial<Proposal> = { ...data, clientName: client.name };
+        const updates: Partial<Proposal> = { ...data, clientName: client.name, status: data.status };
         
         // When admin re-sends a proposal with requested changes, clear the feedback.
         if (editingProposal.status === 'changes-requested' && data.status === 'sent') {
