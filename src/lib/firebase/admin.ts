@@ -16,11 +16,13 @@ if (!admin.apps.length) {
           clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
           // The private key must be formatted correctly.
           // In your .env file, it should be a single line string with newlines represented as \\n
-          privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY
+            ? process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n')
+            : undefined,
         }),
       });
     } catch (error: any) {
-      console.error('Firebase admin initialization error', error.stack);
+      console.error('Firebase admin initialization error', error?.stack || error);
     }
   } else {
     console.warn(
