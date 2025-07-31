@@ -49,7 +49,8 @@ import { subscribeToNotifications, markNotificationAsRead } from '@/lib/firebase
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Separator } from '../ui/separator';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { SidebarTrigger } from '../ui/sidebar';
 
 function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[], projects: Project[], onTicketCreated: () => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -262,6 +263,7 @@ function NotificationBell() {
 export default function AppHeader() {
   const { user, userData, logout, loading, users, reloadTickets } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
+  const pathname = usePathname();
 
   useEffect(() => {
       if(user) {
@@ -275,13 +277,28 @@ export default function AppHeader() {
     }
   }
 
+  const getHomeLink = () => {
+    if (!userData) return '/';
+    switch (userData.role) {
+        case 'admin': return '/admin';
+        case 'client': return '/client';
+        default: return '/board';
+    }
+  }
+  
+  const isAdminSection = pathname.startsWith('/admin');
+
+
   return (
     <header className="border-b border-border/60">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-        <Link href="/board" className="flex items-center gap-2">
-          <LayoutGrid className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold tracking-tight">KanbanFlow</span>
-        </Link>
+        <div className="flex items-center gap-2">
+            {isAdminSection && <SidebarTrigger className="md:hidden"/>}
+            <Link href={getHomeLink()} className="flex items-center gap-2">
+              <LayoutGrid className="h-6 w-6 text-primary" />
+              <span className="text-lg font-bold tracking-tight">KanbanFlow</span>
+            </Link>
+        </div>
         <div className="flex items-center gap-2">
           {loading ? (
             <div className="flex items-center gap-4">
@@ -344,5 +361,3 @@ export default function AppHeader() {
     </header>
   );
 }
-
-    
