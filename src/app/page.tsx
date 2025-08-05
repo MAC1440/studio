@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { forgotPassword } from '@/lib/firebase/users';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
@@ -109,14 +110,26 @@ function LoginPage() {
                         Forgot password?
                     </Button>
                 </div>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-               />
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type={showPassword ? 'text' : 'password'}
+                  required 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                 />
+                 <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute inset-y-0 right-0 h-full px-3 text-muted-foreground"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
+                >
+                    {showPassword ? <EyeOff /> : <Eye />}
+                 </Button>
+              </div>
             </div>
           </CardContent>
           <CardFooter>

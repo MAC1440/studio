@@ -46,7 +46,7 @@ import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createUser, getUsers, deleteUser } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users as UsersIcon, Trash2, Edit } from 'lucide-react';
+import { Users as UsersIcon, Trash2, Edit, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function UsersPage() {
@@ -55,6 +55,7 @@ export default function UsersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
 
@@ -162,12 +163,24 @@ export default function UsersPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  name="password" 
-                  type="password" 
-                  required
-                  disabled={isSubmitting}/>
+                <div className="relative">
+                    <Input 
+                    id="password" 
+                    name="password" 
+                    type={showPassword ? "text" : "password"} 
+                    required
+                    disabled={isSubmitting}/>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute inset-y-0 right-0 h-full px-3 text-muted-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isSubmitting}
+                    >
+                        {showPassword ? <EyeOff /> : <Eye />}
+                    </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
