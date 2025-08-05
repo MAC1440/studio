@@ -10,7 +10,7 @@ import { type Project, type Ticket, type Proposal, type Invoice, type Comment, P
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, BarChart, FileText, GanttChartSquare, MessageSquarePlus, CalendarIcon, Flag, DollarSign, CheckCircle } from 'lucide-react';
+import { ArrowLeft, BarChart, FileText, GanttChartSquare, MessageSquarePlus, CalendarIcon, Flag, DollarSign, CheckCircle, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -37,6 +37,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Progress } from '../ui/progress';
+import { cn } from '@/lib/utils';
 
 
 function FeedbackComment({ comment }: { comment: Comment }) {
@@ -320,6 +321,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeView, setActiveView] = useState('progress');
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -329,7 +331,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
 
   const fetchClientData = async (options: { openProposalId?: string, openInvoiceId?: string } = {}) => {
       if (!user) return;
-      setIsLoading(true);
+      if (!options.openProposalId && !options.openInvoiceId) {
+        setIsLoading(true);
+      }
       try {
         const [projectData, ticketData, proposalData, invoiceData] = await Promise.all([
           getProject(projectId),
@@ -378,6 +382,13 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     const openInvoiceId = searchParams.get('open_invoice') || undefined;
     fetchClientData({ openProposalId, openInvoiceId });
   }, [projectId, user, searchParams]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchClientData();
+    setIsRefreshing(false);
+    toast({ title: 'Data refreshed' });
+  }
 
   const handleProposalStatusChange = async (status: 'accepted' | 'declined') => {
     if (!selectedProposal || !user || !userData) return;
@@ -580,8 +591,11 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
           {activeView === 'progress' && (
             <div>
               <Card className="mb-6">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Project Overview</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isRefreshing}>
+                        <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                    </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
@@ -740,3 +754,5 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     </Dialog>
   );
 }
+
+    
