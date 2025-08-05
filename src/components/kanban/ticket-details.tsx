@@ -265,8 +265,8 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 min-h-0">
-          <ScrollArea className="md:col-span-2">
-              <div className="pr-6 space-y-6">
+          <ScrollArea className="md:col-span-2 pr-6">
+              <div className="space-y-6">
                   <div>
                       <h3 className="font-semibold mb-2">Description</h3>
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap">{ticket.description}</p>
@@ -306,7 +306,7 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                       </form>
                   </div>
 
-                  <div>
+                  <div className="pt-4">
                       <h3 className="font-semibold mb-4">Activity</h3>
                       <div className="space-y-6">
                           {sortedComments.map((comment, index) => (
@@ -315,11 +315,35 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                           {sortedComments.length === 0 && (
                               <p className="text-sm text-muted-foreground">No comments yet.</p>
                           )}
+                           {userData && (
+                            <div className="flex gap-3">
+                                <Avatar>
+                                <AvatarImage src={userData.avatarUrl} alt={userData.name}/>
+                                <AvatarFallback>{userData.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                <form onSubmit={handleCommentSubmit}>
+                                    <Textarea
+                                    placeholder="Add a comment..."
+                                    className="mb-2"
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                    disabled={isSubmitting}
+                                    />
+                                    <div className="flex justify-end">
+                                    <Button type="submit" disabled={isSubmitting || !newComment.trim()}>
+                                        {isSubmitting ? 'Commenting...' : 'Comment'}
+                                    </Button>
+                                    </div>
+                                </form>
+                                </div>
+                            </div>
+                        )}
                       </div>
                   </div>
               </div>
           </ScrollArea>
-          <aside className="border-l -mx-6 px-6 md:mx-0 md:px-0 md:pl-6">
+          <aside className="border-l md:pl-6">
               <ScrollArea className="h-full">
                   <div className="space-y-6 py-1 h-full">
                       <div>
@@ -418,31 +442,7 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
 
 
         <div className="mt-auto pt-4 border-t">
-          {userData && (
-              <div className="flex gap-3">
-                  <Avatar>
-                  <AvatarImage src={userData.avatarUrl} alt={userData.name}/>
-                  <AvatarFallback>{userData.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                  <form onSubmit={handleCommentSubmit}>
-                      <Textarea
-                      placeholder="Add a comment..."
-                      className="mb-2"
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      disabled={isSubmitting}
-                      />
-                      <div className="flex justify-end">
-                      <Button type="submit" disabled={isSubmitting || !newComment.trim()}>
-                          {isSubmitting ? 'Commenting...' : 'Comment'}
-                      </Button>
-                      </div>
-                  </form>
-                  </div>
-              </div>
-          )}
-           <div className="mt-4 flex">
+           <div className="flex">
                 {userData?.role === 'admin' && (
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" size="sm" className="mr-auto">
