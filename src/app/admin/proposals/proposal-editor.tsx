@@ -14,10 +14,10 @@ import {
 } from '@/components/ui/select';
 import { DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { type User, type Proposal, type Comment, type Project } from '@/lib/types';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import RichTextEditor from '@/components/ui/rich-text-editor';
 
 
 type ProposalEditorProps = {
@@ -153,12 +153,10 @@ export default function ProposalEditor({ clients, projects, onSave, onClose, pro
 
           <div className="space-y-2 flex-1 flex flex-col">
             <Label>Content</Label>
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="flex-1 w-full"
-              placeholder="Write your proposal content here..."
-              disabled={isSubmitting || isViewOnly}
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
+              editable={!isSubmitting && !isViewOnly}
             />
           </div>
         </div>

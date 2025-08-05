@@ -119,9 +119,10 @@ function ProposalDetailDialog({
                     </div>
                   )}
 
-                  <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                      {proposal.content}
-                  </div>
+                  <div 
+                    className="prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: proposal.content }}
+                   />
               </div>
             </ScrollArea>
             {proposal.status === 'sent' && !isFeedbackMode && (
@@ -436,5 +437,3 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     </Dialog>
   );
 }
-
-    
