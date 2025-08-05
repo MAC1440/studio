@@ -67,7 +67,7 @@ function Comment({ comment }: { comment: CommentType }) {
                     {commentTimestamp ? formatDistanceToNow(commentTimestamp, { addSuffix: true }) : 'just now'}
                 </span>
             </div>
-            <p className="text-sm text-foreground/80 mt-1">{comment.message}</p>
+            <p className="text-sm text-foreground/80 mt-1 whitespace-pre-wrap">{comment.message}</p>
         </div>
     </div>
   )
@@ -266,15 +266,13 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 min-h-0">
           <ScrollArea className="md:col-span-2">
-              <div className="pr-6">
-                  <div className="py-4">
+              <div className="pr-6 space-y-6">
+                  <div>
                       <h3 className="font-semibold mb-2">Description</h3>
-                      <p className="text-muted-foreground whitespace-pre-wrap">{ticket.description}</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{ticket.description}</p>
                   </div>
 
-                  <Separator className="my-4" />
-                  
-                  <div className="py-4">
+                  <div>
                       <h3 className="font-semibold mb-2">Checklist</h3>
                       {checklistTotal > 0 && (
                         <div className="mb-4 space-y-2">
@@ -308,8 +306,6 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                       </form>
                   </div>
 
-                  <Separator className="my-4" />
-
                   <div>
                       <h3 className="font-semibold mb-4">Activity</h3>
                       <div className="space-y-6">
@@ -324,8 +320,8 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
               </div>
           </ScrollArea>
           <aside className="border-l -mx-6 px-6 md:mx-0 md:px-0 md:pl-6">
-              <ScrollArea>
-                  <div className="space-y-6 py-4 h-full">
+              <ScrollArea className="h-full">
+                  <div className="space-y-6 py-1 h-full">
                       <div>
                           <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Assignee</h3>
                           <Select onValueChange={handleAssigneeChange} defaultValue={ticket.assignedTo?.id || 'unassigned'}>
@@ -446,7 +442,7 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                   </div>
               </div>
           )}
-           <div className="mt-4 flex justify-end">
+           <div className="mt-4 flex">
                 {userData?.role === 'admin' && (
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" size="sm" className="mr-auto">
