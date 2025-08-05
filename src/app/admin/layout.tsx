@@ -9,8 +9,9 @@ import {
   SidebarMenuButton,
   SidebarContent,
   SidebarInset,
+  SidebarHeader,
 } from "@/components/ui/sidebar";
-import { Home, Users, Ticket, FolderKanban, Briefcase, FileText } from "lucide-react";
+import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminLayout({
@@ -25,58 +26,64 @@ export default function AdminLayout({
           <AppHeader />
           <div className="flex flex-1 overflow-hidden">
             <Sidebar>
-              <SidebarContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/admin">
-                        <Home />
-                        Dashboard
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/admin/users">
-                        <Users />
-                        Users
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/admin/clients">
-                        <Briefcase />
-                        Clients
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/admin/proposals">
-                        <FileText />
-                        Proposals
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/admin/tickets">
-                        <Ticket />
-                        Tickets
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/admin/projects">
-                        <FolderKanban />
-                        Projects
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarContent>
+                <SidebarContent>
+                  <SidebarHeader className="border-b">
+                     <Link href="/admin" className="flex items-center gap-2 font-bold text-lg tracking-tight px-2">
+                        <LayoutGrid className="h-6 w-6 text-primary" />
+                        <span>KanbanFlow</span>
+                    </Link>
+                  </SidebarHeader>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link href="/admin">
+                          <Home />
+                          Dashboard
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link href="/admin/users">
+                          <Users />
+                          Users
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link href="/admin/clients">
+                          <Briefcase />
+                          Clients
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link href="/admin/proposals">
+                          <FileText />
+                          Proposals
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link href="/admin/tickets">
+                          <Ticket />
+                          Tickets
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link href="/admin/projects">
+                          <FolderKanban />
+                          Projects
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarContent>
             </Sidebar>
             <SidebarInset>
               <main className="flex-1 overflow-y-auto p-4 md:p-8">
