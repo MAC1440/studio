@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createProject, getProjects, updateProject, deleteProject } from '@/lib/firebase/projects';
 import { getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle, Calendar as CalendarIcon, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -118,6 +118,11 @@ export default function ProjectsPage() {
   const [status, setStatus] = useState<ProjectStatus>('on-track');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+
+  // Filtering state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [clientFilter, setClientFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
 
 
   const { toast } = useToast();
@@ -255,6 +260,25 @@ export default function ProjectsPage() {
     }
   }
 
+  const filteredProjects = useMemo(() => {
+    return projects.filter(project => {
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = searchLower 
+            ? project.name.toLowerCase().includes(searchLower) || (project.description || '').toLowerCase().includes(searchLower)
+            : true;
+
+        const matchesClient = clientFilter !== 'all' 
+            ? (project.clientIds || []).includes(clientFilter) 
+            : true;
+
+        const matchesStatus = statusFilter !== 'all' 
+            ? project.status === statusFilter 
+            : true;
+
+        return matchesSearch && matchesClient && matchesStatus;
+    });
+  }, [projects, searchQuery, clientFilter, statusFilter]);
+
   return (
     <AlertDialog>
       <div className='max-w-[100vw] overflow-auto'>
@@ -264,6 +288,42 @@ export default function ProjectsPage() {
             <PlusCircle className="md:mr-2" />
             <span className="hidden md:inline">Create Project</span>
           </Button>
+        </div>
+
+        <div className="flex items-center gap-4 mb-4">
+            <div className="relative w-full max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                    placeholder="Search projects..." 
+                    className="pl-9"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </div>
+            <Select value={clientFilter} onValueChange={setClientFilter}>
+                <SelectTrigger className="w-full max-w-xs">
+                    <SelectValue placeholder="Filter by client" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Clients</SelectItem>
+                    {clients.map(client => (
+                        <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                <SelectTrigger className="w-full max-w-xs">
+                    <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="on-track">On Track</SelectItem>
+                    <SelectItem value="at-risk">At Risk</SelectItem>
+                    <SelectItem value="off-track">Off Track</SelectItem>
+                    <SelectItem value="on-hold">On Hold</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+            </Select>
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if (!isSubmitting) setIsDialogOpen(isOpen) }}>
@@ -368,8 +428,8 @@ export default function ProjectsPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : projects.length > 0 ? (
-                projects.map((project) => (
+              ) : filteredProjects.length > 0 ? (
+                filteredProjects.map((project) => (
                   <TableRow key={project.id}>
                     <TableCell>
                       <p className="font-medium">{project.name}</p>
@@ -417,8 +477,8 @@ export default function ProjectsPage() {
                   <TableCell colSpan={5} className="h-24 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <FolderKanban className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-muted-foreground">No projects found.</p>
-                      <Button size="sm" onClick={openCreateDialog}>Create Project</Button>
+                      <p className="text-muted-foreground">No projects match your filters.</p>
+                      <Button size="sm" variant="outline" onClick={() => { setSearchQuery(''); setClientFilter('all'); setStatusFilter('all'); }}>Clear Filters</Button>
                     </div>
                   </TableCell>
                 </TableRow>
