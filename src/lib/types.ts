@@ -56,10 +56,12 @@ export type Invoice = {
     lumpSumAmount: number;
     items: InvoiceItem[];
     totalAmount: number;
-    status: 'draft' | 'sent' | 'paid' | 'overdue' | 'expired';
+    status: 'draft' | 'sent' | 'paid' | 'overdue' | 'expired' | 'changes-requested';
     validUntil: Timestamp;
     createdAt: Timestamp;
     updatedAt: Timestamp;
+    feedback?: Comment[];
+    actingUser?: { id: string; name: string }; // Temporary field for notifications
 }
 
 
