@@ -47,6 +47,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
+const PROJECTS_PER_PAGE = 5;
 
 function MultiSelectClients({ allClients, selectedClientIds, onSelectionChange }: { allClients: User[], selectedClientIds: string[], onSelectionChange: (ids: string[]) => void }) {
   const [open, setOpen] = useState(false);
@@ -119,10 +120,11 @@ export default function ProjectsPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
-  // Filtering state
+  // Filtering and Pagination state
   const [searchQuery, setSearchQuery] = useState('');
   const [clientFilter, setClientFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
 
   const { toast } = useToast();
@@ -151,6 +153,17 @@ export default function ProjectsPage() {
     setIsLoading(true);
     fetchData();
   }, []);
+  
+  const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<any>>) => (value: string) => {
+    setter(value);
+    setCurrentPage(1);
+  };
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -279,6 +292,12 @@ export default function ProjectsPage() {
     });
   }, [projects, searchQuery, clientFilter, statusFilter]);
 
+  const totalPages = Math.ceil(filteredProjects.length / PROJECTS_PER_PAGE);
+  const paginatedProjects = filteredProjects.slice(
+    (currentPage - 1) * PROJECTS_PER_PAGE,
+    currentPage * PROJECTS_PER_PAGE
+  );
+
   return (
     <AlertDialog>
       <div className='max-w-[100vw] overflow-auto'>
@@ -297,10 +316,10 @@ export default function ProjectsPage() {
                     placeholder="Search projects..." 
                     className="pl-9"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchChange}
                 />
             </div>
-            <Select value={clientFilter} onValueChange={setClientFilter}>
+            <Select value={clientFilter} onValueChange={handleFilterChange(setClientFilter)}>
                 <SelectTrigger className="w-full max-w-xs">
                     <SelectValue placeholder="Filter by client" />
                 </SelectTrigger>
@@ -311,7 +330,7 @@ export default function ProjectsPage() {
                     ))}
                 </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+            <Select value={statusFilter} onValueChange={handleFilterChange(setStatusFilter as any)}>
                 <SelectTrigger className="w-full max-w-xs">
                     <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
@@ -414,7 +433,7 @@ export default function ProjectsPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
+                Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-20" /></TableCell>
@@ -428,8 +447,8 @@ export default function ProjectsPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : filteredProjects.length > 0 ? (
-                filteredProjects.map((project) => (
+              ) : paginatedProjects.length > 0 ? (
+                paginatedProjects.map((project) => (
                   <TableRow key={project.id}>
                     <TableCell>
                       <p className="font-medium">{project.name}</p>
@@ -478,13 +497,37 @@ export default function ProjectsPage() {
                     <div className="flex flex-col items-center gap-2">
                       <FolderKanban className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">No projects match your filters.</p>
-                      <Button size="sm" variant="outline" onClick={() => { setSearchQuery(''); setClientFilter('all'); setStatusFilter('all'); }}>Clear Filters</Button>
+                      <Button size="sm" variant="outline" onClick={() => { setSearchQuery(''); setClientFilter('all'); setStatusFilter('all'); setCurrentPage(1); }}>Clear Filters</Button>
                     </div>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+        </div>
+
+        <div className="flex items-center justify-between mt-4">
+          <span className="text-sm text-muted-foreground">
+            Showing {filteredProjects.length > 0 ? ((currentPage - 1) * PROJECTS_PER_PAGE) + 1 : 0} to {Math.min(currentPage * PROJECTS_PER_PAGE, filteredProjects.length)} of {filteredProjects.length} projects
+          </span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
         </div>
 
         <AlertDialogContent>
