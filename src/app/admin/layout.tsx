@@ -32,7 +32,7 @@ export default function AdminLayout({
                     <div className="flex items-center justify-between">
                      <Link href="/admin" className="flex items-center gap-2 font-bold text-lg tracking-tight">
                         <LayoutGrid className="h-6 w-6 text-primary" />
-                        <span className="group-data-[collapsible=icon]:hidden">KanbanFlow</span>
+                        <span className="group-data-[collapsible=icon]:hidden">BoardR</span>
                     </Link>
                     <SidebarTrigger className="hidden md:flex group-data-[collapsible=icon]:hidden" />
                     </div>

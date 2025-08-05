@@ -76,7 +76,7 @@ function LoginPage() {
        <div className="absolute top-8 left-8">
          <Link href="/board" className="flex items-center gap-2">
             <LayoutGrid className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold tracking-tight">KanbanFlow</span>
+            <span className="text-lg font-bold tracking-tight">BoardR</span>
         </Link>
        </div>
       <Card className="w-full max-w-sm">
