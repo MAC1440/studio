@@ -34,12 +34,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createUser, getUsers, deleteUser } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Briefcase, Trash2, Edit, PlusCircle } from 'lucide-react';
+import { Briefcase, Trash2, Send, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function ClientsPage() {
@@ -132,7 +131,7 @@ export default function ClientsPage() {
 
   return (
     <AlertDialog>
-    <div>
+    <div className="max-w-[100vw] overflow-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl md:text-3xl font-bold">Client Management</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -172,7 +171,6 @@ export default function ClientsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Client</TableHead>
-              <TableHead>Role</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -189,11 +187,9 @@ export default function ClientsPage() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-6 w-16 rounded-full" />
-                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                       <Skeleton className="h-8 w-28" />
                        <Skeleton className="h-8 w-20" />
                     </div>
                   </TableCell>
@@ -216,13 +212,12 @@ export default function ClientsPage() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant='secondary'>
-                      {client.role}
-                    </Badge>
-                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm">
+                            <Send className="mr-2 h-4 w-4"/>
+                            Send Invoice
+                        </Button>
                        <AlertDialogTrigger asChild>
                          <Button
                            variant="destructive"
@@ -239,7 +234,7 @@ export default function ClientsPage() {
               ))
             ) : (
                 <TableRow>
-                    <TableCell colSpan={3} className="h-24 text-center">
+                    <TableCell colSpan={2} className="h-24 text-center">
                         <div className="flex flex-col items-center gap-2">
                             <Briefcase className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">No clients found.</p>
