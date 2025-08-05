@@ -1,6 +1,6 @@
 
 'use client';
-import { type Ticket, type Comment as CommentType, User, TicketPriority } from '@/lib/types';
+import { type Ticket, type Comment as CommentType, User, TicketPriority, ChecklistItem } from '@/lib/types';
 import {
   DialogContent,
   DialogHeader,
@@ -22,13 +22,16 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '../ui/scroll-area';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { addCommentToTicket, deleteTicket, updateTicket } from '@/lib/firebase/tickets';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Calendar, Trash2, User as UserIcon } from 'lucide-react';
+import { Calendar, Trash2, User as UserIcon, Plus } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -44,10 +47,10 @@ type TicketDetailsProps = {
 };
 
 function Comment({ comment }: { comment: CommentType }) {
-  const commentTimestamp = comment.timestamp && 'toDate' in comment.timestamp 
-    ? comment.timestamp.toDate() 
+  const commentTimestamp = comment.timestamp && 'toDate' in comment.timestamp
+    ? comment.timestamp.toDate()
     : comment.timestamp as Date;
-  
+
   return (
      <div key={comment.id} className="flex gap-3">
         <Avatar>
@@ -70,6 +73,7 @@ function Comment({ comment }: { comment: CommentType }) {
 
 export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) {
   const [newComment, setNewComment] = useState('');
+  const [newChecklistItem, setNewChecklistItem] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { userData, user, users } = useAuth();
   const { toast } = useToast();
@@ -145,6 +149,49 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
        toast({ title: 'Error', description: 'Could not update priority.', variant: 'destructive' });
     }
   };
+  
+  const handleAddChecklistItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newChecklistItem.trim()) return;
+    const newItem: ChecklistItem = {
+      id: `check-${Date.now()}`,
+      text: newChecklistItem,
+      completed: false
+    };
+    const updatedChecklist = [...(ticket.checklist || []), newItem];
+    try {
+      await updateTicket(ticket.id, { checklist: updatedChecklist });
+      setNewChecklistItem('');
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to add checklist item:', error);
+      toast({ title: 'Error', description: 'Could not add checklist item.', variant: 'destructive' });
+    }
+  };
+
+  const handleToggleChecklistItem = async (itemId: string) => {
+    const updatedChecklist = (ticket.checklist || []).map(item =>
+      item.id === itemId ? { ...item, completed: !item.completed } : item
+    );
+    try {
+      await updateTicket(ticket.id, { checklist: updatedChecklist });
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to toggle checklist item:', error);
+      toast({ title: 'Error', description: 'Could not update checklist item.', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteChecklistItem = async (itemId: string) => {
+    const updatedChecklist = (ticket.checklist || []).filter(item => item.id !== itemId);
+     try {
+      await updateTicket(ticket.id, { checklist: updatedChecklist });
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to delete checklist item:', error);
+      toast({ title: 'Error', description: 'Could not delete checklist item.', variant: 'destructive' });
+    }
+  }
 
 
   const sortedComments = ticket.comments?.sort((a, b) => {
@@ -154,6 +201,11 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
   }) || [];
 
   const createdAtDate = ticket.createdAt?.toDate ? ticket.createdAt.toDate() : new Date();
+
+  const checklistCompleted = (ticket.checklist || []).filter(item => item.completed).length;
+  const checklistTotal = (ticket.checklist || []).length;
+  const checklistProgress = checklistTotal > 0 ? (checklistCompleted / checklistTotal) * 100 : 0;
+
 
   return (
     <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
@@ -177,7 +229,7 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
               </div>
           </div>
         </DialogHeader>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 min-h-0">
           <ScrollArea className="md:col-span-2">
               <div className="pr-6">
@@ -185,9 +237,45 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                       <h3 className="font-semibold mb-2">Description</h3>
                       <p className="text-muted-foreground whitespace-pre-wrap">{ticket.description}</p>
                   </div>
-  
+
                   <Separator className="my-4" />
-  
+                  
+                  <div className="py-4">
+                      <h3 className="font-semibold mb-2">Checklist</h3>
+                      {checklistTotal > 0 && (
+                        <div className="mb-4 space-y-2">
+                           <div className="flex items-center justify-between text-sm">
+                             <span className="text-muted-foreground">Progress</span>
+                             <span>{Math.round(checklistProgress)}%</span>
+                           </div>
+                           <Progress value={checklistProgress} />
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        {(ticket.checklist || []).map(item => (
+                          <div key={item.id} className="flex items-center gap-3 group">
+                              <Checkbox
+                                id={`check-${item.id}`}
+                                checked={item.completed}
+                                onCheckedChange={() => handleToggleChecklistItem(item.id)}
+                              />
+                              <label htmlFor={`check-${item.id}`} className={`flex-1 text-sm ${item.completed ? 'line-through text-muted-foreground' : ''}`}>{item.text}</label>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleDeleteChecklistItem(item.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive"/>
+                              </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <form onSubmit={handleAddChecklistItem} className="flex items-center gap-2 mt-3">
+                        <Input value={newChecklistItem} onChange={(e) => setNewChecklistItem(e.target.value)} placeholder="Add a sub-task" className="h-9"/>
+                        <Button type="submit" size="sm" disabled={!newChecklistItem.trim()}>
+                            <Plus className="mr-2 h-4 w-4"/> Add
+                        </Button>
+                      </form>
+                  </div>
+
+                  <Separator className="my-4" />
+
                   <div>
                       <h3 className="font-semibold mb-4">Activity</h3>
                       <div className="space-y-6">
@@ -253,8 +341,8 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
               </ScrollArea>
           </aside>
         </div>
-  
-  
+
+
         <div className="mt-auto pt-4 border-t">
           {userData && (
               <div className="flex gap-3">
@@ -264,8 +352,8 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                   </Avatar>
                   <div className="flex-1">
                   <form onSubmit={handleCommentSubmit}>
-                      <Textarea 
-                      placeholder="Add a comment..." 
+                      <Textarea
+                      placeholder="Add a comment..."
                       className="mb-2"
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
@@ -291,7 +379,7 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                 )}
           </div>
         </div>
-        
+
          <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
