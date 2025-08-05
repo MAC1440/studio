@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText } from 'lucide-react';
+import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,7 +50,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Separator } from '../ui/separator';
 import { useRouter, usePathname } from 'next/navigation';
-import { SidebarTrigger } from '../ui/sidebar';
+import { SidebarTrigger, useSidebar } from '../ui/sidebar';
 import { ThemeToggle } from './theme-toggle';
 
 function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[], projects: Project[], onTicketCreated: () => void }) {
@@ -261,7 +261,7 @@ function NotificationBell() {
     );
 }
 
-export default function AppHeader() {
+function HeaderContent() {
   const { user, userData, logout, loading, users, reloadTickets } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const pathname = usePathname();
@@ -289,12 +289,11 @@ export default function AppHeader() {
   
   const isAdminSection = pathname.startsWith('/admin');
 
-
   return (
     <header className="border-b border-border/60">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
-            {isAdminSection && <SidebarTrigger className="md:hidden"/>}
+            {isAdminSection && <SidebarTrigger className="hidden md:flex" />}
             <Link href={getHomeLink()} className="flex items-center gap-2">
               <LayoutGrid className="h-6 w-6 text-primary" />
               <span className="text-lg font-bold tracking-tight">KanbanFlow</span>
@@ -362,4 +361,32 @@ export default function AppHeader() {
       </div>
     </header>
   );
+}
+
+
+export default function AppHeader() {
+    const { loading } = useAuth();
+    // We need to wrap the header in the SidebarProvider if we want to use the useSidebar hook
+    // But we only want to do that on the admin pages. A bit of a chicken-and-egg problem.
+    // Easiest solution is to just render the header content directly.
+    // A better solution would be to compose layouts differently.
+    
+    // Skeleton check prevents flicker on initial load
+    if (loading) {
+        return (
+            <header className="border-b border-border/60">
+              <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Skeleton className="h-6 w-36" />
+                </div>
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-9 w-24" />
+                  <Skeleton className="h-9 w-9 rounded-full" />
+                </div>
+              </div>
+            </header>
+        )
+    }
+
+    return <HeaderContent />
 }
