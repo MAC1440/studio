@@ -37,7 +37,7 @@ export default function KanbanColumn({ column, onTicketClick }: KanbanColumnProp
           {tickets.length}
         </span>
       </div>
-      <ScrollArea className="flex-1 rounded-md bg-secondary/50 p-2">
+      <ScrollArea className="flex-1 rounded-md bg-muted p-2">
         <div className="flex flex-col gap-3 h-full">
             <SortableContext items={tickets.map(t => t.id)} strategy={verticalListSortingStrategy}>
               {tickets.map((ticket) => (
