@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -15,32 +16,32 @@ export const useTheme = () => {
   const isDark = theme?.includes('dark') || theme === 'midnight' || theme === 'forest';
 
   const setTheme = (newTheme: string) => {
+    const root = document.documentElement;
+    root.classList.remove('theme-midnight', 'theme-forest');
+
     if (newTheme === 'midnight') {
-      // For custom dark themes, we apply both 'dark' and the specific theme class
-      document.documentElement.classList.add('dark', 'theme-midnight');
-      document.documentElement.classList.remove('theme-forest');
+      root.classList.add('dark', 'theme-midnight');
       setNextTheme('midnight');
     } else if (newTheme === 'forest') {
-      document.documentElement.classList.add('dark', 'theme-forest');
-      document.documentElement.classList.remove('theme-midnight');
+      root.classList.add('dark', 'theme-forest');
       setNextTheme('forest');
     } else {
-      // For standard themes, remove custom dark theme classes
-      document.documentElement.classList.remove('theme-midnight', 'theme-forest');
       if (newTheme === 'dark') {
-          document.documentElement.classList.add('dark');
+          root.classList.add('dark');
       }
       setNextTheme(newTheme);
     }
   };
 
   React.useEffect(() => {
-    // This effect ensures the correct classes are present on initial load
+    const root = document.documentElement;
     const currentTheme = localStorage.getItem('theme'); // next-themes uses localStorage
     if (currentTheme === 'midnight') {
-      document.documentElement.classList.add('dark', 'theme-midnight');
+      root.classList.add('dark', 'theme-midnight');
     } else if (currentTheme === 'forest') {
-      document.documentElement.classList.add('dark', 'theme-forest');
+      root.classList.add('dark', 'theme-forest');
+    } else if (currentTheme === 'dark') {
+      root.classList.add('dark');
     }
   }, []);
 
