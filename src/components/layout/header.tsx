@@ -51,6 +51,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Separator } from '../ui/separator';
 import { useRouter, usePathname } from 'next/navigation';
 import { SidebarTrigger } from '../ui/sidebar';
+import { ThemeToggle } from './theme-toggle';
 
 function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[], projects: Project[], onTicketCreated: () => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -309,6 +310,7 @@ export default function AppHeader() {
             <>
               {userData?.role !== 'client' && <CreateTicketDialog users={users} projects={projects} onTicketCreated={handleTicketCreated}/>}
               <NotificationBell />
+              <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Avatar className="h-9 w-9 cursor-pointer">
