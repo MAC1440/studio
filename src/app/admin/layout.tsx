@@ -10,6 +10,7 @@ import {
   SidebarContent,
   SidebarInset,
   SidebarHeader,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid } from "lucide-react";
 import Link from "next/link";
@@ -28,10 +29,13 @@ export default function AdminLayout({
             <Sidebar>
                 <SidebarContent>
                   <SidebarHeader className="border-b">
+                    <div className="flex items-center justify-between">
                      <Link href="/admin" className="flex items-center gap-2 font-bold text-lg tracking-tight px-2">
                         <LayoutGrid className="h-6 w-6 text-primary" />
-                        <span>KanbanFlow</span>
+                        <span className="group-data-[collapsible=icon]:hidden">KanbanFlow</span>
                     </Link>
+                    <SidebarTrigger className="hidden md:flex group-data-[collapsible=icon]:hidden" />
+                    </div>
                   </SidebarHeader>
                   <SidebarMenu>
                     <SidebarMenuItem>
