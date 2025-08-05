@@ -102,13 +102,13 @@ export default function AdminDashboard() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
          <StatCard title="Total Earnings" value={formatCurrency(totalEarnings)} icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} description="From all paid invoices" isLoading={isLoading} />
          <StatCard title="Total Users" value={users.length} icon={<Users className="h-4 w-4 text-muted-foreground" />} description="Registered in the system" isLoading={isLoading} />
          <StatCard title="Open Tickets" value={openTicketsCount} icon={<Ticket className="h-4 w-4 text-muted-foreground" />} description="Tickets not in 'Done' status" isLoading={isLoading} />
       </div>
 
-       <Card className="mt-6 col-span-1 md:col-span-2 lg:col-span-4">
+       <Card className="mt-6 col-span-1 md:col-span-2 lg:col-span-3">
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                     <CardTitle>Project Statistics</CardTitle>
