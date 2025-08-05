@@ -1,4 +1,6 @@
 
+'use client';
+
 import AuthGuard from "@/components/auth/AuthGuard";
 import AppHeader from "@/components/layout/header";
 import {
@@ -14,12 +16,15 @@ import {
 } from "@/components/ui/sidebar";
 import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid, DollarSign } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  
   return (
     <AuthGuard role="admin">
       <SidebarProvider>
@@ -39,7 +44,7 @@ export default function AdminLayout({
                   </SidebarHeader>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton asChild isActive={pathname === '/admin'}>
                         <Link href="/admin">
                           <Home />
                           Dashboard
@@ -47,7 +52,7 @@ export default function AdminLayout({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/users')}>
                         <Link href="/admin/users">
                           <Users />
                           Users
@@ -55,7 +60,7 @@ export default function AdminLayout({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/clients')}>
                         <Link href="/admin/clients">
                           <Briefcase />
                           Clients
@@ -63,7 +68,7 @@ export default function AdminLayout({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/proposals')}>
                         <Link href="/admin/proposals">
                           <FileText />
                           Proposals
@@ -71,7 +76,7 @@ export default function AdminLayout({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                      <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/invoices')}>
                         <Link href="/admin/invoices">
                           <DollarSign />
                           Invoices
@@ -79,7 +84,7 @@ export default function AdminLayout({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/tickets')}>
                         <Link href="/admin/tickets">
                           <Ticket />
                           Tickets
@@ -87,7 +92,7 @@ export default function AdminLayout({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/projects')}>
                         <Link href="/admin/projects">
                           <FolderKanban />
                           Projects
