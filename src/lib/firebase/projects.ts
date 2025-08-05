@@ -1,12 +1,14 @@
 import { db } from './config';
-import { collection, addDoc, getDocs, getDoc, query, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, where, writeBatch, orderBy } from 'firebase/firestore';
-import type { Project } from '@/lib/types';
+import { collection, addDoc, getDocs, getDoc, query, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, where, writeBatch, orderBy, Timestamp } from 'firebase/firestore';
+import type { Project, ProjectStatus } from '@/lib/types';
 
 
 type CreateProjectArgs = {
   name: string;
   description?: string;
   clientIds?: string[];
+  deadline?: Date;
+  status?: ProjectStatus;
 };
 
 export async function createProject(args: CreateProjectArgs): Promise<Project> {
@@ -17,6 +19,8 @@ export async function createProject(args: CreateProjectArgs): Promise<Project> {
         description: args.description || '',
         clientIds: args.clientIds || [],
         createdAt: serverTimestamp() as any,
+        status: args.status || 'on-track',
+        ...(args.deadline && { deadline: Timestamp.fromDate(args.deadline) })
     };
 
     await setDoc(doc(db, "projects", docRef.id), newProjectData);
@@ -50,7 +54,13 @@ export async function getProject(projectId: string): Promise<Project | null> {
 
 export async function updateProject(projectId: string, updates: Partial<Omit<Project, 'id'>>): Promise<void> {
     const projectRef = doc(db, 'projects', projectId);
-    await updateDoc(projectRef, updates);
+    
+    const finalUpdates: { [key: string]: any } = { ...updates };
+    if (updates.deadline) {
+        finalUpdates.deadline = Timestamp.fromDate(updates.deadline as any);
+    }
+    
+    await updateDoc(projectRef, finalUpdates);
 }
 
 

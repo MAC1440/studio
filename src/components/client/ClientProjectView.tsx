@@ -5,11 +5,11 @@ import { useState, useEffect } from 'react';
 import { getProject } from '@/lib/firebase/projects';
 import { getTickets } from '@/lib/firebase/tickets';
 import { getProposals, updateProposal, addFeedbackToProposal } from '@/lib/firebase/proposals';
-import { type Project, type Ticket, type Proposal, type Comment } from '@/lib/types';
+import { type Project, type Ticket, type Proposal, type Comment, ProjectStatus } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, BarChart, FileText, GanttChartSquare, MessageSquarePlus } from 'lucide-react';
+import { ArrowLeft, BarChart, FileText, GanttChartSquare, MessageSquarePlus, CalendarIcon, Flag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -34,7 +34,8 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { useSearchParams } from 'next/navigation';
-import { Card, CardContent, CardHeader } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Progress } from '../ui/progress';
 
 
 function FeedbackComment({ comment }: { comment: Comment }) {
@@ -270,13 +271,13 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
       <div className="p-4 md:p-6">
         <Skeleton className="h-8 w-64 mb-4" />
         <div className="flex gap-6">
-          <div className="w-1/4">
+          <div className="w-64">
             <Skeleton className="h-10 w-full mb-2" />
             <Skeleton className="h-10 w-full mb-2" />
             <Skeleton className="h-10 w-full" />
           </div>
-          <div className="w-3/4">
-            <Skeleton className="h-64 w-full" />
+          <div className="flex-1">
+            <Skeleton className="h-96 w-full" />
           </div>
         </div>
       </div>
@@ -286,9 +287,21 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   if (!project) {
     return <div>Project not found.</div>;
   }
+  
+  const getStatusBadgeVariant = (status?: ProjectStatus) => {
+    switch (status) {
+      case 'completed': return 'default';
+      case 'off-track': return 'destructive';
+      case 'at-risk': return 'secondary';
+      case 'on-track': return 'secondary';
+      default: return 'outline';
+    }
+  }
 
-  const inProgressTickets = tickets.filter(t => t.status === 'in-progress' || t.status === 'review');
+  const inProgressTickets = tickets.filter(t => t.status === 'in-progress' || t.status === 'review' || t.status === 'todo' || t.status === 'backlog');
   const doneTickets = tickets.filter(t => t.status === 'done');
+  const totalTickets = tickets.length;
+  const completionPercentage = totalTickets > 0 ? (doneTickets.length / totalTickets) * 100 : 0;
 
 
   return (
@@ -342,7 +355,40 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         <main className="flex-1 overflow-auto p-6">
           {activeView === 'progress' && (
             <div>
-              <h2 className="text-2xl font-bold mb-4">In Progress</h2>
+              <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>Project Overview</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <h3 className="text-sm font-medium">Progress</h3>
+                             <span className="text-sm font-medium">{Math.round(completionPercentage)}%</span>
+                        </div>
+                        <Progress value={completionPercentage} />
+                        <p className="text-xs text-muted-foreground mt-1">{doneTickets.length} of {totalTickets} tasks completed</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                            <Flag className="h-4 w-4 text-muted-foreground"/>
+                            <div>
+                                <p className="text-muted-foreground">Status</p>
+                                <Badge variant={getStatusBadgeVariant(project.status)} className="capitalize">{project.status?.replace('-', ' ') || 'N/A'}</Badge>
+                            </div>
+                        </div>
+                         <div className="flex items-center gap-2">
+                            <CalendarIcon className="h-4 w-4 text-muted-foreground"/>
+                            <div>
+                                <p className="text-muted-foreground">Deadline</p>
+                                <p className="font-medium">{project.deadline ? format(project.deadline.toDate(), 'MMM d, yyyy') : 'Not set'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+              </Card>
+
+              <h2 className="text-2xl font-bold mb-4">In Progress Tasks</h2>
               <div className="border rounded-lg mb-8">
                 <Table>
                     <TableHeader>
@@ -364,7 +410,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                 </Table>
               </div>
 
-              <h2 className="text-2xl font-bold mb-4">Completed</h2>
+              <h2 className="text-2xl font-bold mb-4">Completed Tasks</h2>
                <div className="border rounded-lg">
                 <Table>
                     <TableHeader>

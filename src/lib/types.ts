@@ -11,12 +11,16 @@ export type User = {
 // Renamed from User to avoid conflict with Firebase's User type
 export type AppUser = User;
 
+export type ProjectStatus = 'on-track' | 'at-risk' | 'off-track' | 'completed' | 'on-hold';
+
 export type Project = {
   id: string;
   name: string;
   description: string;
   createdAt: Timestamp;
   clientIds?: string[];
+  deadline?: Timestamp;
+  status?: ProjectStatus;
 };
 
 export type Proposal = {
@@ -50,6 +54,12 @@ export type ColumnId = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
 
 export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
 
+export type ChecklistItem = {
+    id: string;
+    text: string;
+    completed: boolean;
+}
+
 export type Ticket = {
   id: string;
   title: string;
@@ -61,6 +71,7 @@ export type Ticket = {
   projectId: string;
   comments: Comment[];
   createdAt: Timestamp;
+  checklist?: ChecklistItem[];
 };
 
 export type Column = {
@@ -81,5 +92,3 @@ export type Notification = {
     projectId?: string;
     projectName?: string;
 }
-
-    

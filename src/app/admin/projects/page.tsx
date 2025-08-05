@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose
 } from '@/components/ui/dialog';
@@ -34,15 +33,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { type Project, type User } from '@/lib/types';
+import { type Project, type User, type ProjectStatus } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createProject, getProjects, updateProject, deleteProject } from '@/lib/firebase/projects';
 import { getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle } from 'lucide-react';
+import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -110,7 +111,15 @@ export default function ProjectsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  
+  // Form state
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
+  const [deadline, setDeadline] = useState<Date | undefined>();
+  const [status, setStatus] = useState<ProjectStatus>('on-track');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+
+
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -141,15 +150,13 @@ export default function ProjectsPage() {
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const name = formData.get('name') as string;
-    const description = formData.get('description') as string;
-
+    
     const projectData = {
       name,
       description,
-      clientIds: selectedClientIds
+      clientIds: selectedClientIds,
+      deadline,
+      status
     };
 
     if (name) {
@@ -206,25 +213,47 @@ export default function ProjectsPage() {
       setProjectToDelete(null);
     }
   };
+  
+  const resetFormState = () => {
+    setProjectToEdit(null);
+    setSelectedClientIds([]);
+    setDeadline(undefined);
+    setStatus('on-track');
+    setName('');
+    setDescription('');
+  };
 
   const openEditDialog = (project: Project) => {
+    resetFormState();
     setProjectToEdit(project);
+    setName(project.name);
+    setDescription(project.description);
     setSelectedClientIds(project.clientIds || []);
+    setDeadline(project.deadline?.toDate());
+    setStatus(project.status || 'on-track');
     setIsDialogOpen(true);
   };
 
   const openCreateDialog = () => {
-    setProjectToEdit(null);
-    setSelectedClientIds([]);
+    resetFormState();
     setIsDialogOpen(true);
   };
 
   const closeDialog = () => {
     setIsDialogOpen(false);
-    setProjectToEdit(null);
-    setSelectedClientIds([]);
+    // Let the animation finish before resetting state
+    setTimeout(resetFormState, 200);
   }
 
+  const getStatusBadgeVariant = (status?: ProjectStatus) => {
+    switch (status) {
+      case 'completed': return 'default';
+      case 'off-track': return 'destructive';
+      case 'at-risk': return 'secondary';
+      case 'on-track': return 'secondary';
+      default: return 'outline';
+    }
+  }
 
   return (
     <AlertDialog>
@@ -245,11 +274,53 @@ export default function ProjectsPage() {
             <form onSubmit={handleFormSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Project Name</Label>
-                <Input id="name" name="name" required disabled={isSubmitting} defaultValue={projectToEdit?.name} />
+                <Input id="name" name="name" required disabled={isSubmitting} value={name} onChange={e => setName(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" name="description" disabled={isSubmitting} defaultValue={projectToEdit?.description} />
+                <Textarea id="description" name="description" disabled={isSubmitting} value={description} onChange={e => setDescription(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                    <Label>Deadline</Label>
+                     <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !deadline && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                        <Calendar
+                            mode="single"
+                            selected={deadline}
+                            onSelect={setDeadline}
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
+                 </div>
+                 <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select onValueChange={(v: ProjectStatus) => setStatus(v)} value={status}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="on-track">On Track</SelectItem>
+                            <SelectItem value="at-risk">At Risk</SelectItem>
+                            <SelectItem value="off-track">Off Track</SelectItem>
+                            <SelectItem value="on-hold">On Hold</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                    </Select>
+                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Assign Clients</Label>
@@ -275,8 +346,9 @@ export default function ProjectsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Project Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Deadline</TableHead>
                 <TableHead>Assigned Clients</TableHead>
-                <TableHead>Created At</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -284,15 +356,10 @@ export default function ProjectsPage() {
               {isLoading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell>
-                      <Skeleton className="h-4 w-48" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-24" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-32" />
-                    </TableCell>
+                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Skeleton className="h-8 w-20" />
@@ -306,10 +373,16 @@ export default function ProjectsPage() {
                   <TableRow key={project.id}>
                     <TableCell>
                       <p className="font-medium">{project.name}</p>
-                      <p className="text-sm text-muted-foreground truncate max-w-md">{project.description}</p>
+                      <p className="text-sm text-muted-foreground truncate max-w-sm">{project.description}</p>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
+                        <Badge variant={getStatusBadgeVariant(project.status)} className="capitalize">{project.status?.replace('-', ' ') || 'N/A'}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {project.deadline ? format(project.deadline.toDate(), 'MMM d, yyyy') : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1 max-w-xs">
                         {(project.clientIds || []).length > 0 ?
                           project.clientIds?.map(id => {
                             const client = clients.find(c => c.id === id);
@@ -318,9 +391,6 @@ export default function ProjectsPage() {
                           : <span className="text-xs text-muted-foreground">None</span>
                         }
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {project.createdAt ? format(project.createdAt.toDate(), 'MMM d, yyyy') : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -344,7 +414,7 @@ export default function ProjectsPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <FolderKanban className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">No projects found.</p>
