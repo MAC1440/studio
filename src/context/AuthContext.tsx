@@ -20,6 +20,7 @@ interface AuthContextType {
   users: User[];
   ticketReloadKey: number;
   reloadTickets: () => void;
+  forceRefetch: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,10 +31,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [ticketReloadKey, setTicketReloadKey] = useState(0);
+  const [refetchKey, setRefetchKey] = useState(0);
   const router = useRouter();
 
   const reloadTickets = useCallback(() => {
     setTicketReloadKey(oldKey => oldKey + 1);
+  }, []);
+
+  const forceRefetch = useCallback(() => {
+    setRefetchKey(oldKey => oldKey + 1);
   }, []);
   
   const fetchAndSetUserData = useCallback(async (firebaseUser: FirebaseUser) => {
@@ -70,7 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [fetchAndSetUserData]);
+  }, [fetchAndSetUserData, refetchKey]);
 
   const login = async (email: string, pass: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
@@ -89,7 +95,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading, login, logout, users, ticketReloadKey, reloadTickets }}>
+    <AuthContext.Provider value={{ user, userData, loading, login, logout, users, ticketReloadKey, reloadTickets, forceRefetch }}>
       {children}
     </AuthContext.Provider>
   );

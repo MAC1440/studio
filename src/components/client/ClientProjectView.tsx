@@ -34,6 +34,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { useSearchParams } from 'next/navigation';
+import { Card, CardContent, CardHeader } from '../ui/card';
 
 
 function FeedbackComment({ comment }: { comment: Comment }) {
@@ -387,11 +388,17 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
             </div>
           )}
            {activeView === 'invoices' && (
-             <div className="text-center text-muted-foreground p-8">
-                 <FileText className="mx-auto h-12 w-12 mb-4" />
-                 <h3 className="text-xl font-semibold">Invoicing Coming Soon</h3>
-                 <p>This section will show all invoices related to this project.</p>
-             </div>
+              <div className="flex items-center justify-center h-full">
+                <Card className="w-full max-w-md text-center">
+                    <CardHeader>
+                        <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-xl font-semibold">Invoicing is Coming Soon</h3>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">This feature is currently under development. You will be able to view and manage all your project invoices right here.</p>
+                    </CardContent>
+                </Card>
+              </div>
            )}
            {activeView === 'proposals' && (
               <div>

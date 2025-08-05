@@ -44,17 +44,102 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { createUser, getUsers, deleteUser } from '@/lib/firebase/users';
+import { createUser, getUsers, deleteUser, updateUserProfile } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users as UsersIcon, Trash2, Edit, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+
+
+function EditUserDialog({ user, onUserUpdated, children }: { user: User | null, onUserUpdated: () => void, children: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [name, setName] = useState('');
+  const [role, setRole] = useState<'admin' | 'user' | 'client'>('user');
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setRole(user.role);
+    }
+  }, [user]);
+  
+  const handleUpdate = async () => {
+    if (!user) return;
+    setIsSubmitting(true);
+    try {
+      await updateUserProfile(user.id, { name, role });
+      toast({
+        title: "User Updated",
+        description: `Details for ${name} have been updated.`,
+      });
+      onUserUpdated();
+      setIsOpen(false);
+    } catch (error: any) {
+      console.error("Failed to update user:", error);
+      toast({
+        title: "Error Updating User",
+        description: `Could not update user. Error: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!user) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit User: {user.name}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-name">Full Name</Label>
+            <Input id="edit-name" value={name} onChange={e => setName(e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-email">Email Address</Label>
+            <Input id="edit-email" value={user.email} disabled />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-role">Role</Label>
+            <Select value={role} onValueChange={value => setRole(value as any)} disabled={isSubmitting}>
+              <SelectTrigger id="edit-role">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="client">Client</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline" disabled={isSubmitting}>Cancel</Button>
+          </DialogClose>
+          <Button onClick={handleUpdate} disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
@@ -98,7 +183,7 @@ export default function UsersPage() {
           title: "User Created",
           description: `${name} has been added to the system.`,
         });
-        setIsDialogOpen(false);
+        setIsCreateDialogOpen(false);
       } catch (error: any) {
         console.error("Failed to create user:", error);
         toast({
@@ -144,7 +229,7 @@ export default function UsersPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">User Management</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>Create User</Button>
           </DialogTrigger>
@@ -263,10 +348,12 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" disabled>
-                        <Edit className="mr-2 h-4 w-4"/>
-                        Edit
-                      </Button>
+                       <EditUserDialog user={user} onUserUpdated={fetchUsers}>
+                         <Button variant="ghost" size="sm">
+                          <Edit className="mr-2 h-4 w-4"/>
+                          Edit
+                         </Button>
+                       </EditUserDialog>
                        <AlertDialogTrigger asChild>
                          <Button
                            variant="destructive"
@@ -288,7 +375,7 @@ export default function UsersPage() {
                         <div className="flex flex-col items-center gap-2">
                             <UsersIcon className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">No users found.</p>
-                            <Button size="sm" onClick={() => setIsDialogOpen(true)}>Create User</Button>
+                            <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>Create User</Button>
                         </div>
                     </TableCell>
                 </TableRow>

@@ -1,7 +1,8 @@
 
-import { auth, db } from './config';
+import { auth, db, storage } from './config';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, getAuth } from 'firebase/auth';
-import { setDoc, doc, collection, getDocs, query, deleteDoc } from 'firebase/firestore';
+import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User } from '@/lib/types';
 import { initializeApp, getApps, deleteApp } from 'firebase/app';
 
@@ -89,4 +90,22 @@ export async function deleteUser(userId: string): Promise<void> {
     // The user's authentication account will remain in Firebase Authentication.
     const userRef = doc(db, 'users', userId);
     await deleteDoc(userRef);
+}
+
+
+export async function uploadAvatar(userId: string, file: File): Promise<string> {
+    if (!file.type.startsWith('image/')) {
+        throw new Error("File is not an image.");
+    }
+
+    const storageRef = ref(storage, `avatars/${userId}/${file.name}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+
+    return downloadURL;
+}
+
+export async function updateUserProfile(userId: string, updates: Partial<User>): Promise<void> {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, updates);
 }

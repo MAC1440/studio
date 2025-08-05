@@ -1,5 +1,7 @@
 
 'use client';
+
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import AppHeader from '@/components/layout/header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,9 +12,69 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import AuthGuard from '@/components/auth/AuthGuard';
+import { useToast } from '@/hooks/use-toast';
+import { updateUserProfile, uploadAvatar } from '@/lib/firebase/users';
 
 function ProfilePageContent() {
-  const { userData, loading } = useAuth();
+  const { user, userData, loading, forceRefetch } = useAuth();
+  const [name, setName] = useState(userData?.name || '');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setAvatarFile(e.target.files[0]);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!user) return;
+    setIsSubmitting(true);
+    
+    let newAvatarUrl: string | undefined = undefined;
+
+    try {
+      if (avatarFile) {
+        newAvatarUrl = await uploadAvatar(user.uid, avatarFile);
+      }
+      
+      const updates: { name?: string; avatarUrl?: string } = {};
+      if (name !== userData?.name) {
+        updates.name = name;
+      }
+      if (newAvatarUrl) {
+        updates.avatarUrl = newAvatarUrl;
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        await updateUserProfile(user.uid, updates);
+      }
+      
+      toast({
+        title: 'Profile Updated',
+        description: 'Your changes have been saved successfully.',
+      });
+
+      // Force a refetch of user data in the auth context
+      if (forceRefetch) {
+          forceRefetch();
+      }
+
+    } catch (error: any) {
+      console.error("Failed to update profile", error);
+      toast({
+        title: 'Update Failed',
+        description: error.message || 'Could not save your changes.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+      setAvatarFile(null); // Reset file input state
+    }
+  };
+
+  const hasChanges = (avatarFile || (name && name !== userData?.name));
 
   return (
     <div className="flex flex-col h-screen">
@@ -34,7 +96,7 @@ function ProfilePageContent() {
                 <div className="flex flex-row items-center gap-4">
                   <Avatar className="h-20 w-20">
                     <AvatarImage src={userData.avatarUrl} alt={userData.name} />
-                    <AvatarFallback>{userData.name.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{(name || 'U').charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div>
                     <CardTitle className="text-2xl">{userData.name}</CardTitle>
@@ -63,11 +125,12 @@ function ProfilePageContent() {
                 <>
                   <div className="space-y-2">
                       <Label htmlFor="name">Full Name</Label>
-                      <Input id="name" defaultValue={userData.name} />
+                      <Input id="name" value={name} onChange={e => setName(e.target.value)} disabled={isSubmitting}/>
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="email">Email Address</Label>
-                      <Input id="email" type="email" defaultValue={userData.email} readOnly />
+                      <Input id="email" type="email" defaultValue={userData.email} readOnly disabled/>
+                       <p className="text-sm text-muted-foreground">Email address cannot be changed.</p>
                   </div>
                   <div className="space-y-2">
                       <Label>Role</Label>
@@ -77,11 +140,13 @@ function ProfilePageContent() {
                   </div>
                    <div className="space-y-2">
                       <Label htmlFor="avatar">Avatar</Label>
-                      <Input id="avatar" type="file" />
+                      <Input id="avatar" type="file" onChange={handleAvatarChange} accept="image/png, image/jpeg, image/gif" disabled={isSubmitting}/>
                       <p className="text-sm text-muted-foreground">Upload a new avatar. Square images work best.</p>
                   </div>
                   <div className="flex justify-end">
-                      <Button>Save Changes</Button>
+                      <Button onClick={handleSaveChanges} disabled={!hasChanges || isSubmitting}>
+                        {isSubmitting ? 'Saving...' : 'Save Changes'}
+                      </Button>
                   </div>
                 </>
               )}
