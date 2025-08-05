@@ -156,7 +156,7 @@ export default function ProjectsPage() {
       description,
       clientIds: selectedClientIds,
       deadline,
-      status
+      status: projectToEdit ? status : 'on-track' // Default to on-track for new projects
     };
 
     if (name) {
@@ -257,7 +257,7 @@ export default function ProjectsPage() {
 
   return (
     <AlertDialog>
-      <div className='max-w-[95vw] overflow-auto'>
+      <div className='max-w-[100vw] overflow-auto'>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl md:text-3xl font-bold">Project Management</h1>
           <Button onClick={openCreateDialog} size="sm">
@@ -266,7 +266,7 @@ export default function ProjectsPage() {
           </Button>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { if (!isSubmitting) setIsDialogOpen(isOpen) }}>
           <DialogContent onInteractOutside={e => { if (isSubmitting) e.preventDefault(); }}>
             <DialogHeader>
               <DialogTitle>{projectToEdit ? 'Edit Project' : 'Create New Project'}</DialogTitle>
@@ -306,21 +306,23 @@ export default function ProjectsPage() {
                         </PopoverContent>
                     </Popover>
                  </div>
-                 <div className="space-y-2">
-                    <Label>Status</Label>
-                    <Select onValueChange={(v: ProjectStatus) => setStatus(v)} value={status}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="on-track">On Track</SelectItem>
-                            <SelectItem value="at-risk">At Risk</SelectItem>
-                            <SelectItem value="off-track">Off Track</SelectItem>
-                            <SelectItem value="on-hold">On Hold</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                        </SelectContent>
-                    </Select>
-                 </div>
+                 {projectToEdit && (
+                    <div className="space-y-2">
+                        <Label>Status</Label>
+                        <Select onValueChange={(v: ProjectStatus) => setStatus(v)} value={status} disabled={isSubmitting}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="on-track">On Track</SelectItem>
+                                <SelectItem value="at-risk">At Risk</SelectItem>
+                                <SelectItem value="off-track">Off Track</SelectItem>
+                                <SelectItem value="on-hold">On Hold</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                 )}
               </div>
               <div className="space-y-2">
                 <Label>Assign Clients</Label>
@@ -331,9 +333,7 @@ export default function ProjectsPage() {
                 />
               </div>
               <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" onClick={closeDialog} disabled={isSubmitting}>Cancel</Button>
-                </DialogClose>
+                <Button type="button" variant="outline" onClick={closeDialog} disabled={isSubmitting}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Project'}</Button>
               </DialogFooter>
             </form>
