@@ -156,7 +156,7 @@ export default function CreateInvoicePage() {
 
 
   return (
-    <div>
+    <div className='max-h-full'>
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" size="icon" asChild>
           <Link href="/admin/clients"><ArrowLeft /></Link>
@@ -213,24 +213,26 @@ export default function CreateInvoicePage() {
             {invoiceType === 'itemized' ? (
                 <div className="space-y-4 rounded-md border p-4">
                     <h3 className="font-medium">Itemized Breakdown</h3>
-                    {items.map((item, index) => (
-                        <div key={index} className="flex flex-col md:flex-row gap-2 items-start">
-                            <div className="grid gap-2 flex-1 w-full">
-                                <Label htmlFor={`item-desc-${index}`} className="sr-only">Description</Label>
-                                <Input id={`item-desc-${index}`} value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} placeholder="Service description"/>
+                     <div className="max-h-60 overflow-y-auto pr-2 space-y-4">
+                        {items.map((item, index) => (
+                            <div key={index} className="flex flex-col md:flex-row gap-2 items-start">
+                                <div className="grid gap-2 flex-1 w-full">
+                                    <Label htmlFor={`item-desc-${index}`} className="sr-only">Description</Label>
+                                    <Input id={`item-desc-${index}`} value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} placeholder="Service description"/>
+                                </div>
+                                 <div className="grid gap-2 w-full md:w-48">
+                                    <Label htmlFor={`item-amount-${index}`} className="sr-only">Amount</Label>
+                                     <div className="relative">
+                                         <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input id={`item-amount-${index}`} type="number" value={item.amount} onChange={e => handleItemChange(index, 'amount', e.target.value)} placeholder="0.00" className="pl-8"/>
+                                     </div>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)} className="shrink-0 text-destructive hover:text-destructive-foreground hover:bg-destructive">
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
                             </div>
-                             <div className="grid gap-2 w-full md:w-48">
-                                <Label htmlFor={`item-amount-${index}`} className="sr-only">Amount</Label>
-                                 <div className="relative">
-                                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input id={`item-amount-${index}`} type="number" value={item.amount} onChange={e => handleItemChange(index, 'amount', e.target.value)} placeholder="0.00" className="pl-8"/>
-                                 </div>
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)} className="shrink-0 text-destructive hover:text-destructive-foreground hover:bg-destructive">
-                                <Trash2 className="h-4 w-4"/>
-                            </Button>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                     <Button variant="outline" size="sm" onClick={handleAddItem}><PlusCircle className="mr-2"/> Add Item</Button>
                 </div>
             ) : (

@@ -98,7 +98,7 @@ export default function AdminLayout({
                 </SidebarContent>
             </Sidebar>
             <SidebarInset>
-              <main className="flex-1 overflow-auto p-4 md:p-8">
+              <main className="flex-1 overflow-auto p-4 md:p-8 mb-[60px]">
                 {children}
               </main>
             </SidebarInset>
