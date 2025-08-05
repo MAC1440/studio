@@ -39,7 +39,7 @@ import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createUser, getUsers, deleteUser } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Briefcase, Trash2, Edit } from 'lucide-react';
+import { Briefcase, Trash2, Edit, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function ClientsPage() {
@@ -134,10 +134,13 @@ export default function ClientsPage() {
     <AlertDialog>
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Client Management</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Client Management</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>Invite Client</Button>
+             <Button size="sm">
+              <PlusCircle className="md:mr-2"/>
+              <span className="hidden md:inline">Invite Client</span>
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

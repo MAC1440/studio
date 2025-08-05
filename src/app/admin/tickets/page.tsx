@@ -38,7 +38,7 @@ import { createTicket, getTickets } from '@/lib/firebase/tickets';
 import { getUsers } from '@/lib/firebase/users';
 import { getProjects } from '@/lib/firebase/projects';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ticket as TicketIcon } from 'lucide-react';
+import { Ticket as TicketIcon, PlusCircle } from 'lucide-react';
 import TicketDetails from '@/components/kanban/ticket-details';
 
 
@@ -154,10 +154,13 @@ export default function TicketsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Ticket Management</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Ticket Management</h1>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button>Create Ticket</Button>
+             <Button size="sm">
+              <PlusCircle className="md:mr-2"/>
+              <span className="hidden md:inline">Create Ticket</span>
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

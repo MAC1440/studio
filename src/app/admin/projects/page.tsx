@@ -39,7 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createProject, getProjects, updateProject, deleteProject } from '@/lib/firebase/projects';
 import { getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown } from 'lucide-react';
+import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -230,8 +230,11 @@ export default function ProjectsPage() {
     <AlertDialog>
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Project Management</h1>
-        <Button onClick={openCreateDialog}>Create Project</Button>
+        <h1 className="text-2xl md:text-3xl font-bold">Project Management</h1>
+         <Button onClick={openCreateDialog} size="sm">
+            <PlusCircle className="md:mr-2"/>
+            <span className="hidden md:inline">Create Project</span>
+        </Button>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

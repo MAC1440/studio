@@ -46,7 +46,7 @@ import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createUser, getUsers, deleteUser, updateUserProfile } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users as UsersIcon, Trash2, Edit, Eye, EyeOff } from 'lucide-react';
+import { Users as UsersIcon, Trash2, Edit, Eye, EyeOff, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 
@@ -227,10 +227,13 @@ export default function UsersPage() {
     <AlertDialog>
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">User Management</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">User Management</h1>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button>Create User</Button>
+            <Button size="sm">
+              <PlusCircle className="md:mr-2"/>
+              <span className="hidden md:inline">Create User</span>
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

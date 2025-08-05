@@ -152,10 +152,10 @@ export default function ProposalsPage() {
     <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Proposals</h1>
-          <Button onClick={handleCreateClick}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create Proposal
+          <h1 className="text-2xl md:text-3xl font-bold">Proposals</h1>
+          <Button onClick={handleCreateClick} size="sm">
+            <PlusCircle className="md:mr-2 h-4 w-4" />
+            <span className="hidden md:inline">Create Proposal</span>
           </Button>
         </div>
         <div className="border rounded-lg overflow-x-auto">
