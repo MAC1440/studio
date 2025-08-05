@@ -6,21 +6,13 @@ import { getDoc } from 'firebase/firestore';
 import { addNotification } from './notifications';
 import { getProject } from './projects';
 
-type CreateInvoiceArgs = Omit<Invoice, 'id' | 'createdAt' | 'updatedAt' | 'totalAmount'>;
+type CreateInvoiceArgs = Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>;
 
 export async function createInvoice(args: CreateInvoiceArgs): Promise<Invoice> {
     const docRef = await addDoc(collection(db, "invoices"), {});
 
-    let totalAmount = 0;
-    if (args.type === 'lump-sum') {
-        totalAmount = args.lumpSumAmount;
-    } else {
-        totalAmount = args.items.reduce((sum, item) => sum + item.amount, 0);
-    }
-
     const newInvoiceData: Omit<Invoice, 'id'> = {
         ...args,
-        totalAmount,
         createdAt: serverTimestamp() as Timestamp,
         updatedAt: serverTimestamp() as Timestamp,
     };
@@ -61,25 +53,24 @@ export async function getInvoices(filters: { clientId?: string, projectId?: stri
     return invoiceList;
 }
 
+export async function getInvoice(invoiceId: string): Promise<Invoice | null> {
+    const invoiceRef = doc(db, 'invoices', invoiceId);
+    const invoiceSnap = await getDoc(invoiceRef);
+    if (invoiceSnap.exists()) {
+        return { id: invoiceSnap.id, ...invoiceSnap.data() } as Invoice;
+    }
+    return null;
+}
+
 export async function updateInvoice(invoiceId: string, updates: Partial<Omit<Invoice, 'id' | 'createdAt'>>): Promise<void> {
     const invoiceRef = doc(db, 'invoices', invoiceId);
     
     const finalUpdates: { [key: string]: any } = { ...updates };
     
-    if (updates.validUntil) {
+    if (updates.validUntil && !(updates.validUntil instanceof Timestamp)) {
         finalUpdates.validUntil = Timestamp.fromDate(updates.validUntil as any);
     }
     
-    if (updates.items || updates.lumpSumAmount) {
-        let totalAmount = 0;
-        if (updates.type === 'lump-sum' && updates.lumpSumAmount) {
-            totalAmount = updates.lumpSumAmount;
-        } else if (updates.type === 'itemized' && updates.items) {
-            totalAmount = updates.items.reduce((sum, item) => sum + item.amount, 0);
-        }
-        finalUpdates.totalAmount = totalAmount;
-    }
-
     finalUpdates.updatedAt = serverTimestamp();
 
     await updateDoc(invoiceRef, finalUpdates);
