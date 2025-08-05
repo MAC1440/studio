@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -46,9 +46,10 @@ import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createUser, getUsers, deleteUser, updateUserProfile } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users as UsersIcon, Trash2, Edit, Eye, EyeOff, PlusCircle } from 'lucide-react';
+import { Users as UsersIcon, Trash2, Edit, Eye, EyeOff, PlusCircle, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
+const USERS_PER_PAGE = 10;
 
 function EditUserDialog({ user, onUserUpdated, children }: { user: User | null, onUserUpdated: () => void, children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -142,11 +143,17 @@ export default function UsersPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
+  
+  // Filtering and Pagination
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
 
   const fetchUsers = async () => {
     try {
       const fetchedUsers = await getUsers();
-      setUsers(fetchedUsers);
+      setUsers(fetchedUsers.sort((a,b) => a.name.localeCompare(b.name)));
     } catch (error) {
       console.error("Failed to fetch users:", error);
       toast({
@@ -163,6 +170,16 @@ export default function UsersPage() {
     setIsLoading(true);
     fetchUsers();
   }, []);
+  
+  const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (value: string) => {
+    setter(value);
+    setCurrentPage(1);
+  };
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
 
   const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -222,6 +239,24 @@ export default function UsersPage() {
     }
   };
   
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = searchLower 
+            ? user.name.toLowerCase().includes(searchLower) || user.email.toLowerCase().includes(searchLower)
+            : true;
+            
+        const matchesRole = roleFilter !== 'all' ? user.role === roleFilter : true;
+        
+        return matchesSearch && matchesRole;
+    });
+  }, [users, searchQuery, roleFilter]);
+  
+  const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * USERS_PER_PAGE,
+    currentPage * USERS_PER_PAGE
+  );
 
   return (
     <AlertDialog>
@@ -292,6 +327,29 @@ export default function UsersPage() {
           </DialogContent>
         </Dialog>
       </div>
+      
+       <div className="flex items-center gap-4 mb-4">
+            <div className="relative w-full max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                    placeholder="Search by name or email..." 
+                    className="pl-9"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                />
+            </div>
+            <Select value={roleFilter} onValueChange={handleFilterChange(setRoleFilter)}>
+                <SelectTrigger className="w-full max-w-xs">
+                    <SelectValue placeholder="Filter by role" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="client">Client</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
 
       <div className="border rounded-lg overflow-x-auto">
         <Table>
@@ -304,7 +362,7 @@ export default function UsersPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
+              Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -326,8 +384,8 @@ export default function UsersPage() {
                   </TableCell>
                 </TableRow>
               ))
-            ) : users.length > 0 ? (
-              users.map((user) => (
+            ) : paginatedUsers.length > 0 ? (
+              paginatedUsers.map((user) => (
                 <TableRow key={user.id} className={user.id === currentUser?.uid ? 'bg-muted/50' : ''}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -377,7 +435,11 @@ export default function UsersPage() {
                         <div className="flex flex-col items-center gap-2">
                             <UsersIcon className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">No users found.</p>
-                            <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>Create User</Button>
+                            {searchQuery || roleFilter !== 'all' ? (
+                                <Button size="sm" variant="outline" onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}>Clear Filters</Button>
+                            ) : (
+                               <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>Create User</Button>
+                            )}
                         </div>
                     </TableCell>
                 </TableRow>
@@ -385,6 +447,31 @@ export default function UsersPage() {
           </TableBody>
         </Table>
       </div>
+      
+       <div className="flex items-center justify-between mt-4">
+          <span className="text-sm text-muted-foreground">
+            Showing {filteredUsers.length > 0 ? ((currentPage - 1) * USERS_PER_PAGE) + 1 : 0} to {Math.min(currentPage * USERS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} users
+          </span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+
 
        <AlertDialogContent>
         <AlertDialogHeader>
