@@ -38,9 +38,12 @@ import { createTicket, getTickets } from '@/lib/firebase/tickets';
 import { getUsers } from '@/lib/firebase/users';
 import { getProjects } from '@/lib/firebase/projects';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ticket as TicketIcon, PlusCircle } from 'lucide-react';
+import { Ticket as TicketIcon, PlusCircle, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import TicketDetails from '@/components/kanban/ticket-details';
-
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -51,6 +54,7 @@ export default function TicketsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [deadline, setDeadline] = useState<Date | undefined>();
   const { toast } = useToast();
 
   const fetchTicketsAndUsers = async () => {
@@ -92,6 +96,7 @@ export default function TicketsPage() {
     const tagsString = formData.get('tags') as string;
     const priority = formData.get('priority') as TicketPriority;
     const projectId = formData.get('projectId') as string;
+    const loggedHours = formData.get('loggedHours') as string;
 
     const assignedTo = users.find(u => u.id === assignedToId) || null;
     const tags = tagsString.split(',').map(tag => ({ id: tag.trim(), label: tag.trim(), color: 'gray' })).filter(t => t.label);
@@ -99,13 +104,23 @@ export default function TicketsPage() {
 
     if (title && description && projectId) {
       try {
-        await createTicket({ title, description, assignedTo, tags, priority, projectId });
+        await createTicket({
+            title,
+            description,
+            assignedTo,
+            tags,
+            priority,
+            projectId,
+            deadline,
+            loggedHours: Number(loggedHours) || 0
+        });
         await fetchTicketsAndUsers();
         toast({
           title: "Ticket Created",
           description: `Ticket "${title}" has been created.`,
         });
         setIsCreateDialogOpen(false);
+        setDeadline(undefined);
       } catch (error: any) {
         console.error("Failed to create ticket:", error);
         toast({
@@ -209,6 +224,37 @@ export default function TicketsPage() {
                   <p className="text-xs text-muted-foreground">Comma-separated.</p>
                 </div>
               </div>
+                <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                    <Label>Deadline</Label>
+                     <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !deadline && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                        <Calendar
+                            mode="single"
+                            selected={deadline}
+                            onSelect={setDeadline}
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
+                 </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="loggedHours">Logged Hours</Label>
+                    <Input id="loggedHours" name="loggedHours" type="number" step="0.5" placeholder="0" disabled={isSubmitting} />
+                 </div>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="assignedTo">Assign To</Label>
                 <Select name="assignedTo" disabled={isSubmitting}>
@@ -244,6 +290,8 @@ export default function TicketsPage() {
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Assigned To</TableHead>
+              <TableHead>Deadline</TableHead>
+              <TableHead>Hours</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -260,44 +308,56 @@ export default function TicketsPage() {
                       <Skeleton className="h-4 w-24" />
                     </div>
                   </TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                   <TableCell className="text-right">
                     <Skeleton className="h-8 w-20" />
                   </TableCell>
                 </TableRow>
               ))
             ) : tickets.length > 0 ? (
-              tickets.map((ticket) => (
-                <TableRow key={ticket.id}>
-                  <TableCell className="font-medium">{ticket.title}</TableCell>
-                  <TableCell>
-                    <Badge variant={ticket.priority === 'critical' || ticket.priority === 'high' ? 'destructive' : 'secondary'} className="capitalize">{ticket.priority}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="capitalize">{ticket.status.replace('-', ' ')}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {ticket.assignedTo ? (
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-7 w-7">
-                          <AvatarImage src={ticket.assignedTo.avatarUrl} alt={ticket.assignedTo.name} />
-                          <AvatarFallback>{ticket.assignedTo.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <span>{ticket.assignedTo.name}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">Unassigned</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleViewTicket(ticket)}>
-                      View
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+              tickets.map((ticket) => {
+                  const deadline = ticket.deadline?.toDate();
+                  const isOverdue = deadline ? new Date() > deadline : false;
+                  return (
+                    <TableRow key={ticket.id}>
+                      <TableCell className="font-medium">{ticket.title}</TableCell>
+                      <TableCell>
+                        <Badge variant={ticket.priority === 'critical' || ticket.priority === 'high' ? 'destructive' : 'secondary'} className="capitalize">{ticket.priority}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">{ticket.status.replace('-', ' ')}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {ticket.assignedTo ? (
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-7 w-7">
+                              <AvatarImage src={ticket.assignedTo.avatarUrl} alt={ticket.assignedTo.name} />
+                              <AvatarFallback>{ticket.assignedTo.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <span>{ticket.assignedTo.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Unassigned</span>
+                        )}
+                      </TableCell>
+                      <TableCell className={cn(isOverdue && "text-destructive")}>
+                        {deadline ? format(deadline, 'MMM d, yyyy') : <span className="text-muted-foreground">N/A</span>}
+                      </TableCell>
+                       <TableCell>
+                        {ticket.loggedHours ? `${ticket.loggedHours}h` : <span className="text-muted-foreground">0h</span>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={() => handleViewTicket(ticket)}>
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+              })
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <TicketIcon className="h-8 w-8 text-muted-foreground" />
                     <p className="text-muted-foreground">No tickets found.</p>

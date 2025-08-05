@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign } from 'lucide-react';
+import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -47,7 +48,7 @@ import { getProjects } from '@/lib/firebase/projects';
 import { type User, type Notification, Project } from '@/lib/types';
 import { subscribeToNotifications, markNotificationAsRead } from '@/lib/firebase/notifications';
 import { cn } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { Separator } from '../ui/separator';
 import { useRouter, usePathname } from 'next/navigation';
 import { SidebarTrigger, useSidebar } from '../ui/sidebar';
@@ -56,6 +57,7 @@ import { ThemeToggle } from './theme-toggle';
 function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[], projects: Project[], onTicketCreated: () => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deadline, setDeadline] = useState<Date | undefined>();
     const { toast } = useToast();
 
     const handleCreateTicket = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -66,17 +68,26 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
         const description = formData.get('description') as string;
         const assignedToId = formData.get('assignedTo') as string;
         const projectId = formData.get('projectId') as string;
+        const loggedHours = formData.get('loggedHours') as string;
 
         const assignedTo = users.find(u => u.id === assignedToId) || null;
 
         if (title && description && projectId) {
             try {
-                await createTicket({ title, description, assignedTo, projectId });
+                await createTicket({
+                    title,
+                    description,
+                    assignedTo,
+                    projectId,
+                    deadline,
+                    loggedHours: Number(loggedHours) || 0,
+                });
                 toast({
                     title: "Ticket Created",
                     description: `Ticket "${title}" has been created.`,
                 });
                 setIsDialogOpen(false);
+                setDeadline(undefined);
                 onTicketCreated();
             } catch (error: any) {
                 console.error("Failed to create ticket:", error);
@@ -130,6 +141,37 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
                     <div className="space-y-2">
                         <Label htmlFor="description">Description</Label>
                         <Textarea id="description" name="description" required disabled={isSubmitting} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Deadline</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !deadline && "text-muted-foreground"
+                                    )}
+                                >
+                                    <Calendar className="mr-2 h-4 w-4" />
+                                    {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                <CalendarComponent
+                                    mode="single"
+                                    selected={deadline}
+                                    onSelect={setDeadline}
+                                    initialFocus
+                                />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="loggedHours">Initial Hours</Label>
+                            <Input id="loggedHours" name="loggedHours" type="number" placeholder="0" step="0.5" disabled={isSubmitting}/>
+                        </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="assignedTo">Assign To</Label>

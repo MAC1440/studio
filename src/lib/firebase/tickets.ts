@@ -30,6 +30,8 @@ type CreateTicketArgs = {
   status?: ColumnId;
   priority?: TicketPriority;
   tags?: Tag[];
+  deadline?: Date;
+  loggedHours?: number;
 };
 
 export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
@@ -45,6 +47,8 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
         comments: [],
         assignedTo: args.assignedTo || undefined,
         createdAt: serverTimestamp() as any, // Let server generate timestamp
+        ...(args.deadline && { deadline: Timestamp.fromDate(args.deadline) }),
+        loggedHours: args.loggedHours || 0,
     };
 
     await setDoc(doc(db, "tickets", docRef.id), newTicketData);
@@ -80,6 +84,12 @@ export async function getTickets({ projectId }: { projectId?: string }): Promise
 
 export async function updateTicket(ticketId: string, updates: Partial<Omit<Ticket, 'id' | 'comments'>>): Promise<void> {
     const ticketRef = doc(db, 'tickets', ticketId);
+    
+    const finalUpdates: { [key: string]: any } = { ...updates };
+    
+    if (updates.deadline && !(updates.deadline instanceof Timestamp)) {
+        finalUpdates.deadline = Timestamp.fromDate(updates.deadline as any);
+    }
 
     // If assignee is being changed, we need to check if we should notify the new user
     if ('assignedTo' in updates) {
@@ -97,11 +107,10 @@ export async function updateTicket(ticketId: string, updates: Partial<Omit<Ticke
       if (wasAssignedToNewUser && newAssignee) {
         await sendAssignmentNotification(ticketId, updates.title || currentTicket.title, currentTicket.projectId, newAssignee);
       }
+      
+      finalUpdates.assignedTo = updates.assignedTo || null;
     }
     
-    // Firestore handles undefined values by not changing them, but for `assignedTo: null` we need to set it properly.
-    const finalUpdates = 'assignedTo' in updates ? { ...updates, assignedTo: updates.assignedTo || null } : updates;
-
     await updateDoc(ticketRef, finalUpdates);
 }
 

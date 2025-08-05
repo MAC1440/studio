@@ -25,13 +25,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { ScrollArea } from '../ui/scroll-area';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { addCommentToTicket, deleteTicket, updateTicket } from '@/lib/firebase/tickets';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Calendar, Trash2, User as UserIcon, Plus } from 'lucide-react';
+import { Calendar, Trash2, User as UserIcon, Plus, Clock, Hourglass } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -39,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 
 type TicketDetailsProps = {
@@ -74,6 +77,7 @@ function Comment({ comment }: { comment: CommentType }) {
 export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) {
   const [newComment, setNewComment] = useState('');
   const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [hoursToAdd, setHoursToAdd] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { userData, user, users } = useAuth();
   const { toast } = useToast();
@@ -193,6 +197,33 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
     }
   }
 
+  const handleDeadlineChange = async (date: Date | undefined) => {
+    try {
+      await updateTicket(ticket.id, { deadline: date });
+      onUpdate();
+      toast({ title: "Deadline updated" });
+    } catch (error) {
+      console.error('Failed to update deadline:', error);
+      toast({ title: 'Error', description: 'Could not update deadline.', variant: 'destructive' });
+    }
+  }
+
+  const handleLogHours = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const hours = parseFloat(hoursToAdd);
+    if (isNaN(hours) || hours <= 0) return;
+    const newTotal = (ticket.loggedHours || 0) + hours;
+    try {
+        await updateTicket(ticket.id, { loggedHours: newTotal });
+        setHoursToAdd('');
+        onUpdate();
+        toast({ title: 'Hours logged successfully' });
+    } catch (error) {
+      console.error('Failed to log hours:', error);
+      toast({ title: 'Error', description: 'Could not log hours.', variant: 'destructive' });
+    }
+  };
+
 
   const sortedComments = ticket.comments?.sort((a, b) => {
     const dateA = a.timestamp && 'toDate' in a.timestamp ? a.timestamp.toDate().getTime() : (a.timestamp as Date)?.getTime();
@@ -205,6 +236,9 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
   const checklistCompleted = (ticket.checklist || []).filter(item => item.completed).length;
   const checklistTotal = (ticket.checklist || []).length;
   const checklistProgress = checklistTotal > 0 ? (checklistCompleted / checklistTotal) * 100 : 0;
+  
+  const deadline = ticket.deadline?.toDate();
+  const isOverdue = deadline ? new Date() > deadline : false;
 
 
   return (
@@ -224,7 +258,7 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                 </Badge>
               ))}
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto">
-                  <Calendar className="h-3.5 w-3.5" />
+                  <Hourglass className="h-3.5 w-3.5" />
                   <span>Created {format(createdAtDate, "MMM d, yyyy")}</span>
               </div>
           </div>
@@ -336,6 +370,50 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                                   <SelectItem value="critical">Critical</SelectItem>
                               </SelectContent>
                           </Select>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Due Date</h3>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !deadline && "text-muted-foreground",
+                                    isOverdue && "text-destructive border-destructive"
+                                )}
+                                >
+                                <Calendar className="mr-2 h-4 w-4" />
+                                {deadline ? format(deadline, "PPP") : <span>No deadline</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <CalendarComponent
+                                mode="single"
+                                selected={deadline}
+                                onSelect={handleDeadlineChange}
+                                initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Log Hours</h3>
+                        <div className="flex items-center gap-2">
+                           <Clock className="h-5 w-5 text-muted-foreground"/>
+                           <p className="font-bold text-lg">{ticket.loggedHours || 0}<span className="font-normal text-sm text-muted-foreground">h</span></p>
+                        </div>
+                        <form onSubmit={handleLogHours} className="flex items-center gap-2 mt-2">
+                            <Input
+                                type="number"
+                                placeholder="Add hours..."
+                                value={hoursToAdd}
+                                onChange={(e) => setHoursToAdd(e.target.value)}
+                                className="h-9"
+                                step="0.5"
+                            />
+                            <Button type="submit" size="sm" disabled={!hoursToAdd}>Log</Button>
+                        </form>
                       </div>
                   </div>
               </ScrollArea>

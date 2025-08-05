@@ -100,6 +100,8 @@ export type Ticket = {
   comments: Comment[];
   createdAt: Timestamp;
   checklist?: ChecklistItem[];
+  deadline?: Timestamp;
+  loggedHours?: number;
 };
 
 export type Column = {
