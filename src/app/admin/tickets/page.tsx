@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -38,12 +38,14 @@ import { createTicket, getTickets } from '@/lib/firebase/tickets';
 import { getUsers } from '@/lib/firebase/users';
 import { getProjects } from '@/lib/firebase/projects';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ticket as TicketIcon, PlusCircle, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { Ticket as TicketIcon, PlusCircle, Calendar as CalendarIcon, Clock, Search } from 'lucide-react';
 import TicketDetails from '@/components/kanban/ticket-details';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+
+const TICKETS_PER_PAGE = 6;
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -56,6 +58,11 @@ export default function TicketsPage() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [deadline, setDeadline] = useState<Date | undefined>();
   const { toast } = useToast();
+
+  // Filtering and Pagination State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchTicketsAndUsers = async () => {
     // Don't set is loading to true on refetch
@@ -162,6 +169,35 @@ export default function TicketsPage() {
       }
     }
   }
+
+  const filteredTickets = useMemo(() => {
+    return tickets
+      .filter(ticket => {
+        if (selectedProjectId !== 'all' && ticket.projectId !== selectedProjectId) {
+          return false;
+        }
+        if (searchQuery && !ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) && !ticket.description.toLowerCase().includes(searchQuery.toLowerCase())) {
+          return false;
+        }
+        return true;
+      });
+  }, [tickets, searchQuery, selectedProjectId]);
+
+  const totalPages = Math.ceil(filteredTickets.length / TICKETS_PER_PAGE);
+  const paginatedTickets = filteredTickets.slice(
+    (currentPage - 1) * TICKETS_PER_PAGE,
+    currentPage * TICKETS_PER_PAGE
+  );
+
+  const handleProjectFilterChange = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    setCurrentPage(1); // Reset to first page on filter change
+  };
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page on search
+  };
 
 
   return (
@@ -274,11 +310,35 @@ export default function TicketsPage() {
         </Dialog>
       </div>
 
+       <div className="flex items-center gap-4 mb-4">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search tickets..." 
+            className="pl-9"
+            value={searchQuery}
+            onChange={handleSearchChange}
+          />
+        </div>
+        <Select value={selectedProjectId} onValueChange={handleProjectFilterChange}>
+          <SelectTrigger className="w-full max-w-xs">
+            <SelectValue placeholder="Filter by project" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Projects</SelectItem>
+            {projects.map(project => (
+              <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
+              <TableHead>Project</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Assigned To</TableHead>
@@ -292,6 +352,7 @@ export default function TicketsPage() {
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                   <TableCell>
@@ -307,13 +368,15 @@ export default function TicketsPage() {
                   </TableCell>
                 </TableRow>
               ))
-            ) : tickets.length > 0 ? (
-              tickets.map((ticket) => {
+            ) : paginatedTickets.length > 0 ? (
+              paginatedTickets.map((ticket) => {
                   const deadline = ticket.deadline?.toDate();
                   const isOverdue = deadline ? new Date() > deadline : false;
+                  const project = projects.find(p => p.id === ticket.projectId);
                   return (
                     <TableRow key={ticket.id}>
                       <TableCell className="font-medium">{ticket.title}</TableCell>
+                      <TableCell>{project?.name || 'N/A'}</TableCell>
                       <TableCell>
                         <Badge variant={ticket.priority === 'critical' || ticket.priority === 'high' ? 'destructive' : 'secondary'} className="capitalize">{ticket.priority}</Badge>
                       </TableCell>
@@ -349,17 +412,41 @@ export default function TicketsPage() {
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <TicketIcon className="h-8 w-8 text-muted-foreground" />
                     <p className="text-muted-foreground">No tickets found.</p>
-                    <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>Create Ticket</Button>
+                     <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>Create Ticket</Button>
                   </div>
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
+      </div>
+
+       <div className="flex items-center justify-between mt-4">
+        <span className="text-sm text-muted-foreground">
+          Showing {filteredTickets.length > 0 ? ((currentPage - 1) * TICKETS_PER_PAGE) + 1 : 0} to {Math.min(currentPage * TICKETS_PER_PAGE, filteredTickets.length)} of {filteredTickets.length} tickets
+        </span>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+        </div>
       </div>
 
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
