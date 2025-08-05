@@ -26,7 +26,10 @@ import { useAuth } from '@/context/AuthContext';
 import { getProject } from '@/lib/firebase/projects';
 import Link from 'next/link';
 import { Button } from '../ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, User as UserIcon } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+
 
 const initialColumns: Column[] = [
   { id: 'backlog', title: 'Sprint Backlog', tickets: [] },
@@ -38,12 +41,20 @@ const initialColumns: Column[] = [
 
 export default function KanbanBoard({ projectId }: { projectId: string }) {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
+  const [allTickets, setAllTickets] = useState<Ticket[]>([]);
   const [projectName, setProjectName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketDetailOpen, setIsTicketDetailOpen] = useState(false);
   const { toast } = useToast();
-  const { userData, ticketReloadKey } = useAuth();
+  const { user, userData, users, ticketReloadKey } = useAuth();
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
+  
+  useEffect(() => {
+    if(user) {
+        setAssigneeFilter(user.uid);
+    }
+  }, [user]);
 
   const fetchBoardData = async () => {
       setIsLoading(true);
@@ -52,6 +63,8 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
           getTickets({ projectId }),
           getProject(projectId)
         ]);
+        
+        setAllTickets(tickets);
 
         if(!projectData) {
             toast({
@@ -65,18 +78,6 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
             setProjectName(projectData.name);
         }
 
-        const newColumns = initialColumns.map(c => ({...c, tickets: []})); // Reset tickets
-        
-        tickets.forEach(ticket => {
-          const columnIndex = newColumns.findIndex(col => col.id === ticket.status);
-          if (columnIndex !== -1) {
-            newColumns[columnIndex].tickets.push(ticket);
-          } else {
-             // If status is invalid, put it in the backlog
-            newColumns[0].tickets.push(ticket);
-          }
-        });
-        setColumns(newColumns);
       } catch (error) {
         console.error("Failed to fetch tickets:", error);
         toast({
@@ -92,6 +93,27 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
   useEffect(() => {
     fetchBoardData();
   }, [projectId, toast, ticketReloadKey]);
+  
+  useEffect(() => {
+    const filteredTickets = assigneeFilter === 'all'
+        ? allTickets
+        : allTickets.filter(ticket => ticket.assignedTo?.id === assigneeFilter);
+
+    const newColumns = initialColumns.map(c => ({...c, tickets: [] as Ticket[]}));
+    
+    filteredTickets.forEach(ticket => {
+        const columnIndex = newColumns.findIndex(col => col.id === ticket.status);
+        if (columnIndex !== -1) {
+        newColumns[columnIndex].tickets.push(ticket);
+        } else {
+            // If status is invalid, put it in the backlog
+        newColumns[0].tickets.push(ticket);
+        }
+    });
+
+    setColumns(newColumns);
+  }, [allTickets, assigneeFilter]);
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -130,6 +152,13 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
 
     if (!overColumn) return;
 
+    // We need to update allTickets, as it's the source of truth
+    const newAllTickets = allTickets.map(t => 
+        t.id === activeId ? { ...t, status: overColumn!.id as ColumnId } : t
+    );
+    setAllTickets(newAllTickets);
+
+
     setColumns((prev) => {
       const activeItems = activeColumn.tickets;
       const overItems = overColumn.tickets;
@@ -167,18 +196,19 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
 
         newColumns[activeColIndex] = { ...activeColumn, tickets: [...activeItems] };
         newColumns[overColIndex] = { ...overColumn, tickets: [...overItems] };
-
-        // Persist change to Firebase
-        updateTicketStatus(activeId, overColumn.id).catch(err => {
+      }
+      
+      // Persist change to Firebase after local state updates
+      updateTicketStatus(activeId, overColumn.id).catch(err => {
             console.error("Failed to update ticket status:", err);
             toast({
                 title: "Update Failed",
                 description: "Could not update ticket status. Please try again.",
                 variant: "destructive"
             });
-            // Consider reverting UI change on failure (more complex state management)
+            // Revert on failure
+            setAllTickets(allTickets); 
         });
-      }
 
       return newColumns;
     });
@@ -199,7 +229,9 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
     if(isDeleted) {
         handleTicketDetailClose();
     } else if (selectedTicket) {
-      const freshTicket = (await getTickets({ projectId })).find(t => t.id === selectedTicket?.id);
+      // Find the updated ticket in the refreshed list
+      const refreshedTickets = await getTickets({ projectId });
+      const freshTicket = refreshedTickets.find(t => t.id === selectedTicket?.id);
       if(freshTicket) {
         setSelectedTicket(freshTicket);
       } else {
@@ -223,6 +255,32 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
                     </Link>
                 </Button>
                 <h1 className="text-xl font-semibold text-foreground truncate">{projectName}</h1>
+                 <div className="ml-auto w-full max-w-xs">
+                    <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filter by assignee..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">
+                            <div className="flex items-center gap-2">
+                                <UserIcon className="h-5 w-5 p-0.5 text-muted-foreground" />
+                                <span>All Users</span>
+                            </div>
+                        </SelectItem>
+                        {users.map(u => (
+                          <SelectItem key={u.id} value={u.id}>
+                            <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                    <AvatarImage src={u.avatarUrl} alt={u.name} />
+                                    <AvatarFallback>{u.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span>{u.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
             </div>
             <div className="flex h-full w-full gap-6 p-4 md:p-6 pt-2 overflow-x-auto">
             {isLoading ? (
@@ -232,7 +290,7 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
                             <Skeleton className="h-6 w-32" />
                             <Skeleton className="h-6 w-8 rounded-md" />
                         </div>
-                        <div className="flex-1 rounded-md bg-secondary/50 p-2 space-y-3">
+                        <div className="flex-1 rounded-md bg-muted p-2 space-y-3">
                             <Skeleton className="h-24 w-full" />
                             <Skeleton className="h-24 w-full" />
                             <Skeleton className="h-24 w-full" />
