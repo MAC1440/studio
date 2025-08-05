@@ -30,7 +30,7 @@ export default function RichTextEditor({ content, onChange, editable }: RichText
     },
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl m-5 focus:outline-none flex-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm'
+        class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl p-3 focus:outline-none flex-1 w-full'
       },
     },
   });
@@ -40,64 +40,66 @@ export default function RichTextEditor({ content, onChange, editable }: RichText
   }
 
   return (
-    <div className="relative flex-1 flex flex-col">
-      <FloatingMenu
-        editor={editor}
-        tippyOptions={{ duration: 100 }}
-        className="flex items-center gap-1 bg-card p-1 rounded-md border shadow-md"
-      >
-        <Button
-            size="sm"
-            variant={editor.isActive('heading', { level: 1 }) ? 'secondary' : 'ghost'}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+    <div className="relative flex-1 flex flex-col border border-input rounded-md overflow-y-auto">
+      {editable && (
+        <FloatingMenu
+            editor={editor}
+            tippyOptions={{ duration: 100 }}
+            className="flex items-center gap-1 bg-card p-1 rounded-md border shadow-md"
         >
-          <Heading1 className="h-4 w-4" />
-        </Button>
-        <Button
-            size="sm"
-            variant={editor.isActive('heading', { level: 2 }) ? 'secondary' : 'ghost'}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        >
-          <Heading2 className="h-4 w-4" />
-        </Button>
-        <Button
-            size="sm"
-            variant={editor.isActive('heading', { level: 3 }) ? 'secondary' : 'ghost'}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        >
-          <Heading3 className="h-4 w-4" />
-        </Button>
-        <Button
-            size="sm"
-            variant={editor.isActive('bold') ? 'secondary' : 'ghost'}
-            onClick={() => editor.chain().focus().toggleBold().run()}
-        >
-          <Bold className="h-4 w-4" />
-        </Button>
-        <Button
-            size="sm"
-            variant={editor.isActive('italic') ? 'secondary' : 'ghost'}
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-        >
-          <Italic className="h-4 w-4" />
-        </Button>
-         <Button
-            size="sm"
-            variant={editor.isActive('strike') ? 'secondary' : 'ghost'}
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-        >
-          <Strikethrough className="h-4 w-4" />
-        </Button>
-         <Button
-            size="sm"
-            variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'}
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-        >
-          <List className="h-4 w-4" />
-        </Button>
-      </FloatingMenu>
+            <Button
+                size="sm"
+                variant={editor.isActive('heading', { level: 1 }) ? 'secondary' : 'ghost'}
+                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            >
+            <Heading1 className="h-4 w-4" />
+            </Button>
+            <Button
+                size="sm"
+                variant={editor.isActive('heading', { level: 2 }) ? 'secondary' : 'ghost'}
+                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            >
+            <Heading2 className="h-4 w-4" />
+            </Button>
+            <Button
+                size="sm"
+                variant={editor.isActive('heading', { level: 3 }) ? 'secondary' : 'ghost'}
+                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            >
+            <Heading3 className="h-4 w-4" />
+            </Button>
+            <Button
+                size="sm"
+                variant={editor.isActive('bold') ? 'secondary' : 'ghost'}
+                onClick={() => editor.chain().focus().toggleBold().run()}
+            >
+            <Bold className="h-4 w-4" />
+            </Button>
+            <Button
+                size="sm"
+                variant={editor.isActive('italic') ? 'secondary' : 'ghost'}
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+            >
+            <Italic className="h-4 w-4" />
+            </Button>
+            <Button
+                size="sm"
+                variant={editor.isActive('strike') ? 'secondary' : 'ghost'}
+                onClick={() => editor.chain().focus().toggleStrike().run()}
+            >
+            <Strikethrough className="h-4 w-4" />
+            </Button>
+            <Button
+                size="sm"
+                variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'}
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+            >
+            <List className="h-4 w-4" />
+            </Button>
+        </FloatingMenu>
+      )}
 
-      <EditorContent editor={editor} className="flex-1 overflow-y-auto" />
+      <EditorContent editor={editor} className="flex-1 flex flex-col" />
     </div>
   );
 }

@@ -151,7 +151,7 @@ export default function ProposalEditor({ clients, projects, onSave, onClose, pro
             </div>
 
 
-          <div className="space-y-2 flex-1 flex flex-col">
+          <div className="space-y-2 flex-1 flex flex-col min-h-0">
             <Label>Content</Label>
             <RichTextEditor
               content={content}
