@@ -267,7 +267,7 @@ export default function ProjectsPage() {
       </Dialog>
 
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -318,7 +318,7 @@ export default function ProjectsPage() {
                   </TableCell>
                    <TableCell>
                     {project.createdAt ? format(project.createdAt.toDate(), 'MMM d, yyyy') : 'N/A'}
-                  </TableCell>
+                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => openEditDialog(project)}>

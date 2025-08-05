@@ -158,7 +158,7 @@ export default function ProposalsPage() {
             Create Proposal
           </Button>
         </div>
-        <div className="border rounded-lg">
+        <div className="border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
