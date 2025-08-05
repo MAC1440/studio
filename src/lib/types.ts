@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type User = {
@@ -36,6 +37,31 @@ export type Proposal = {
   feedback?: Comment[];
   actingUser?: { id: string; name: string }; // Temporary field for notifications
 }
+
+export type InvoiceItem = {
+    id: string;
+    description: string;
+    amount: number;
+}
+
+export type Invoice = {
+    id: string;
+    title: string;
+    description?: string;
+    clientId: string;
+    clientName: string;
+    projectId: string;
+    projectName: string;
+    type: 'lump-sum' | 'itemized';
+    lumpSumAmount: number;
+    items: InvoiceItem[];
+    totalAmount: number;
+    status: 'draft' | 'sent' | 'paid' | 'overdue' | 'expired';
+    validUntil: Timestamp;
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+}
+
 
 export type Tag = {
   id: string;
@@ -86,6 +112,7 @@ export type Notification = {
     message: string;
     ticketId?: string; // Optional
     proposalId?: string; // Optional
+    invoiceId?: string; // Optional
     read: boolean;
     createdAt: Timestamp;
     expiresAt: Timestamp;

@@ -5,11 +5,12 @@ import { useState, useEffect } from 'react';
 import { getProject } from '@/lib/firebase/projects';
 import { getTickets } from '@/lib/firebase/tickets';
 import { getProposals, updateProposal, addFeedbackToProposal } from '@/lib/firebase/proposals';
-import { type Project, type Ticket, type Proposal, type Comment, ProjectStatus } from '@/lib/types';
+import { getInvoices } from '@/lib/firebase/invoices';
+import { type Project, type Ticket, type Proposal, type Invoice, type Comment, ProjectStatus } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, BarChart, FileText, GanttChartSquare, MessageSquarePlus, CalendarIcon, Flag } from 'lucide-react';
+import { ArrowLeft, BarChart, FileText, GanttChartSquare, MessageSquarePlus, CalendarIcon, Flag, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -175,6 +176,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const [project, setProject] = useState<Project | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState('progress');
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
@@ -182,29 +184,41 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const { toast } = useToast();
   const searchParams = useSearchParams();
 
-  const fetchClientData = async (proposalToOpenId?: string) => {
+  const fetchClientData = async (options: { openProposalId?: string, openInvoiceId?: string } = {}) => {
       if (!user) return;
       try {
-        const [projectData, ticketData, proposalData] = await Promise.all([
+        const [projectData, ticketData, proposalData, invoiceData] = await Promise.all([
           getProject(projectId),
           getTickets({ projectId }),
-          getProposals({ projectId })
+          getProposals({ projectId }),
+          getInvoices({ projectId })
         ]);
 
         setProject(projectData);
         setTickets(ticketData);
+        
         const filteredProposals = proposalData
             .filter(p => p.clientId === user.uid && p.status !== 'draft')
             .sort((a,b) => b.updatedAt.toMillis() - a.updatedAt.toMillis())
         setProposals(filteredProposals);
         
-        if (proposalToOpenId) {
-            const proposalToOpen = filteredProposals.find(p => p.id === proposalToOpenId);
+        const filteredInvoices = invoiceData
+            .filter(i => i.clientId === user.uid && i.status !== 'draft')
+            .sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        setInvoices(filteredInvoices);
+        
+        if (options.openProposalId) {
+            const proposalToOpen = filteredProposals.find(p => p.id === options.openProposalId);
             if (proposalToOpen) {
                 setSelectedProposal(proposalToOpen);
                 setActiveView('proposals');
             }
         }
+        if (options.openInvoiceId) {
+            // Placeholder for opening an invoice detail view
+            setActiveView('invoices');
+        }
+
 
       } catch (error) {
         console.error("Failed to fetch project data:", error);
@@ -215,8 +229,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
 
   useEffect(() => {
     setIsLoading(true);
-    const proposalToOpen = searchParams.get('open_proposal');
-    fetchClientData(proposalToOpen || undefined);
+    const openProposalId = searchParams.get('open_proposal') || undefined;
+    const openInvoiceId = searchParams.get('open_invoice') || undefined;
+    fetchClientData({ openProposalId, openInvoiceId });
   }, [projectId, user, searchParams]);
 
   const handleProposalStatusChange = async (status: 'accepted' | 'declined') => {
@@ -302,7 +317,10 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const doneTickets = tickets.filter(t => t.status === 'done');
   const totalTickets = tickets.length;
   const completionPercentage = totalTickets > 0 ? (doneTickets.length / totalTickets) * 100 : 0;
-
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  }
 
   return (
     <Dialog open={!!selectedProposal} onOpenChange={(isOpen) => !isOpen && setSelectedProposal(null)}>
@@ -336,7 +354,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                 className="w-full justify-start"
                 onClick={() => setActiveView('invoices')}
               >
-                <FileText className="mr-2 h-4 w-4"/>
+                <DollarSign className="mr-2 h-4 w-4"/>
                 Invoices
               </Button>
             </li>
@@ -434,16 +452,36 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
             </div>
           )}
            {activeView === 'invoices' && (
-              <div className="flex items-center justify-center h-full">
-                <Card className="w-full max-w-md text-center">
-                    <CardHeader>
-                        <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-xl font-semibold">Invoicing is Coming Soon</h3>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground">This feature is currently under development. You will be able to view and manage all your project invoices right here.</p>
-                    </CardContent>
-                </Card>
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Invoices</h2>
+                <div className="border rounded-lg">
+                   <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Title</TableHead>
+                             <TableHead>Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {invoices.length > 0 ? invoices.map(invoice => (
+                            <TableRow key={invoice.id}>
+                                <TableCell className="font-medium">{invoice.title}</TableCell>
+                                <TableCell>{formatCurrency(invoice.totalAmount)}</TableCell>
+                                <TableCell><Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'} className="capitalize">{invoice.status.replace('-', ' ')}</Badge></TableCell>
+                                <TableCell>{format(invoice.validUntil.toDate(), 'MMM d, yyyy')}</TableCell>
+                                <TableCell className="text-right">
+                                    <Button variant="ghost" size="sm">
+                                        View
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        )) : <TableRow><TableCell colSpan={5} className="text-center h-24">No invoices found for this project.</TableCell></TableRow>}
+                    </TableBody>
+                </Table>
+                </div>
               </div>
            )}
            {activeView === 'proposals' && (

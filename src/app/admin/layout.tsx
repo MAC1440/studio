@@ -12,7 +12,7 @@ import {
   SidebarHeader,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid } from "lucide-react";
+import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid, DollarSign } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminLayout({
@@ -70,6 +70,14 @@ export default function AdminLayout({
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+                     <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link href="/admin/invoices">
+                          <DollarSign />
+                          Invoices
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild>
                         <Link href="/admin/tickets">
@@ -90,7 +98,7 @@ export default function AdminLayout({
                 </SidebarContent>
             </Sidebar>
             <SidebarInset>
-              <main className="flex-1 overflow-y-auto p-4 md:p-8">
+              <main className="flex-1 overflow-auto p-4 md:p-8">
                 {children}
               </main>
             </SidebarInset>

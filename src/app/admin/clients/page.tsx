@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -214,9 +215,11 @@ export default function ClientsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm">
-                            <Send className="mr-2 h-4 w-4"/>
-                            Send Invoice
+                        <Button variant="outline" size="sm" asChild>
+                           <Link href={`/admin/invoices/create?clientId=${client.id}`}>
+                                <Send className="mr-2 h-4 w-4"/>
+                                Send Invoice
+                           </Link>
                         </Button>
                        <AlertDialogTrigger asChild>
                          <Button

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft } from 'lucide-react';
+import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -180,18 +180,18 @@ function NotificationBell() {
         // Handle redirect based on user role and notification type
         if (userData?.role === 'admin') {
             if (notification.proposalId) {
-                // Admins are redirected to the main proposals page. A modal could be opened via query params.
                 router.push(`/admin/proposals?open_proposal=${notification.proposalId}`);
+            } else if (notification.invoiceId) {
+                router.push(`/admin/invoices?open_invoice=${notification.invoiceId}`);
             } else if(notification.projectId) {
-                 // Fallback for other admin notifications
                 router.push(`/board/${notification.projectId}`);
             }
         } else if (userData?.role === 'client') {
             if (notification.proposalId && notification.projectId) {
-                // Clients are taken to their specific project view, where a modal can be triggered.
                 router.push(`/client/project/${notification.projectId}?open_proposal=${notification.proposalId}`);
+            } else if (notification.invoiceId && notification.projectId) {
+                router.push(`/client/project/${notification.projectId}?open_invoice=${notification.invoiceId}`);
             } else if (notification.projectId) {
-                // Fallback for other client notifications
                 router.push(`/client/project/${notification.projectId}`);
             }
         }
@@ -202,6 +202,7 @@ function NotificationBell() {
 
     const getIconForNotification = (n: Notification) => {
         if(n.proposalId) return <FileText className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
+        if(n.invoiceId) return <DollarSign className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
         return <Ticket className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
     }
 
