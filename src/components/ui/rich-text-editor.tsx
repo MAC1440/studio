@@ -45,6 +45,10 @@ export default function RichTextEditor({ content, onChange, editable }: RichText
         <FloatingMenu
             editor={editor}
             tippyOptions={{ duration: 100 }}
+            shouldShow={({ state }) => {
+                const { from, to } = state.selection;
+                return from !== to;
+            }}
             className="flex items-center gap-1 bg-card p-1 rounded-md border shadow-md"
         >
             <Button

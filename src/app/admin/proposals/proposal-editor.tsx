@@ -92,13 +92,13 @@ export default function ProposalEditor({ clients, projects, onSave, onClose, pro
   const hasFeedback = proposal && proposal.feedback && proposal.feedback.length > 0;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{proposal ? (isViewOnly ? 'View Proposal' : 'Edit Proposal') : 'Create New Proposal'}</DialogTitle>
       </DialogHeader>
       
        <div className="flex flex-col flex-1 py-4 overflow-y-auto min-h-0">
-          <div className="space-y-4 px-1 flex flex-col flex-1">
+          <div className="space-y-4 px-1 flex flex-col flex-1 h-[90%]">
           {hasFeedback && (
             <div className="space-y-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
               <h3 className="font-semibold text-amber-700 dark:text-amber-400">Client Feedback</h3>
@@ -118,12 +118,12 @@ export default function ProposalEditor({ clients, projects, onSave, onClose, pro
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. New Website Design & Development"
-                disabled={isSubmitting || isViewOnly}
+                disabled={isSubmitting || Boolean(isViewOnly)}
               />
             </div>
              <div className="space-y-2">
               <Label htmlFor="project">Project</Label>
-              <Select onValueChange={setProjectId} value={projectId} disabled={isSubmitting || isViewOnly}>
+              <Select onValueChange={setProjectId} value={projectId} disabled={isSubmitting || Boolean(isViewOnly)}>
                 <SelectTrigger id="project">
                   <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
@@ -138,7 +138,7 @@ export default function ProposalEditor({ clients, projects, onSave, onClose, pro
           
            <div className="space-y-2">
               <Label htmlFor="client">Client</Label>
-              <Select onValueChange={setClientId} value={clientId} disabled={isSubmitting || isViewOnly}>
+              <Select onValueChange={setClientId} value={clientId} disabled={isSubmitting || Boolean(isViewOnly)}>
                 <SelectTrigger id="client">
                   <SelectValue placeholder="Select a client" />
                 </SelectTrigger>
