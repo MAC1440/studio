@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, Ticket, FolderKanban, DollarSign, CheckCircle } from 'lucide-react';
+import { Users, Ticket, FolderKanban, DollarSign, CheckCircle, RefreshCw, PlusCircle, GanttChartSquare } from 'lucide-react';
 import { getUsers } from '@/lib/firebase/users';
 import { getTickets } from '@/lib/firebase/tickets';
 import { getProjects } from '@/lib/firebase/projects';
@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { startOfMonth, isWithinInterval } from 'date-fns';
+import { Separator } from '@/components/ui/separator';
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
@@ -52,18 +53,31 @@ export default function AdminDashboard() {
     fetchData();
   }, [toast]);
 
+  // --- Metric Calculations ---
+
+  // User & Ticket Metrics
   const openTicketsCount = tickets.filter(t => t.status !== 'done').length;
 
-  const deliveredProjects = projects.filter(p => p.status === 'completed');
-  const thisMonthDeliveredProjects = deliveredProjects.filter(p => {
-    if (!p.deadline) return false;
+  // Project Metrics
+  const startOfThisMonth = startOfMonth(new Date());
+  
+  const inProgressProjects = projects.filter(p => p.status !== 'completed').length;
+  
+  const newThisMonthProjects = projects.filter(p => {
+      const createdAt = p.createdAt?.toDate();
+      return createdAt && isWithinInterval(createdAt, { start: startOfThisMonth, end: new Date() });
+  }).length;
+  
+  const deliveredProjectsAllTime = projects.filter(p => p.status === 'completed');
+  const deliveredProjectsThisMonth = deliveredProjectsAllTime.filter(p => {
+    if (!p.deadline) return false; // Or use a different completion date field if available
     const completionDate = p.deadline.toDate();
-    const startOfThisMonth = startOfMonth(new Date());
     return isWithinInterval(completionDate, { start: startOfThisMonth, end: new Date() });
   });
 
-  const displayedDeliveredProjects = projectFilter === 'this_month' ? thisMonthDeliveredProjects.length : deliveredProjects.length;
+  const displayedDeliveredProjects = projectFilter === 'this_month' ? deliveredProjectsThisMonth.length : deliveredProjectsAllTime.length;
 
+  // Earnings Metrics
   const totalEarnings = invoices
     .filter(i => i.status === 'paid')
     .reduce((sum, invoice) => sum + invoice.totalAmount, 0);
@@ -72,44 +86,36 @@ export default function AdminDashboard() {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   }
 
+  const StatCard = ({ title, value, icon, description, isLoading }: { title: string, value: string | number, icon: React.ReactNode, description: string, isLoading: boolean }) => (
+    <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            {icon}
+        </CardHeader>
+        <CardContent>
+            {isLoading ? <Skeleton className="h-8 w-16" /> : <div className="text-2xl font-bold">{value}</div>}
+            <p className="text-xs text-muted-foreground">{description}</p>
+        </CardContent>
+    </Card>
+  )
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <div className="text-2xl font-bold">{users.length}</div>
-            )}
-            <p className="text-xs text-muted-foreground">Registered in the system</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
-            <Ticket className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-             {isLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-                <div className="text-2xl font-bold">{openTicketsCount}</div>
-            )}
-            <p className="text-xs text-muted-foreground">Tickets not in "Done" status</p>
-          </CardContent>
-        </Card>
-         <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-start justify-between">
-                <CardTitle className="text-sm font-medium">Projects Delivered</CardTitle>
-                 <Select value={projectFilter} onValueChange={(v: any) => setProjectFilter(v)}>
-                    <SelectTrigger className="h-auto w-auto text-xs p-1 px-2 border-none shadow-none focus:ring-0">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+         <StatCard title="Total Earnings" value={formatCurrency(totalEarnings)} icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} description="From all paid invoices" isLoading={isLoading} />
+         <StatCard title="Total Users" value={users.length} icon={<Users className="h-4 w-4 text-muted-foreground" />} description="Registered in the system" isLoading={isLoading} />
+         <StatCard title="Open Tickets" value={openTicketsCount} icon={<Ticket className="h-4 w-4 text-muted-foreground" />} description="Tickets not in 'Done' status" isLoading={isLoading} />
+      </div>
+
+       <Card className="mt-6 col-span-1 md:col-span-2 lg:col-span-4">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Project Statistics</CardTitle>
+                    <CardDescription>An overview of your project pipeline.</CardDescription>
+                </div>
+                <Select value={projectFilter} onValueChange={(v: any) => setProjectFilter(v)}>
+                    <SelectTrigger className="w-[180px]">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -117,32 +123,41 @@ export default function AdminDashboard() {
                         <SelectItem value="all">All Time</SelectItem>
                     </SelectContent>
                 </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-                <Skeleton className="h-8 w-16" />
-            ) : (
-                <div className="text-2xl font-bold">{displayedDeliveredProjects}</div>
-            )}
-            <p className="text-xs text-muted-foreground">Projects marked as completed</p>
-          </CardContent>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                    </div>
+                ) : (
+                    <div className="grid md:grid-cols-3 divide-y md:divide-x md:divide-y-0 -m-6">
+                        <div className="p-6 flex items-center gap-4">
+                            <GanttChartSquare className="h-8 w-8 text-primary" />
+                            <div>
+                                <p className="text-2xl font-bold">{inProgressProjects}</p>
+                                <p className="text-sm text-muted-foreground">In Progress</p>
+                            </div>
+                        </div>
+                        <div className="p-6 flex items-center gap-4">
+                            <PlusCircle className="h-8 w-8 text-primary" />
+                            <div>
+                                <p className="text-2xl font-bold">{newThisMonthProjects}</p>
+                                <p className="text-sm text-muted-foreground">New This Month</p>
+                            </div>
+                        </div>
+                        <div className="p-6 flex items-center gap-4">
+                             <CheckCircle className="h-8 w-8 text-primary" />
+                            <div>
+                                <p className="text-2xl font-bold">{displayedDeliveredProjects}</p>
+                                <p className="text-sm text-muted-foreground">Completed</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </CardContent>
         </Card>
-         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-                <Skeleton className="h-8 w-24" />
-            ) : (
-                <div className="text-2xl font-bold">{formatCurrency(totalEarnings)}</div>
-            )}
-            <p className="text-xs text-muted-foreground">From all paid invoices</p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
