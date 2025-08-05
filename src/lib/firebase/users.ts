@@ -92,19 +92,6 @@ export async function deleteUser(userId: string): Promise<void> {
     await deleteDoc(userRef);
 }
 
-
-export async function uploadAvatar(userId: string, file: File): Promise<string> {
-    if (!file.type.startsWith('image/')) {
-        throw new Error("File is not an image.");
-    }
-
-    const storageRef = ref(storage, `avatars/${userId}/${file.name}`);
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-
-    return downloadURL;
-}
-
 export async function updateUserProfile(userId: string, updates: Partial<User>): Promise<void> {
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, updates);

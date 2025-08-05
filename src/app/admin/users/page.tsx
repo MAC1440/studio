@@ -139,7 +139,6 @@ export default function UsersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();

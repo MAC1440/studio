@@ -13,43 +13,20 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useToast } from '@/hooks/use-toast';
-import { updateUserProfile, uploadAvatar } from '@/lib/firebase/users';
+import { updateUserProfile } from '@/lib/firebase/users';
 
 function ProfilePageContent() {
   const { user, userData, loading, forceRefetch } = useAuth();
   const [name, setName] = useState(userData?.name || '');
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setAvatarFile(e.target.files[0]);
-    }
-  };
-
   const handleSaveChanges = async () => {
-    if (!user) return;
+    if (!user || name === userData?.name) return;
     setIsSubmitting(true);
     
-    let newAvatarUrl: string | undefined = undefined;
-
     try {
-      if (avatarFile) {
-        newAvatarUrl = await uploadAvatar(user.uid, avatarFile);
-      }
-      
-      const updates: { name?: string; avatarUrl?: string } = {};
-      if (name !== userData?.name) {
-        updates.name = name;
-      }
-      if (newAvatarUrl) {
-        updates.avatarUrl = newAvatarUrl;
-      }
-      
-      if (Object.keys(updates).length > 0) {
-        await updateUserProfile(user.uid, updates);
-      }
+      await updateUserProfile(user.uid, { name });
       
       toast({
         title: 'Profile Updated',
@@ -70,11 +47,10 @@ function ProfilePageContent() {
       });
     } finally {
       setIsSubmitting(false);
-      setAvatarFile(null); // Reset file input state
     }
   };
 
-  const hasChanges = (avatarFile || (name && name !== userData?.name));
+  const hasChanges = (name && name !== userData?.name);
 
   return (
     <div className="flex flex-col h-screen">
@@ -137,11 +113,6 @@ function ProfilePageContent() {
                       <div>
                           <Badge variant={userData.role === 'admin' ? 'destructive' : 'secondary'}>{userData.role}</Badge>
                       </div>
-                  </div>
-                   <div className="space-y-2">
-                      <Label htmlFor="avatar">Avatar</Label>
-                      <Input id="avatar" type="file" onChange={handleAvatarChange} accept="image/png, image/jpeg, image/gif" disabled={isSubmitting}/>
-                      <p className="text-sm text-muted-foreground">Upload a new avatar. Square images work best.</p>
                   </div>
                   <div className="flex justify-end">
                       <Button onClick={handleSaveChanges} disabled={!hasChanges || isSubmitting}>
