@@ -96,7 +96,6 @@ export default function TicketsPage() {
     const tagsString = formData.get('tags') as string;
     const priority = formData.get('priority') as TicketPriority;
     const projectId = formData.get('projectId') as string;
-    const loggedHours = formData.get('loggedHours') as string;
 
     const assignedTo = users.find(u => u.id === assignedToId) || null;
     const tags = tagsString.split(',').map(tag => ({ id: tag.trim(), label: tag.trim(), color: 'gray' })).filter(t => t.label);
@@ -112,7 +111,6 @@ export default function TicketsPage() {
             priority,
             projectId,
             deadline,
-            loggedHours: Number(loggedHours) || 0
         });
         await fetchTicketsAndUsers();
         toast({
@@ -224,8 +222,7 @@ export default function TicketsPage() {
                   <p className="text-xs text-muted-foreground">Comma-separated.</p>
                 </div>
               </div>
-                <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-2">
+                <div className="space-y-2">
                     <Label>Deadline</Label>
                      <Popover>
                         <PopoverTrigger asChild>
@@ -250,11 +247,6 @@ export default function TicketsPage() {
                         </PopoverContent>
                     </Popover>
                  </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="loggedHours">Logged Hours</Label>
-                    <Input id="loggedHours" name="loggedHours" type="number" step="0.5" placeholder="0" disabled={isSubmitting} />
-                 </div>
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="assignedTo">Assign To</Label>
                 <Select name="assignedTo" disabled={isSubmitting}>

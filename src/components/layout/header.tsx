@@ -68,7 +68,6 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
         const description = formData.get('description') as string;
         const assignedToId = formData.get('assignedTo') as string;
         const projectId = formData.get('projectId') as string;
-        const loggedHours = formData.get('loggedHours') as string;
 
         const assignedTo = users.find(u => u.id === assignedToId) || null;
 
@@ -80,7 +79,6 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
                     assignedTo,
                     projectId,
                     deadline,
-                    loggedHours: Number(loggedHours) || 0,
                 });
                 toast({
                     title: "Ticket Created",
@@ -142,36 +140,30 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
                         <Label htmlFor="description">Description</Label>
                         <Textarea id="description" name="description" required disabled={isSubmitting} />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Deadline</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !deadline && "text-muted-foreground"
-                                    )}
-                                >
-                                    <Calendar className="mr-2 h-4 w-4" />
-                                    {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
-                                </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                <CalendarComponent
-                                    mode="single"
-                                    selected={deadline}
-                                    onSelect={setDeadline}
-                                    initialFocus
-                                />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="loggedHours">Initial Hours</Label>
-                            <Input id="loggedHours" name="loggedHours" type="number" placeholder="0" step="0.5" disabled={isSubmitting}/>
-                        </div>
+                    <div className="space-y-2">
+                        <Label>Deadline</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button
+                                variant={"outline"}
+                                className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !deadline && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-4" />
+                                {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                            <CalendarComponent
+                                mode="single"
+                                selected={deadline}
+                                onSelect={setDeadline}
+                                initialFocus
+                            />
+                            </PopoverContent>
+                        </Popover>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="assignedTo">Assign To</Label>

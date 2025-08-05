@@ -31,7 +31,6 @@ type CreateTicketArgs = {
   priority?: TicketPriority;
   tags?: Tag[];
   deadline?: Date;
-  loggedHours?: number;
 };
 
 export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
@@ -48,7 +47,7 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
         assignedTo: args.assignedTo || undefined,
         createdAt: serverTimestamp() as any, // Let server generate timestamp
         ...(args.deadline && { deadline: Timestamp.fromDate(args.deadline) }),
-        loggedHours: args.loggedHours || 0,
+        loggedHours: 0,
     };
 
     await setDoc(doc(db, "tickets", docRef.id), newTicketData);
