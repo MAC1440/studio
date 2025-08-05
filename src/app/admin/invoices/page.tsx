@@ -69,12 +69,6 @@ export default function InvoicesPage() {
       <div className='max-w-[100vw] overflow-auto'>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl md:text-3xl font-bold">Invoices</h1>
-          <Button size="sm" asChild>
-            <Link href="/admin/invoices/create">
-              <PlusCircle className="md:mr-2 h-4 w-4" />
-              <span className="hidden md:inline">Create Invoice</span>
-            </Link>
-          </Button>
         </div>
         <div className="border rounded-lg overflow-x-auto">
           <Table>
@@ -127,13 +121,7 @@ export default function InvoicesPage() {
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <DollarSign className="h-12 w-12" />
                       <h2 className="text-lg font-semibold">No Invoices Yet</h2>
-                      <p>Click "Create Invoice" to get started.</p>
-                       <Button size="sm" className="mt-2" asChild>
-                            <Link href="/admin/invoices/create">
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Create Invoice
-                            </Link>
-                        </Button>
+                      <p>Create an invoice from the client management page.</p>
                     </div>
                   </TableCell>
                 </TableRow>
