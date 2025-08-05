@@ -364,7 +364,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                 className="w-full justify-start"
                 onClick={() => setActiveView('proposals')}
               >
-                 <BarChart className="mr-2 h-4 w-4"/>
+                 <FileText className="mr-2 h-4 w-4"/>
                 Proposals
               </Button>
             </li>
