@@ -50,8 +50,8 @@ type TicketDetailsProps = {
 };
 
 function Comment({ comment }: { comment: CommentType }) {
-  const commentTimestamp = comment.timestamp && 'toDate' in comment.timestamp
-    ? comment.timestamp.toDate()
+  const commentTimestamp = comment.timestamp && 'toDate' in comment.timestamp 
+    ? comment.timestamp.toDate() 
     : comment.timestamp as Date;
 
   return (
@@ -242,7 +242,7 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
 
 
   return (
-    <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
+    <DialogContent className="max-w-5xl h-[90vh] flex flex-col">
       <AlertDialog>
         <DialogHeader>
           <DialogTitle className="text-2xl pr-10">{ticket.title}</DialogTitle>
