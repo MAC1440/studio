@@ -49,7 +49,7 @@ import { Badge } from '@/components/ui/badge';
 
 function MultiSelectClients({ allClients, selectedClientIds, onSelectionChange }: { allClients: User[], selectedClientIds: string[], onSelectionChange: (ids: string[]) => void }) {
   const [open, setOpen] = useState(false);
-  
+
   const selectedClients = allClients.filter(c => selectedClientIds.includes(c.id));
 
   return (
@@ -124,9 +124,9 @@ export default function ProjectsPage() {
     } catch (error) {
       console.error("Failed to fetch data:", error);
       toast({
-          title: "Error Fetching Data",
-          description: "Could not load project or client data.",
-          variant: "destructive"
+        title: "Error Fetching Data",
+        description: "Could not load project or client data.",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
@@ -147,40 +147,40 @@ export default function ProjectsPage() {
     const description = formData.get('description') as string;
 
     const projectData = {
-        name,
-        description,
-        clientIds: selectedClientIds
+      name,
+      description,
+      clientIds: selectedClientIds
     };
 
     if (name) {
-        try {
-            if(projectToEdit) {
-                await updateProject(projectToEdit.id, projectData);
-                 toast({
-                    title: "Project Updated",
-                    description: `Project "${name}" has been updated.`,
-                });
-            } else {
-                 await createProject(projectData);
-                toast({
-                    title: "Project Created",
-                    description: `Project "${name}" has been created.`,
-                });
-            }
-            await fetchData();
-            closeDialog();
-        } catch (error: any) {
-            console.error("Failed to save project:", error);
-            toast({
-                title: "Error Saving Project",
-                description: `Could not save project. Error: ${error.message}`,
-                variant: "destructive",
-            });
-        } finally {
-            setIsSubmitting(false);
+      try {
+        if (projectToEdit) {
+          await updateProject(projectToEdit.id, projectData);
+          toast({
+            title: "Project Updated",
+            description: `Project "${name}" has been updated.`,
+          });
+        } else {
+          await createProject(projectData);
+          toast({
+            title: "Project Created",
+            description: `Project "${name}" has been created.`,
+          });
         }
-    } else {
+        await fetchData();
+        closeDialog();
+      } catch (error: any) {
+        console.error("Failed to save project:", error);
+        toast({
+          title: "Error Saving Project",
+          description: `Could not save project. Error: ${error.message}`,
+          variant: "destructive",
+        });
+      } finally {
         setIsSubmitting(false);
+      }
+    } else {
+      setIsSubmitting(false);
     }
   };
 
@@ -202,8 +202,8 @@ export default function ProjectsPage() {
         variant: "destructive",
       });
     } finally {
-        setIsSubmitting(false);
-        setProjectToDelete(null);
+      setIsSubmitting(false);
+      setProjectToDelete(null);
     }
   };
 
@@ -212,7 +212,7 @@ export default function ProjectsPage() {
     setSelectedClientIds(project.clientIds || []);
     setIsDialogOpen(true);
   };
-  
+
   const openCreateDialog = () => {
     setProjectToEdit(null);
     setSelectedClientIds([]);
@@ -228,152 +228,152 @@ export default function ProjectsPage() {
 
   return (
     <AlertDialog>
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold">Project Management</h1>
-         <Button onClick={openCreateDialog} size="sm">
-            <PlusCircle className="md:mr-2"/>
+      <div className='max-w-[95vw] overflow-auto'>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold">Project Management</h1>
+          <Button onClick={openCreateDialog} size="sm">
+            <PlusCircle className="md:mr-2" />
             <span className="hidden md:inline">Create Project</span>
-        </Button>
-      </div>
+          </Button>
+        </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent onInteractOutside={e => { if(isSubmitting) e.preventDefault(); }}>
-          <DialogHeader>
-            <DialogTitle>{projectToEdit ? 'Edit Project' : 'Create New Project'}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleFormSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Project Name</Label>
-              <Input id="name" name="name" required disabled={isSubmitting} defaultValue={projectToEdit?.name}/>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" name="description" disabled={isSubmitting} defaultValue={projectToEdit?.description}/>
-            </div>
-             <div className="space-y-2">
-              <Label>Assign Clients</Label>
-              <MultiSelectClients
-                allClients={clients}
-                selectedClientIds={selectedClientIds}
-                onSelectionChange={setSelectedClientIds}
-              />
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent onInteractOutside={e => { if (isSubmitting) e.preventDefault(); }}>
+            <DialogHeader>
+              <DialogTitle>{projectToEdit ? 'Edit Project' : 'Create New Project'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Project Name</Label>
+                <Input id="name" name="name" required disabled={isSubmitting} defaultValue={projectToEdit?.name} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea id="description" name="description" disabled={isSubmitting} defaultValue={projectToEdit?.description} />
+              </div>
+              <div className="space-y-2">
+                <Label>Assign Clients</Label>
+                <MultiSelectClients
+                  allClients={clients}
+                  selectedClientIds={selectedClientIds}
+                  onSelectionChange={setSelectedClientIds}
+                />
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
                   <Button type="button" variant="outline" onClick={closeDialog} disabled={isSubmitting}>Cancel</Button>
-              </DialogClose>
-              <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Project'}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                </DialogClose>
+                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Project'}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
 
-      <div className="border rounded-lg overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Project Name</TableHead>
-              <TableHead>Assigned Clients</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell>
-                    <Skeleton className="h-4 w-48" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-24" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-32" />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Skeleton className="h-8 w-20" />
-                       <Skeleton className="h-8 w-20" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : projects.length > 0 ? (
-              projects.map((project) => (
-                <TableRow key={project.id}>
-                  <TableCell>
-                    <p className="font-medium">{project.name}</p>
-                    <p className="text-sm text-muted-foreground truncate max-w-md">{project.description}</p>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {(project.clientIds || []).length > 0 ?
-                        project.clientIds?.map(id => {
-                          const client = clients.find(c => c.id === id);
-                          return client ? <Badge key={id} variant="secondary">{client.name}</Badge> : null;
-                        })
-                        : <span className="text-xs text-muted-foreground">None</span>
-                      }
-                    </div>
-                  </TableCell>
-                   <TableCell>
-                    {project.createdAt ? format(project.createdAt.toDate(), 'MMM d, yyyy') : 'N/A'}
-                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(project)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                      </Button>
-                       <AlertDialogTrigger asChild>
-                         <Button
-                           variant="destructive"
-                           size="sm"
-                           onClick={() => setProjectToDelete(project)}
-                         >
-                           <Trash2 className="mr-2 h-4 w-4" />
-                           Delete
-                         </Button>
-                       </AlertDialogTrigger>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-                <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
-                        <div className="flex flex-col items-center gap-2">
-                            <FolderKanban className="h-8 w-8 text-muted-foreground" />
-                            <p className="text-muted-foreground">No projects found.</p>
-                            <Button size="sm" onClick={openCreateDialog}>Create Project</Button>
-                        </div>
+        <div className="border rounded-lg overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project Name</TableHead>
+                <TableHead>Assigned Clients</TableHead>
+                <TableHead>Created At</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-48" />
                     </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-32" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Skeleton className="h-8 w-20" />
+                        <Skeleton className="h-8 w-20" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : projects.length > 0 ? (
+                projects.map((project) => (
+                  <TableRow key={project.id}>
+                    <TableCell>
+                      <p className="font-medium">{project.name}</p>
+                      <p className="text-sm text-muted-foreground truncate max-w-md">{project.description}</p>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {(project.clientIds || []).length > 0 ?
+                          project.clientIds?.map(id => {
+                            const client = clients.find(c => c.id === id);
+                            return client ? <Badge key={id} variant="secondary">{client.name}</Badge> : null;
+                          })
+                          : <span className="text-xs text-muted-foreground">None</span>
+                        }
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {project.createdAt ? format(project.createdAt.toDate(), 'MMM d, yyyy') : 'N/A'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(project)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setProjectToDelete(project)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <FolderKanban className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-muted-foreground">No projects found.</p>
+                      <Button size="sm" onClick={openCreateDialog}>Create Project</Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the project
+              <span className="font-bold"> "{projectToDelete?.name}"</span> and all of its associated tickets.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setProjectToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteProject} disabled={isSubmitting}>
+              {isSubmitting ? 'Deleting...' : 'Continue'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+
       </div>
-
-       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the project
-            <span className="font-bold"> "{projectToDelete?.name}"</span> and all of its associated tickets.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setProjectToDelete(null)}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDeleteProject} disabled={isSubmitting}>
-            {isSubmitting ? 'Deleting...' : 'Continue'}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-
-    </div>
     </AlertDialog>
   );
 }

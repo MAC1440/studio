@@ -54,27 +54,27 @@ export default function TicketsPage() {
   const { toast } = useToast();
 
   const fetchTicketsAndUsers = async () => {
-      // Don't set is loading to true on refetch
-      try {
-        const [fetchedTickets, fetchedUsers, fetchedProjects] = await Promise.all([
-          getTickets({}), 
-          getUsers(),
-          getProjects()
-        ]);
-        setTickets(fetchedTickets.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
-        setUsers(fetchedUsers);
-        setProjects(fetchedProjects);
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
-        toast({
-            title: "Error Fetching Data",
-            description: "Could not load tickets, users, or projects. Please try again later.",
-            variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    // Don't set is loading to true on refetch
+    try {
+      const [fetchedTickets, fetchedUsers, fetchedProjects] = await Promise.all([
+        getTickets({}),
+        getUsers(),
+        getProjects()
+      ]);
+      setTickets(fetchedTickets.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
+      setUsers(fetchedUsers);
+      setProjects(fetchedProjects);
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+      toast({
+        title: "Error Fetching Data",
+        description: "Could not load tickets, users, or projects. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     setIsLoading(true);
@@ -98,33 +98,33 @@ export default function TicketsPage() {
 
 
     if (title && description && projectId) {
-        try {
-            await createTicket({ title, description, assignedTo, tags, priority, projectId });
-            await fetchTicketsAndUsers();
-            toast({
-                title: "Ticket Created",
-                description: `Ticket "${title}" has been created.`,
-            });
-            setIsCreateDialogOpen(false);
-        } catch (error: any) {
-            console.error("Failed to create ticket:", error);
-            toast({
-                title: "Error Creating Ticket",
-                description: `Could not create ticket. Error: ${error.message}`,
-                variant: "destructive",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    } else {
-        if (!projectId) {
-             toast({
-                title: "Project Required",
-                description: `Please select a project for the ticket.`,
-                variant: "destructive",
-            });
-        }
+      try {
+        await createTicket({ title, description, assignedTo, tags, priority, projectId });
+        await fetchTicketsAndUsers();
+        toast({
+          title: "Ticket Created",
+          description: `Ticket "${title}" has been created.`,
+        });
+        setIsCreateDialogOpen(false);
+      } catch (error: any) {
+        console.error("Failed to create ticket:", error);
+        toast({
+          title: "Error Creating Ticket",
+          description: `Could not create ticket. Error: ${error.message}`,
+          variant: "destructive",
+        });
+      } finally {
         setIsSubmitting(false);
+      }
+    } else {
+      if (!projectId) {
+        toast({
+          title: "Project Required",
+          description: `Please select a project for the ticket.`,
+          variant: "destructive",
+        });
+      }
+      setIsSubmitting(false);
     }
   };
 
@@ -136,29 +136,29 @@ export default function TicketsPage() {
   const onTicketUpdate = async (isDeleted = false) => {
     await fetchTicketsAndUsers();
     if (isDeleted) {
+      setIsDetailDialogOpen(false);
+      setSelectedTicket(null);
+    } else if (selectedTicket) {
+      const freshTicket = (await getTickets({})).find(t => t.id === selectedTicket?.id);
+      if (freshTicket) {
+        setSelectedTicket(freshTicket);
+      } else {
+        // Ticket was likely deleted, close the dialog
         setIsDetailDialogOpen(false);
         setSelectedTicket(null);
-    } else if (selectedTicket) {
-        const freshTicket = (await getTickets({})).find(t => t.id === selectedTicket?.id);
-        if(freshTicket) {
-          setSelectedTicket(freshTicket);
-        } else {
-            // Ticket was likely deleted, close the dialog
-            setIsDetailDialogOpen(false);
-            setSelectedTicket(null);
-        }
+      }
     }
   }
 
 
   return (
-    <div>
+    <div className='max-w-[95vw] overflow-auto'>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl md:text-3xl font-bold">Ticket Management</h1>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-             <Button size="sm">
-              <PlusCircle className="md:mr-2"/>
+            <Button size="sm">
+              <PlusCircle className="md:mr-2" />
               <span className="hidden md:inline">Create Ticket</span>
             </Button>
           </DialogTrigger>
@@ -175,7 +175,7 @@ export default function TicketsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {projects.map(project => (
-                         <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                      <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -190,20 +190,20 @@ export default function TicketsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="priority">Priority</Label>
-                    <Select name="priority" defaultValue="medium" disabled={isSubmitting}>
-                      <SelectTrigger id="priority">
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select name="priority" defaultValue="medium" disabled={isSubmitting}>
+                    <SelectTrigger id="priority">
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="critical">Critical</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                 <div className="space-y-2">
+                <div className="space-y-2">
                   <Label htmlFor="tags">Tags</Label>
                   <Input id="tags" name="tags" placeholder="e.g. Frontend, Bug" disabled={isSubmitting} />
                   <p className="text-xs text-muted-foreground">Comma-separated.</p>
@@ -218,17 +218,17 @@ export default function TicketsPage() {
                   <SelectContent>
                     <SelectItem value="unassigned">Unassigned</SelectItem>
                     {users.map(user => (
-                         <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <DialogFooter>
                 <DialogClose asChild>
-                    <Button type="button" variant="outline" disabled={isSubmitting}>Cancel</Button>
+                  <Button type="button" variant="outline" disabled={isSubmitting}>Cancel</Button>
                 </DialogClose>
                 <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Creating...' : 'Create Ticket'}
+                  {isSubmitting ? 'Creating...' : 'Create Ticket'}
                 </Button>
               </DialogFooter>
             </form>
@@ -255,7 +255,7 @@ export default function TicketsPage() {
                   <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
                   <TableCell>
-                     <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                       <Skeleton className="h-8 w-8 rounded-full" />
                       <Skeleton className="h-4 w-24" />
                     </div>
@@ -269,23 +269,23 @@ export default function TicketsPage() {
               tickets.map((ticket) => (
                 <TableRow key={ticket.id}>
                   <TableCell className="font-medium">{ticket.title}</TableCell>
-                   <TableCell>
+                  <TableCell>
                     <Badge variant={ticket.priority === 'critical' || ticket.priority === 'high' ? 'destructive' : 'secondary'} className="capitalize">{ticket.priority}</Badge>
-                   </TableCell>
-                   <TableCell>
+                  </TableCell>
+                  <TableCell>
                     <Badge variant="secondary" className="capitalize">{ticket.status.replace('-', ' ')}</Badge>
-                   </TableCell>
+                  </TableCell>
                   <TableCell>
                     {ticket.assignedTo ? (
-                        <div className="flex items-center gap-2">
-                            <Avatar className="h-7 w-7">
-                                <AvatarImage src={ticket.assignedTo.avatarUrl} alt={ticket.assignedTo.name} />
-                                <AvatarFallback>{ticket.assignedTo.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <span>{ticket.assignedTo.name}</span>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-7 w-7">
+                          <AvatarImage src={ticket.assignedTo.avatarUrl} alt={ticket.assignedTo.name} />
+                          <AvatarFallback>{ticket.assignedTo.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span>{ticket.assignedTo.name}</span>
+                      </div>
                     ) : (
-                        <span className="text-muted-foreground">Unassigned</span>
+                      <span className="text-muted-foreground">Unassigned</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
@@ -296,20 +296,20 @@ export default function TicketsPage() {
                 </TableRow>
               ))
             ) : (
-                <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                        <div className="flex flex-col items-center gap-2">
-                            <TicketIcon className="h-8 w-8 text-muted-foreground" />
-                            <p className="text-muted-foreground">No tickets found.</p>
-                            <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>Create Ticket</Button>
-                        </div>
-                    </TableCell>
-                </TableRow>
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <TicketIcon className="h-8 w-8 text-muted-foreground" />
+                    <p className="text-muted-foreground">No tickets found.</p>
+                    <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>Create Ticket</Button>
+                  </div>
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      
+
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
         {selectedTicket && <TicketDetails ticket={selectedTicket} onUpdate={onTicketUpdate} />}
       </Dialog>

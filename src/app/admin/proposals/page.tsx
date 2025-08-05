@@ -68,7 +68,7 @@ export default function ProposalsPage() {
     setEditingProposal(proposal);
     setIsEditorOpen(true);
   };
-  
+
   const handleCloseEditor = () => {
     setIsEditorOpen(false);
     setEditingProposal(null);
@@ -77,19 +77,19 @@ export default function ProposalsPage() {
   const handleSaveProposal = async (data: { title: string; content: string; clientId: string; projectId: string; status: Proposal['status'] }) => {
     const client = clients.find(c => c.id === data.clientId);
     if (!client) {
-        toast({ title: 'Client not found', variant: 'destructive' });
-        return;
+      toast({ title: 'Client not found', variant: 'destructive' });
+      return;
     }
 
     try {
       let toastMessage = 'Proposal Saved';
-      
+
       if (editingProposal) {
         const updates: Partial<Proposal> = { ...data, clientName: client.name, status: data.status };
-        
+
         // When admin re-sends a proposal with requested changes, clear the feedback.
         if (editingProposal.status === 'changes-requested' && data.status === 'sent') {
-          updates.feedback = []; 
+          updates.feedback = [];
         }
 
         await updateProposal(editingProposal.id, updates);
@@ -98,9 +98,9 @@ export default function ProposalsPage() {
         await createProposal({ ...data, clientName: client.name });
         toastMessage = data.status === 'sent' ? 'Proposal created and sent.' : 'Proposal saved as draft.';
       }
-      
+
       toast({
-          title: toastMessage
+        title: toastMessage
       });
       handleCloseEditor();
       await fetchData(); // Refresh data
@@ -150,7 +150,7 @@ export default function ProposalsPage() {
 
   return (
     <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-      <div>
+      <div className='max-w-[95vw] overflow-auto'>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl md:text-3xl font-bold">Proposals</h1>
           <Button onClick={handleCreateClick} size="sm">
@@ -194,16 +194,16 @@ export default function ProposalsPage() {
                     <TableCell>{format(proposal.updatedAt.toDate(), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end items-center gap-2">
-                          {(proposal.status === 'draft' || proposal.status === 'changes-requested') && (
-                            <Button variant="ghost" size="sm" onClick={() => handleSendProposal(proposal)}>
-                                <Send className="mr-2 h-4 w-4" />
-                                {proposal.status === 'changes-requested' ? 'Re-send' : 'Send'}
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="sm" onClick={() => handleEditClick(proposal)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            {proposal.status === 'draft' || proposal.status === 'changes-requested' ? 'Edit' : 'View'}
+                        {(proposal.status === 'draft' || proposal.status === 'changes-requested') && (
+                          <Button variant="ghost" size="sm" onClick={() => handleSendProposal(proposal)}>
+                            <Send className="mr-2 h-4 w-4" />
+                            {proposal.status === 'changes-requested' ? 'Re-send' : 'Send'}
                           </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => handleEditClick(proposal)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          {proposal.status === 'draft' || proposal.status === 'changes-requested' ? 'Edit' : 'View'}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -226,7 +226,7 @@ export default function ProposalsPage() {
             </TableBody>
           </Table>
         </div>
-        
+
         <DialogContent className="max-w-4xl h-[90vh]">
           <ProposalEditor
             clients={clients}

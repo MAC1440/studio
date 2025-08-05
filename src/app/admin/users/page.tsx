@@ -225,7 +225,7 @@ export default function UsersPage() {
 
   return (
     <AlertDialog>
-    <div>
+    <div className='max-w-[95vw] overflow-auto'>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl md:text-3xl font-bold">User Management</h1>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
