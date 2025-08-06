@@ -177,5 +177,3 @@ export async function deleteProposal(proposalId: string): Promise<void> {
     const proposalRef = doc(db, 'proposals', proposalId);
     await deleteDoc(proposalRef);
 }
-
-    
