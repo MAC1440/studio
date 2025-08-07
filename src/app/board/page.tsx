@@ -10,17 +10,21 @@ import { getProjects } from '@/lib/firebase/projects';
 import { type Project } from '@/lib/types';
 import Link from 'next/link';
 import { FolderKanban } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { userData } = useAuth();
 
   useEffect(() => {
+    if (!userData?.organizationId) return;
+
     const fetchProjects = async () => {
       setIsLoading(true);
       try {
-        const fetchedProjects = await getProjects();
+        const fetchedProjects = await getProjects(userData.organizationId);
         setProjects(fetchedProjects);
       } catch (error) {
         console.error("Failed to fetch projects:", error);
@@ -34,7 +38,7 @@ export default function ProjectsPage() {
       }
     };
     fetchProjects();
-  }, [toast]);
+  }, [toast, userData?.organizationId]);
 
   return (
     <div className="flex flex-col h-screen bg-background">

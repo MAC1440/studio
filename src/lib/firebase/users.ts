@@ -1,13 +1,11 @@
 
 import { auth, db, storage } from './config';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, getAuth } from 'firebase/auth';
-import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc } from 'firebase/firestore';
+import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User } from '@/lib/types';
 import { initializeApp, getApps, deleteApp } from 'firebase/app';
 import { createOrganization } from './organizations';
-
-const DEFAULT_ORGANIZATION_ID = "default_org_123";
 
 type CreateUserArgs = {
     email: string;
@@ -45,12 +43,17 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
             organizationId = newOrg.id;
         }
 
+        if (!organizationId) {
+            throw new Error("User must be associated with an organization.");
+        }
+
+
         const newUser: User = {
             id: user.uid,
             name: args.name,
             email: args.email,
             role: args.role,
-            organizationId: organizationId || DEFAULT_ORGANIZATION_ID, // Fallback for existing structure
+            organizationId: organizationId,
             avatarUrl: `https://placehold.co/150x150.png`
         };
 
@@ -72,9 +75,9 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
 }
 
 
-export async function getUsers(): Promise<User[]> {
+export async function getUsers(organizationId: string): Promise<User[]> {
     const usersCol = collection(db, 'users');
-    const q = query(usersCol);
+    const q = query(usersCol, where('organizationId', '==', organizationId));
     const userSnapshot = await getDocs(q);
     const userList = userSnapshot.docs.map(doc => {
       const data = doc.data() as Omit<User, 'id'>;

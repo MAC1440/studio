@@ -7,8 +7,6 @@ import { addNotification } from './notifications';
 import { getProject } from './projects';
 import { getUsers } from './users';
 
-const DEFAULT_ORGANIZATION_ID = "default_org_123";
-
 type CreateProposalArgs = {
   title: string;
   content: string;
@@ -24,7 +22,7 @@ export async function createProposal(args: CreateProposalArgs): Promise<Proposal
 
     const newProposalData: Omit<Proposal, 'id'> = {
         ...args,
-        organizationId: args.organizationId || DEFAULT_ORGANIZATION_ID,
+        organizationId: args.organizationId,
         createdAt: serverTimestamp() as any,
         updatedAt: serverTimestamp() as any,
         feedback: [], // Initialize with an empty feedback array
@@ -46,15 +44,20 @@ export async function createProposal(args: CreateProposalArgs): Promise<Proposal
     return { ...newProposalData, id: docRef.id } as Proposal;
 }
 
-export async function getProposals(filters: { clientId?: string, projectId?: string } = {}): Promise<Proposal[]> {
+export async function getProposals(filters: { clientId?: string, projectId?: string, organizationId: string }): Promise<Proposal[]> {
     const proposalsCol = collection(db, 'proposals');
-    const conditions = [];
+    
+    const conditions = [
+        where('organizationId', '==', filters.organizationId)
+    ];
+
     if(filters.clientId) {
         conditions.push(where('clientId', '==', filters.clientId));
     }
     if (filters.projectId) {
         conditions.push(where('projectId', '==', filters.projectId));
     }
+
     const q = query(proposalsCol, ...conditions);
     const proposalSnapshot = await getDocs(q);
     const proposalList = proposalSnapshot.docs.map(doc => {
@@ -92,7 +95,7 @@ export async function updateProposal(proposalId: string, updates: Partial<Omit<P
         }
 
         if ((updates.status === 'accepted' || updates.status === 'declined') && updates.actingUser) {
-            const allUsers = await getUsers();
+            const allUsers = await getUsers(currentData.organizationId);
             const admins = allUsers.filter(u => u.role === 'admin');
             const notificationPromises = admins.map(admin => {
                 return addNotification({
@@ -154,7 +157,7 @@ export async function addFeedbackToProposal(proposalId: string, {userId, message
         updatedAt: serverTimestamp(),
     });
 
-    const allUsers = await getUsers();
+    const allUsers = await getUsers(proposalData.organizationId);
     const admins = allUsers.filter(u => u.role === 'admin');
     const project = await getProject(proposalData.projectId);
 

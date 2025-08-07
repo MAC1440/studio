@@ -49,11 +49,13 @@ export default function ClientsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const { toast } = useToast();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, userData } = useAuth();
 
   const fetchClients = async () => {
+    if (!userData?.organizationId) return;
+
     try {
-      const fetchedUsers = await getUsers();
+      const fetchedUsers = await getUsers(userData.organizationId);
       setClients(fetchedUsers.filter(u => u.role === 'client'));
     } catch (error) {
       console.error("Failed to fetch clients:", error);
@@ -70,10 +72,12 @@ export default function ClientsPage() {
   useEffect(() => {
     setIsLoading(true);
     fetchClients();
-  }, []);
+  }, [userData?.organizationId]);
 
   const handleCreateClient = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!userData?.organizationId) return;
+
     setIsSubmitting(true);
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -84,7 +88,7 @@ export default function ClientsPage() {
 
     if (name && email) {
       try {
-        await createUser({ name, email, password, role: 'client' });
+        await createUser({ name, email, password, role: 'client', organizationId: userData.organizationId });
         await fetchClients();
         toast({
           title: "Client Invited",

@@ -22,6 +22,7 @@ import { FileText, PlusCircle, Edit, Send, MessageSquareWarning } from 'lucide-r
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import ProposalEditor from './proposal-editor';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ProposalsPage() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -31,14 +32,16 @@ export default function ProposalsPage() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
   const { toast } = useToast();
+  const { userData } = useAuth();
 
   const fetchData = async () => {
+    if (!userData?.organizationId) return;
     setIsLoading(true);
     try {
       const [fetchedProposals, fetchedUsers, fetchedProjects] = await Promise.all([
-        getProposals(),
-        getUsers(),
-        getProjects(),
+        getProposals({ organizationId: userData.organizationId }),
+        getUsers(userData.organizationId),
+        getProjects(userData.organizationId),
       ]);
       setProposals(fetchedProposals.sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis()));
       setClients(fetchedUsers.filter(u => u.role === 'client'));
@@ -57,7 +60,7 @@ export default function ProposalsPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [userData?.organizationId]);
 
   const handleCreateClick = () => {
     setEditingProposal(null);
@@ -75,6 +78,7 @@ export default function ProposalsPage() {
   }
 
   const handleSaveProposal = async (data: { title: string; content: string; clientId: string; projectId: string; status: Proposal['status'] }) => {
+    if (!userData?.organizationId) return;
     const client = clients.find(c => c.id === data.clientId);
     if (!client) {
       toast({ title: 'Client not found', variant: 'destructive' });
@@ -95,7 +99,7 @@ export default function ProposalsPage() {
         await updateProposal(editingProposal.id, updates);
         toastMessage = data.status === 'sent' ? 'Proposal sent to client.' : 'Proposal updated.';
       } else {
-        await createProposal({ ...data, clientName: client.name });
+        await createProposal({ ...data, clientName: client.name, organizationId: userData.organizationId });
         toastMessage = data.status === 'sent' ? 'Proposal created and sent.' : 'Proposal saved as draft.';
       }
 

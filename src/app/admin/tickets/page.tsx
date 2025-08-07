@@ -44,6 +44,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useAuth } from '@/context/AuthContext';
 
 const TICKETS_PER_PAGE = 6;
 
@@ -58,6 +59,7 @@ export default function TicketsPage() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [deadline, setDeadline] = useState<Date | undefined>();
   const { toast } = useToast();
+  const { userData } = useAuth();
 
   // Filtering and Pagination State
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,12 +67,14 @@ export default function TicketsPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const fetchTicketsAndUsers = async () => {
+    if (!userData?.organizationId) return;
+
     // Don't set is loading to true on refetch
     try {
       const [fetchedTickets, fetchedUsers, fetchedProjects] = await Promise.all([
-        getTickets({}),
-        getUsers(),
-        getProjects()
+        getTickets({ organizationId: userData.organizationId }),
+        getUsers(userData.organizationId),
+        getProjects(userData.organizationId)
       ]);
       setTickets(fetchedTickets.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
       setUsers(fetchedUsers);
@@ -90,11 +94,12 @@ export default function TicketsPage() {
   useEffect(() => {
     setIsLoading(true);
     fetchTicketsAndUsers();
-  }, [toast]);
+  }, [userData?.organizationId]);
 
 
   const handleCreateTicket = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!userData?.organizationId) return;
     setIsSubmitting(true);
     const formData = new FormData(event.currentTarget);
     const title = formData.get('title') as string;
@@ -118,6 +123,7 @@ export default function TicketsPage() {
             priority,
             projectId,
             deadline,
+            organizationId: userData.organizationId,
         });
         await fetchTicketsAndUsers();
         toast({
@@ -158,8 +164,8 @@ export default function TicketsPage() {
     if (isDeleted) {
       setIsDetailDialogOpen(false);
       setSelectedTicket(null);
-    } else if (selectedTicket) {
-      const freshTicket = (await getTickets({})).find(t => t.id === selectedTicket?.id);
+    } else if (selectedTicket && userData?.organizationId) {
+      const freshTicket = (await getTickets({ organizationId: userData.organizationId })).find(t => t.id === selectedTicket?.id);
       if (freshTicket) {
         setSelectedTicket(freshTicket);
       } else {

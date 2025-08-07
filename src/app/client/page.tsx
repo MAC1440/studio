@@ -15,15 +15,15 @@ export default function ClientDashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !userData?.organizationId) return;
 
     const fetchProjects = async () => {
       setIsLoading(true);
       try {
-        const allProjects = await getProjects();
+        const allProjects = await getProjects(userData.organizationId);
         // Filter projects to only show those the current client is assigned to
         const clientProjects = allProjects.filter(p => p.clientIds?.includes(user.uid));
         setProjects(clientProjects);
@@ -39,7 +39,7 @@ export default function ClientDashboardPage() {
       }
     };
     fetchProjects();
-  }, [user, toast]);
+  }, [user, userData?.organizationId, toast]);
 
   return (
     <div className="p-4 md:p-8">

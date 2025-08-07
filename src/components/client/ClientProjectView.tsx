@@ -330,16 +330,16 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const searchParams = useSearchParams();
 
   const fetchClientData = async (options: { openProposalId?: string, openInvoiceId?: string } = {}) => {
-      if (!user) return;
+      if (!user || !userData?.organizationId) return;
       if (!options.openProposalId && !options.openInvoiceId) {
         setIsLoading(true);
       }
       try {
         const [projectData, ticketData, proposalData, invoiceData] = await Promise.all([
           getProject(projectId),
-          getTickets({ projectId }),
-          getProposals({ projectId }),
-          getInvoices({ projectId })
+          getTickets({ projectId, organizationId: userData.organizationId }),
+          getProposals({ projectId, organizationId: userData.organizationId }),
+          getInvoices({ projectId, organizationId: userData.organizationId })
         ]);
 
         setProject(projectData);
@@ -381,7 +381,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     const openProposalId = searchParams.get('open_proposal') || undefined;
     const openInvoiceId = searchParams.get('open_invoice') || undefined;
     fetchClientData({ openProposalId, openInvoiceId });
-  }, [projectId, user, searchParams]);
+  }, [projectId, user, userData?.organizationId, searchParams]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

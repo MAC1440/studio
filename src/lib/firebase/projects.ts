@@ -3,8 +3,6 @@ import { db } from './config';
 import { collection, addDoc, getDocs, getDoc, query, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, where, writeBatch, orderBy, Timestamp } from 'firebase/firestore';
 import type { Project, ProjectStatus } from '@/lib/types';
 
-const DEFAULT_ORGANIZATION_ID = "default_org_123";
-
 type CreateProjectArgs = {
   name: string;
   description?: string;
@@ -21,7 +19,7 @@ export async function createProject(args: CreateProjectArgs): Promise<Project> {
         name: args.name,
         description: args.description || '',
         clientIds: args.clientIds || [],
-        organizationId: args.organizationId || DEFAULT_ORGANIZATION_ID,
+        organizationId: args.organizationId,
         createdAt: serverTimestamp() as any,
         status: args.status || 'on-track',
         ...(args.deadline && { deadline: Timestamp.fromDate(args.deadline) })
@@ -32,9 +30,13 @@ export async function createProject(args: CreateProjectArgs): Promise<Project> {
     return { ...newProjectData, id: docRef.id } as Project;
 }
 
-export async function getProjects(): Promise<Project[]> {
+export async function getProjects(organizationId: string): Promise<Project[]> {
     const projectsCol = collection(db, 'projects');
-    const q = query(projectsCol, orderBy('createdAt', 'desc'));
+    const q = query(
+        projectsCol, 
+        where('organizationId', '==', organizationId),
+        orderBy('createdAt', 'desc')
+    );
     const projectSnapshot = await getDocs(q);
     const projectList = projectSnapshot.docs.map(doc => {
       const data = doc.data();

@@ -6,8 +6,6 @@ import { getDoc } from 'firebase/firestore';
 import { addNotification } from './notifications';
 import { getProject } from './projects';
 
-const DEFAULT_ORGANIZATION_ID = "default_org_123";
-
 async function sendAssignmentNotification(ticketId: string, ticketTitle: string, projectId: string, user: User) {
     try {
         await addNotification({
@@ -41,7 +39,7 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
         title: args.title,
         description: args.description,
         projectId: args.projectId,
-        organizationId: args.organizationId || DEFAULT_ORGANIZATION_ID,
+        organizationId: args.organizationId,
         status: args.status || 'backlog',
         priority: args.priority || 'medium',
         tags: args.tags || [],
@@ -61,10 +59,13 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
     return { ...newTicketData, id: docRef.id } as Ticket;
 }
 
-export async function getTickets({ projectId }: { projectId?: string }): Promise<Ticket[]> {
+export async function getTickets({ projectId, organizationId }: { projectId?: string, organizationId: string }): Promise<Ticket[]> {
     const ticketsCol = collection(db, 'tickets');
     
-    const conditions = [];
+    const conditions = [
+        where('organizationId', '==', organizationId)
+    ];
+
     if (projectId) {
       conditions.push(where('projectId', '==', projectId));
     }

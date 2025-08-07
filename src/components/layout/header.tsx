@@ -59,9 +59,12 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deadline, setDeadline] = useState<Date | undefined>();
     const { toast } = useToast();
+    const { userData } = useAuth();
 
     const handleCreateTicket = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        if (!userData?.organizationId) return;
+
         setIsSubmitting(true);
         const formData = new FormData(event.currentTarget);
         const title = formData.get('title') as string;
@@ -79,6 +82,7 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
                     assignedTo,
                     projectId,
                     deadline,
+                    organizationId: userData.organizationId,
                 });
                 toast({
                     title: "Ticket Created",
@@ -302,10 +306,10 @@ function HeaderContent() {
   const pathname = usePathname();
 
   useEffect(() => {
-      if(user) {
-          getProjects().then(setProjects).catch(console.error);
+      if(user && userData?.organizationId) {
+          getProjects(userData.organizationId).then(setProjects).catch(console.error);
       }
-  }, [user]);
+  }, [user, userData?.organizationId]);
 
   const handleTicketCreated = () => {
     if (reloadTickets) {

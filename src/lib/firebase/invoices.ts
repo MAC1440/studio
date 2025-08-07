@@ -7,8 +7,6 @@ import { addNotification } from './notifications';
 import { getProject } from './projects';
 import { getUsers } from './users';
 
-const DEFAULT_ORGANIZATION_ID = "default_org_123";
-
 type CreateInvoiceArgs = Omit<Invoice, 'id' | 'createdAt' | 'updatedAt' | 'totalAmount' | 'feedback'>;
 
 export async function createInvoice(args: Partial<CreateInvoiceArgs>): Promise<Invoice> {
@@ -22,7 +20,7 @@ export async function createInvoice(args: Partial<CreateInvoiceArgs>): Promise<I
         clientName: args.clientName!,
         projectId: args.projectId!,
         projectName: args.projectName!,
-        organizationId: args.organizationId || DEFAULT_ORGANIZATION_ID,
+        organizationId: args.organizationId!,
         type: args.type!,
         status: args.status!,
         validUntil: args.validUntil!,
@@ -50,9 +48,12 @@ export async function createInvoice(args: Partial<CreateInvoiceArgs>): Promise<I
     return { ...newInvoiceData, id: docRef.id } as Invoice;
 }
 
-export async function getInvoices(filters: { clientId?: string, projectId?: string } = {}): Promise<Invoice[]> {
+export async function getInvoices(filters: { clientId?: string, projectId?: string, organizationId: string }): Promise<Invoice[]> {
     const invoicesCol = collection(db, 'invoices');
-    const conditions = [];
+    const conditions = [
+        where('organizationId', '==', filters.organizationId)
+    ];
+
     if (filters.clientId) {
         conditions.push(where('clientId', '==', filters.clientId));
     }
@@ -101,7 +102,7 @@ export async function updateInvoice(invoiceId: string, updates: Partial<Omit<Inv
     if (isStatusChanging && updates.status) {
         const project = await getProject(currentData.projectId);
         const projectName = project?.name || 'a project';
-        const allUsers = await getUsers();
+        const allUsers = await getUsers(currentData.organizationId);
         const admins = allUsers.filter(u => u.role === 'admin');
 
         if (updates.status === 'sent') {
@@ -171,7 +172,7 @@ export async function addFeedbackToInvoice(invoiceId: string, {userId, message}:
         updatedAt: serverTimestamp(),
     });
 
-    const allUsers = await getUsers();
+    const allUsers = await getUsers(invoiceData.organizationId);
     const admins = allUsers.filter(u => u.role === 'admin');
     const project = await getProject(invoiceData.projectId);
 

@@ -19,16 +19,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DollarSign, PlusCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/context/AuthContext';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { userData } = useAuth();
 
   const fetchData = async () => {
+    if (!userData?.organizationId) return;
     setIsLoading(true);
     try {
-      const fetchedInvoices = await getInvoices();
+      const fetchedInvoices = await getInvoices({ organizationId: userData.organizationId });
       setInvoices(fetchedInvoices.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()));
     } catch (error) {
       console.error('Failed to fetch invoices:', error);
@@ -44,7 +47,7 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [userData?.organizationId]);
 
  const getStatusBadgeVariant = (status: Invoice['status']) => {
     switch (status) {
