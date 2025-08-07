@@ -6,6 +6,7 @@ import { getDoc } from 'firebase/firestore';
 import { addNotification } from './notifications';
 import { getProject } from './projects';
 
+const DEFAULT_ORGANIZATION_ID = "default_org_123";
 
 async function sendAssignmentNotification(ticketId: string, ticketTitle: string, projectId: string, user: User) {
     try {
@@ -17,7 +18,6 @@ async function sendAssignmentNotification(ticketId: string, ticketTitle: string,
         });
     } catch (error) {
         console.error("Failed to add notification:", error);
-        // We don't re-throw, as the ticket creation/update itself was successful.
     }
 }
 
@@ -26,6 +26,7 @@ type CreateTicketArgs = {
   title: string;
   description: string;
   projectId: string;
+  organizationId: string;
   assignedTo?: User | null;
   status?: ColumnId;
   priority?: TicketPriority;
@@ -40,19 +41,19 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
         title: args.title,
         description: args.description,
         projectId: args.projectId,
+        organizationId: args.organizationId || DEFAULT_ORGANIZATION_ID,
         status: args.status || 'backlog',
         priority: args.priority || 'medium',
         tags: args.tags || [],
         comments: [],
         assignedTo: args.assignedTo || undefined,
-        createdAt: serverTimestamp() as any, // Let server generate timestamp
+        createdAt: serverTimestamp() as any,
         ...(args.deadline && { deadline: Timestamp.fromDate(args.deadline) }),
         loggedHours: 0,
     };
 
     await setDoc(doc(db, "tickets", docRef.id), newTicketData);
 
-    // If assigned to a user, send a notification
     if (newTicketData.assignedTo) {
       await sendAssignmentNotification(docRef.id, newTicketData.title, newTicketData.projectId, newTicketData.assignedTo);
     }
@@ -90,7 +91,6 @@ export async function updateTicket(ticketId: string, updates: Partial<Omit<Ticke
         finalUpdates.deadline = Timestamp.fromDate(updates.deadline as any);
     }
 
-    // If assignee is being changed, we need to check if we should notify the new user
     if ('assignedTo' in updates) {
       const ticketSnap = await getDoc(ticketRef);
       if (!ticketSnap.exists()) {

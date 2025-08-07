@@ -1,7 +1,9 @@
+
 import { db } from './config';
 import { collection, addDoc, getDocs, getDoc, query, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, where, writeBatch, orderBy, Timestamp } from 'firebase/firestore';
 import type { Project, ProjectStatus } from '@/lib/types';
 
+const DEFAULT_ORGANIZATION_ID = "default_org_123";
 
 type CreateProjectArgs = {
   name: string;
@@ -9,6 +11,7 @@ type CreateProjectArgs = {
   clientIds?: string[];
   deadline?: Date;
   status?: ProjectStatus;
+  organizationId: string;
 };
 
 export async function createProject(args: CreateProjectArgs): Promise<Project> {
@@ -18,6 +21,7 @@ export async function createProject(args: CreateProjectArgs): Promise<Project> {
         name: args.name,
         description: args.description || '',
         clientIds: args.clientIds || [],
+        organizationId: args.organizationId || DEFAULT_ORGANIZATION_ID,
         createdAt: serverTimestamp() as any,
         status: args.status || 'on-track',
         ...(args.deadline && { deadline: Timestamp.fromDate(args.deadline) })
@@ -67,11 +71,9 @@ export async function updateProject(projectId: string, updates: Partial<Omit<Pro
 export async function deleteProject(projectId: string): Promise<void> {
   const batch = writeBatch(db);
 
-  // 1. Delete the project document
   const projectRef = doc(db, 'projects', projectId);
   batch.delete(projectRef);
 
-  // 2. Find and delete all tickets associated with the project
   const ticketsCol = collection(db, 'tickets');
   const q = query(ticketsCol, where('projectId', '==', projectId));
   const ticketsSnapshot = await getDocs(q);
@@ -80,6 +82,5 @@ export async function deleteProject(projectId: string): Promise<void> {
     batch.delete(ticketDoc.ref);
   });
   
-  // 3. Commit the batch
   await batch.commit();
 }

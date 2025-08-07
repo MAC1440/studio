@@ -5,12 +5,16 @@ import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc } from 'f
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User } from '@/lib/types';
 import { initializeApp, getApps, deleteApp } from 'firebase/app';
+import { createOrganization } from './organizations';
+
+const DEFAULT_ORGANIZATION_ID = "default_org_123";
 
 type CreateUserArgs = {
     email: string;
     password?: string;
     name: string;
     role: 'admin' | 'user' | 'client';
+    organizationId?: string;
 };
 
 export async function createUser(args: CreateUserArgs): Promise<User> {
@@ -23,11 +27,8 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
         }
     }
     
-    // For clients, we generate a password because they will set their own via the reset link.
     const password = args.password || Math.random().toString(36).slice(-8);
 
-    // Use a temporary, secondary Firebase app instance to create the user.
-    // This prevents the current admin from being signed out.
     const secondaryAppConfig = auth.app.options;
     const secondaryAppName = `secondary-app-${Date.now()}`;
     const secondaryApp = getApps().find(app => app.name === secondaryAppName) || initializeApp(secondaryAppConfig, secondaryAppName);
@@ -37,17 +38,24 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
         const userCredential = await createUserWithEmailAndPassword(secondaryAuth, args.email, password);
         const user = userCredential.user;
 
+        let organizationId = args.organizationId;
+        // If it's a new admin, create a new organization for them.
+        if (args.role === 'admin' && !organizationId) {
+            const newOrg = await createOrganization({ name: `${args.name}'s Workspace`, ownerId: user.uid });
+            organizationId = newOrg.id;
+        }
+
         const newUser: User = {
             id: user.uid,
             name: args.name,
             email: args.email,
             role: args.role,
+            organizationId: organizationId || DEFAULT_ORGANIZATION_ID, // Fallback for existing structure
             avatarUrl: `https://placehold.co/150x150.png`
         };
 
         await setDoc(doc(db, "users", user.uid), newUser);
         
-        // If it's a client, send them a password reset email which acts as a "welcome" email.
         if (isClientInvite) {
             await sendPasswordResetEmail(auth, args.email);
         }
@@ -57,7 +65,6 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
         console.error("Error in createUser:", error);
         throw error;
     } finally {
-        // Clean up the secondary app instance
         if (getApps().some(app => app.name === secondaryAppName)) {
            await deleteApp(secondaryApp);
         }
@@ -86,8 +93,6 @@ export async function forgotPassword(email: string): Promise<void> {
 }
 
 export async function deleteUser(userId: string): Promise<void> {
-    // This function now only deletes the user from the Firestore database.
-    // The user's authentication account will remain in Firebase Authentication.
     const userRef = doc(db, 'users', userId);
     await deleteDoc(userRef);
 }
