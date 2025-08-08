@@ -33,12 +33,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { type Project, type User, type ProjectStatus } from '@/lib/types';
+import { type Project, type User, type ProjectStatus, type Organization } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createProject, getProjects, updateProject, deleteProject } from '@/lib/firebase/projects';
 import { getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle, Calendar as CalendarIcon, Search } from 'lucide-react';
+import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle, Calendar as CalendarIcon, Search, Upgrade } from 'lucide-react';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -47,6 +47,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import Link from 'next/link';
 
 const PROJECTS_PER_PAGE = 5;
 
@@ -108,6 +111,7 @@ function MultiSelectClients({ allClients, selectedClientIds, onSelectionChange }
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<User[]>([]);
+  const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -133,12 +137,16 @@ export default function ProjectsPage() {
   const fetchData = async () => {
     if (!userData?.organizationId) return;
     try {
-      const [fetchedProjects, fetchedUsers] = await Promise.all([
+      const [fetchedProjects, fetchedUsers, orgSnap] = await Promise.all([
         getProjects(userData.organizationId),
-        getUsers(userData.organizationId)
+        getUsers(userData.organizationId),
+        getDoc(doc(db, 'organizations', userData.organizationId))
       ]);
       setProjects(fetchedProjects.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
       setClients(fetchedUsers.filter(u => u.role === 'client'));
+      if (orgSnap.exists()) {
+          setOrganization(orgSnap.data() as Organization);
+      }
     } catch (error) {
       console.error("Failed to fetch data:", error);
       toast({
@@ -262,6 +270,20 @@ export default function ProjectsPage() {
   };
 
   const openCreateDialog = () => {
+    if (organization?.subscriptionPlan === 'free' && projects.length >= 3) {
+      toast({
+        title: "Free Plan Limit Reached",
+        description: "You have reached the maximum of 3 projects for the free plan.",
+        action: (
+          <Button asChild>
+            <Link href="/admin/billing">
+              <Upgrade className="mr-2 h-4 w-4"/> Upgrade Plan
+            </Link>
+          </Button>
+        ),
+      });
+      return;
+    }
     resetFormState();
     setIsDialogOpen(true);
   };
@@ -559,3 +581,5 @@ export default function ProjectsPage() {
     </AlertDialog>
   );
 }
+
+    
