@@ -34,8 +34,7 @@ export async function getProjects(organizationId: string): Promise<Project[]> {
     const projectsCol = collection(db, 'projects');
     const q = query(
         projectsCol, 
-        where('organizationId', '==', organizationId),
-        orderBy('createdAt', 'desc')
+        where('organizationId', '==', organizationId)
     );
     const projectSnapshot = await getDocs(q);
     const projectList = projectSnapshot.docs.map(doc => {
