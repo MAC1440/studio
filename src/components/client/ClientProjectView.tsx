@@ -83,7 +83,7 @@ function SubmitReportDialog({
                 <RichTextEditor 
                     content={description}
                     onChange={setDescription}
-                    editable={!isSubmitting}
+                    editable
                 />
                 <DialogFooter className="mt-auto">
                     <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancel</Button>

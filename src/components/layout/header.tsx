@@ -61,6 +61,8 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
     const { toast } = useToast();
     const { userData } = useAuth();
 
+    const teamMembers = users.filter(u => u.role !== 'client');
+
     const handleCreateTicket = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!userData?.organizationId) {
@@ -180,7 +182,7 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="unassigned">Unassigned</SelectItem>
-                                {users.map(user => (
+                                {teamMembers.map(user => (
                                     <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                                 ))}
                             </SelectContent>

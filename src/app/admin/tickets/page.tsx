@@ -38,13 +38,14 @@ import { createTicket, getTickets } from '@/lib/firebase/tickets';
 import { getUsers } from '@/lib/firebase/users';
 import { getProjects } from '@/lib/firebase/projects';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Ticket as TicketIcon, PlusCircle, Calendar as CalendarIcon, Clock, Search } from 'lucide-react';
+import { Ticket as TicketIcon, PlusCircle, Calendar as CalendarIcon, Clock, Search, FolderKanban } from 'lucide-react';
 import TicketDetails from '@/components/kanban/ticket-details';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 
 const TICKETS_PER_PAGE = 6;
 
@@ -65,6 +66,8 @@ export default function TicketsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+
+  const teamMembers = users.filter(u => u.role !== 'client');
 
   const fetchTicketsAndUsers = async () => {
     if (!userData?.organizationId) return;
@@ -217,7 +220,7 @@ export default function TicketsPage() {
         <h1 className="text-2xl md:text-3xl font-bold">Ticket Management</h1>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm">
+            <Button size="sm" disabled={projects.length === 0}>
               <PlusCircle className="md:mr-2" />
               <span className="hidden md:inline">Create Ticket</span>
             </Button>
@@ -302,7 +305,7 @@ export default function TicketsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {users.map(user => (
+                    {teamMembers.map(user => (
                       <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -379,6 +382,19 @@ export default function TicketsPage() {
                   </TableCell>
                 </TableRow>
               ))
+            ) : projects.length === 0 ? (
+                 <TableRow>
+                    <TableCell colSpan={8} className="h-48 text-center">
+                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                            <FolderKanban className="h-12 w-12" />
+                            <h2 className="text-lg font-semibold">No Projects Found</h2>
+                            <p>You must create a project before you can add tickets to it.</p>
+                            <Button asChild className="mt-2">
+                                <Link href="/admin/projects">Create a Project</Link>
+                            </Button>
+                        </div>
+                    </TableCell>
+                </TableRow>
             ) : paginatedTickets.length > 0 ? (
               paginatedTickets.map((ticket) => {
                   const deadline = ticket.deadline?.toDate();
@@ -426,7 +442,7 @@ export default function TicketsPage() {
                 <TableCell colSpan={8} className="h-24 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <TicketIcon className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-muted-foreground">No tickets found.</p>
+                    <p className="text-muted-foreground">No tickets found for the selected filters.</p>
                      <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>Create Ticket</Button>
                   </div>
                 </TableCell>
