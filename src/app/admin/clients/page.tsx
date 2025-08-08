@@ -78,7 +78,10 @@ export default function ClientsPage() {
 
   const handleCreateClient = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!userData?.organizationId) return;
+    if (!userData?.organizationId) {
+        toast({ title: "Organization not found", variant: "destructive" });
+        return;
+    }
 
     setIsSubmitting(true);
     const form = event.currentTarget;
