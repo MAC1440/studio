@@ -44,7 +44,7 @@ function AuthForm() {
         }
         await createUser({ name, email, password, role: 'admin' });
         // After creating the user, log them in to get the session started
-        const userData = await login(email, password);
+        await login(email, password);
         toast({
           title: "Account Created",
           description: "Welcome! Your new workspace is ready.",
