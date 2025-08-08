@@ -76,8 +76,12 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
 
 
 export async function getUsers(organizationId?: string): Promise<User[]> {
+    if (!organizationId) {
+        console.warn("getUsers called without organizationId");
+        return [];
+    }
     const usersCol = collection(db, 'users');
-    const q = organizationId ? query(usersCol, where('organizationId', '==', organizationId)) : query(usersCol);
+    const q = query(usersCol, where('organizationId', '==', organizationId));
     const userSnapshot = await getDocs(q);
     const userList = userSnapshot.docs.map(doc => {
       const data = doc.data() as Omit<User, 'id'>;
