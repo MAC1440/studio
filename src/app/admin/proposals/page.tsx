@@ -11,14 +11,29 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 import { useToast } from '@/hooks/use-toast';
-import { getProposals, updateProposal, createProposal } from '@/lib/firebase/proposals';
+import { getProposals, updateProposal, createProposal, deleteProposal } from '@/lib/firebase/proposals';
 import { getUsers } from '@/lib/firebase/users';
 import { getProjects } from '@/lib/firebase/projects';
 import { type Proposal, type User, type Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, PlusCircle, Edit, Send, MessageSquareWarning } from 'lucide-react';
+import { FileText, PlusCircle, Edit, Send, MessageSquareWarning, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import ProposalEditor from './proposal-editor';
@@ -29,8 +44,10 @@ export default function ProposalsPage() {
   const [clients, setClients] = useState<User[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState<Proposal | null>(null);
+  const [proposalToDelete, setProposalToDelete] = useState<Proposal | null>(null);
   const { toast } = useToast();
   const { userData } = useAuth();
 
@@ -96,7 +113,6 @@ export default function ProposalsPage() {
       if (editingProposal) {
         const updates: Partial<Proposal> = { ...data, clientName: client.name, status: data.status };
 
-        // When admin re-sends a proposal with requested changes, clear the feedback.
         if (editingProposal.status === 'changes-requested' && data.status === 'sent') {
           updates.feedback = [];
         }
@@ -111,8 +127,8 @@ export default function ProposalsPage() {
       toast({
         title: toastMessage
       });
-      await fetchData(); // Refresh data
-      handleCloseEditor(); // Close the editor after data is refreshed
+      await fetchData();
+      handleCloseEditor();
     } catch (error) {
       console.error('Failed to save proposal:', error);
       toast({
@@ -141,14 +157,36 @@ export default function ProposalsPage() {
     }
   }
 
+  const handleDeleteProposal = async () => {
+    if (!proposalToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteProposal(proposalToDelete.id);
+      toast({
+        title: 'Proposal Deleted',
+        description: `The proposal "${proposalToDelete.title}" has been successfully deleted.`,
+      });
+      fetchData(); // Refresh the list
+    } catch (error) {
+       console.error('Failed to delete proposal:', error);
+      toast({
+        title: 'Error Deleting',
+        description: 'Could not delete the proposal.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      setProposalToDelete(null);
+    }
+  }
+
   const getStatusBadgeVariant = (status: Proposal['status']) => {
     switch (status) {
       case 'accepted':
         return 'default';
       case 'declined':
-        return 'destructive';
       case 'changes-requested':
-        return 'secondary';
+        return 'destructive';
       case 'sent':
         return 'secondary';
       case 'draft':
@@ -158,94 +196,119 @@ export default function ProposalsPage() {
   }
 
   return (
-    <div className='max-w-[95vw] overflow-auto'>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold">Proposals</h1>
-        <Button onClick={handleCreateClick} size="sm">
-          <PlusCircle className="md:mr-2 h-4 w-4" />
-          <span className="hidden md:inline">Create Proposal</span>
-        </Button>
-      </div>
-      <div className="border rounded-lg overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Updated</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell className="text-right"><Skeleton className="h-8 w-20" /></TableCell>
-                </TableRow>
-              ))
-            ) : proposals.length > 0 ? (
-              proposals.map((proposal) => (
-                <TableRow key={proposal.id}>
-                  <TableCell className="font-medium">{proposal.title}</TableCell>
-                  <TableCell>{proposal.clientName}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={getStatusBadgeVariant(proposal.status)} className="capitalize">{proposal.status.replace('-', ' ')}</Badge>
-                      {proposal.status === 'changes-requested' && <MessageSquareWarning className="h-4 w-4 text-amber-500" />}
-                    </div>
-                  </TableCell>
-                  <TableCell>{format(proposal.updatedAt.toDate(), 'MMM d, yyyy')}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end items-center gap-2">
-                      {(proposal.status === 'draft' || proposal.status === 'changes-requested') && (
-                        <Button variant="ghost" size="sm" onClick={() => handleSendProposal(proposal)}>
-                          <Send className="mr-2 h-4 w-4" />
-                          {proposal.status === 'changes-requested' ? 'Re-send' : 'Send'}
+    <AlertDialog>
+      <div className='max-w-[95vw] overflow-auto'>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold">Proposals</h1>
+          <Button onClick={handleCreateClick} size="sm">
+            <PlusCircle className="md:mr-2 h-4 w-4" />
+            <span className="hidden md:inline">Create Proposal</span>
+          </Button>
+        </div>
+        <div className="border rounded-lg overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="text-right">
+                       <div className="flex justify-end gap-2">
+                          <Skeleton className="h-8 w-20" />
+                          <Skeleton className="h-8 w-20" />
+                       </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : proposals.length > 0 ? (
+                proposals.map((proposal) => (
+                  <TableRow key={proposal.id}>
+                    <TableCell className="font-medium">{proposal.title}</TableCell>
+                    <TableCell>{proposal.clientName}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={getStatusBadgeVariant(proposal.status)} className="capitalize">{proposal.status.replace('-', ' ')}</Badge>
+                        {proposal.status === 'changes-requested' && <MessageSquareWarning className="h-4 w-4 text-amber-500" />}
+                      </div>
+                    </TableCell>
+                    <TableCell>{format(proposal.updatedAt.toDate(), 'MMM d, yyyy')}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditClick(proposal)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
                         </Button>
-                      )}
-                      <Button variant="ghost" size="sm" onClick={() => handleEditClick(proposal)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        {proposal.status === 'draft' || proposal.status === 'changes-requested' ? 'Edit' : 'View'}
+                        <AlertDialogTrigger asChild>
+                           <Button variant="destructive" size="sm" onClick={() => setProposalToDelete(proposal)}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                           </Button>
+                        </AlertDialogTrigger>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-48 text-center">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <FileText className="h-12 w-12" />
+                      <h2 className="text-lg font-semibold">No Proposals Yet</h2>
+                      <p>Click "Create Proposal" to get started.</p>
+                      <Button size="sm" className="mt-2" onClick={handleCreateClick}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create Proposal
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="h-48 text-center">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <FileText className="h-12 w-12" />
-                    <h2 className="text-lg font-semibold">No Proposals Yet</h2>
-                    <p>Click "Create Proposal" to get started.</p>
-                    <Button size="sm" className="mt-2" onClick={handleCreateClick}>
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Create Proposal
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
-      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-        <DialogContent className="max-w-4xl h-[90vh]">
-          <ProposalEditor
-            clients={clients}
-            projects={projects}
-            onSave={handleSaveProposal}
-            onClose={handleCloseEditor}
-            proposal={editingProposal}
-          />
-        </DialogContent>
-      </Dialog>
-    </div>
+        <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
+          <DialogContent className="max-w-4xl h-[90vh]">
+            <ProposalEditor
+              clients={clients}
+              projects={projects}
+              onSave={handleSaveProposal}
+              onClose={handleCloseEditor}
+              proposal={editingProposal}
+            />
+          </DialogContent>
+        </Dialog>
+        
+        {proposalToDelete && (
+             <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the proposal
+                    "{proposalToDelete.title}".
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setProposalToDelete(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteProposal} disabled={isDeleting}>
+                    {isDeleting ? "Deleting..." : "Delete"}
+                </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        )}
+      </div>
+    </AlertDialog>
   );
 }
