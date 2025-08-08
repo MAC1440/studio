@@ -46,7 +46,9 @@ export default function InvoicesPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    if (userData?.organizationId) {
+        fetchData();
+    }
   }, [userData?.organizationId]);
 
  const getStatusBadgeVariant = (status: Invoice['status']) => {

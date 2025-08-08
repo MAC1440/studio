@@ -24,7 +24,7 @@ export default function ProjectsPage() {
     const fetchProjects = async () => {
       setIsLoading(true);
       try {
-        const fetchedProjects = await getProjects(userData.organizationId);
+        const fetchedProjects = await getProjects(userData.organizationId!);
         setProjects(fetchedProjects);
       } catch (error) {
         console.error("Failed to fetch projects:", error);

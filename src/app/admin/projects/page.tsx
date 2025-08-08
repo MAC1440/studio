@@ -152,8 +152,10 @@ export default function ProjectsPage() {
   };
 
   useEffect(() => {
-    setIsLoading(true);
-    fetchData();
+    if (userData?.organizationId) {
+        setIsLoading(true);
+        fetchData();
+    }
   }, [userData?.organizationId]);
   
   const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<any>>) => (value: string) => {

@@ -70,8 +70,10 @@ export default function ClientsPage() {
   };
 
   useEffect(() => {
-    setIsLoading(true);
-    fetchClients();
+    if (userData?.organizationId) {
+        setIsLoading(true);
+        fetchClients();
+    }
   }, [userData?.organizationId]);
 
   const handleCreateClient = async (event: React.FormEvent<HTMLFormElement>) => {

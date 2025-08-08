@@ -378,9 +378,11 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     };
 
   useEffect(() => {
-    const openProposalId = searchParams.get('open_proposal') || undefined;
-    const openInvoiceId = searchParams.get('open_invoice') || undefined;
-    fetchClientData({ openProposalId, openInvoiceId });
+    if (userData?.organizationId && user) {
+      const openProposalId = searchParams.get('open_proposal') || undefined;
+      const openInvoiceId = searchParams.get('open_invoice') || undefined;
+      fetchClientData({ openProposalId, openInvoiceId });
+    }
   }, [projectId, user, userData?.organizationId, searchParams]);
 
   const handleRefresh = async () => {

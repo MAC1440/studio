@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import AppHeader from '@/components/layout/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +24,7 @@ export default function ClientDashboardPage() {
     const fetchProjects = async () => {
       setIsLoading(true);
       try {
-        const allProjects = await getProjects(userData.organizationId);
+        const allProjects = await getProjects(userData.organizationId!);
         // Filter projects to only show those the current client is assigned to
         const clientProjects = allProjects.filter(p => p.clientIds?.includes(user.uid));
         setProjects(clientProjects);

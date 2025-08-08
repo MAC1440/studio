@@ -76,7 +76,7 @@ export default function EditInvoicePage() {
         setValidUntil(invoiceData.validUntil.toDate());
         setStatus(invoiceData.status);
 
-        const [allUsers, allProjects] = await Promise.all([getUsers(userData.organizationId), getProjects(userData.organizationId)]);
+        const [allUsers, allProjects] = await Promise.all([getUsers(userData.organizationId!), getProjects(userData.organizationId!)]);
         const currentClient = allUsers.find(u => u.id === invoiceData.clientId);
         if (!currentClient) throw new Error("Client not found");
 
@@ -90,7 +90,9 @@ export default function EditInvoicePage() {
         setIsLoading(false);
       }
     };
-    fetchData();
+    if (userData?.organizationId) {
+        fetchData();
+    }
   }, [invoiceId, router, toast, userData?.organizationId]);
 
   const handleAddItem = () => {

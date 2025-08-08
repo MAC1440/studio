@@ -62,7 +62,7 @@ export default function CreateInvoicePage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [allUsers, allProjects] = await Promise.all([getUsers(userData.organizationId), getProjects(userData.organizationId)]);
+        const [allUsers, allProjects] = await Promise.all([getUsers(userData.organizationId!), getProjects(userData.organizationId!)]);
         const currentClient = allUsers.find(u => u.id === clientId);
         if (!currentClient) throw new Error("Client not found");
 
@@ -75,7 +75,9 @@ export default function CreateInvoicePage() {
         setIsLoading(false);
       }
     };
-    fetchData();
+    if (userData?.organizationId) {
+        fetchData();
+    }
   }, [clientId, router, toast, userData?.organizationId]);
 
   const handleAddItem = () => {

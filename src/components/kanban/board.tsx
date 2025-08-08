@@ -92,7 +92,9 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
     };
 
   useEffect(() => {
-    fetchBoardData();
+    if (userData?.organizationId) {
+        fetchBoardData();
+    }
   }, [projectId, toast, ticketReloadKey, userData?.organizationId]);
   
   useEffect(() => {

@@ -33,10 +33,10 @@ export default function AdminDashboard() {
       setIsLoading(true);
       try {
         const [fetchedUsers, fetchedTickets, fetchedProjects, fetchedInvoices] = await Promise.all([
-          getUsers(userData.organizationId),
-          getTickets({ organizationId: userData.organizationId }),
-          getProjects(userData.organizationId),
-          getInvoices({ organizationId: userData.organizationId }),
+          getUsers(userData.organizationId!),
+          getTickets({ organizationId: userData.organizationId! }),
+          getProjects(userData.organizationId!),
+          getInvoices({ organizationId: userData.organizationId! }),
         ]);
         setUsers(fetchedUsers);
         setTickets(fetchedTickets);

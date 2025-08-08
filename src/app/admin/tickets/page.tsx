@@ -92,8 +92,10 @@ export default function TicketsPage() {
   };
 
   useEffect(() => {
-    setIsLoading(true);
-    fetchTicketsAndUsers();
+    if (userData?.organizationId) {
+        setIsLoading(true);
+        fetchTicketsAndUsers();
+    }
   }, [userData?.organizationId]);
 
 

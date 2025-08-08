@@ -59,7 +59,9 @@ export default function ProposalsPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    if (userData?.organizationId) {
+        fetchData();
+    }
   }, [userData?.organizationId]);
 
   const handleCreateClick = () => {

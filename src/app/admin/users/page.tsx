@@ -168,8 +168,10 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    setIsLoading(true);
-    fetchUsers();
+    if (userData?.organizationId) {
+        setIsLoading(true);
+        fetchUsers();
+    }
   }, [userData?.organizationId]);
   
   const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (value: string) => {
