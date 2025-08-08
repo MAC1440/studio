@@ -77,6 +77,20 @@ export type Invoice = {
     organizationId: string;
 }
 
+export type ClientReport = {
+    id: string;
+    title: string;
+    description: string; // Rich text
+    clientId: string;
+    clientName: string;
+    projectId: string;
+    projectName: string;
+    organizationId: string;
+    status: 'new' | 'viewed' | 'archived';
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+}
+
 
 export type Tag = {
   id: string;
@@ -131,11 +145,10 @@ export type Notification = {
     ticketId?: string; // Optional
     proposalId?: string; // Optional
     invoiceId?: string; // Optional
+    reportId?: string; // Optional
     read: boolean;
     createdAt: Timestamp;
     expiresAt: Timestamp;
     projectId?: string;
     projectName?: string;
 }
-
-    

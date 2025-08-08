@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar } from 'lucide-react';
+import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -220,7 +220,9 @@ function NotificationBell() {
         
         // Handle redirect based on user role and notification type
         if (userData?.role === 'admin') {
-            if (notification.proposalId) {
+            if (notification.reportId) {
+                 router.push(`/admin/reports?open_report=${notification.reportId}`);
+            } else if (notification.proposalId) {
                 router.push(`/admin/proposals?open_proposal=${notification.proposalId}`);
             } else if (notification.invoiceId) {
                 router.push(`/admin/invoices?open_invoice=${notification.invoiceId}`);
@@ -244,6 +246,7 @@ function NotificationBell() {
     const getIconForNotification = (n: Notification) => {
         if(n.proposalId) return <FileText className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
         if(n.invoiceId) return <DollarSign className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
+        if(n.reportId) return <ClipboardCheck className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
         return <Ticket className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
     }
 

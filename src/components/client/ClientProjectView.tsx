@@ -6,11 +6,12 @@ import { getProject } from '@/lib/firebase/projects';
 import { getTickets } from '@/lib/firebase/tickets';
 import { getProposals, updateProposal, addFeedbackToProposal } from '@/lib/firebase/proposals';
 import { getInvoices, updateInvoice, addFeedbackToInvoice } from '@/lib/firebase/invoices';
-import { type Project, type Ticket, type Proposal, type Invoice, type Comment, ProjectStatus } from '@/lib/types';
+import { getClientReports, createClientReport } from '@/lib/firebase/client-reports';
+import { type Project, type Ticket, type Proposal, type Invoice, type Comment, ProjectStatus, type ClientReport } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, BarChart, FileText, GanttChartSquare, MessageSquarePlus, CalendarIcon, Flag, DollarSign, CheckCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, BarChart, FileText, GanttChartSquare, MessageSquarePlus, CalendarIcon, Flag, DollarSign, CheckCircle, RefreshCw, ClipboardCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -38,6 +39,62 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { cn } from '@/lib/utils';
+import { Input } from '../ui/input';
+import RichTextEditor from '../ui/rich-text-editor';
+
+
+function SubmitReportDialog({
+    project,
+    onClose,
+    onReportSubmit,
+}: {
+    project: Project,
+    onClose: () => void,
+    onReportSubmit: (title: string, description: string) => Promise<void>
+}) {
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!title.trim() || !description.trim()) return;
+        setIsSubmitting(true);
+        await onReportSubmit(title, description);
+        setIsSubmitting(false);
+    }
+    
+    return (
+        <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+            <DialogHeader>
+                <DialogTitle>Submit a Report for {project.name}</DialogTitle>
+                <DialogDescription>
+                    Use this form to report bugs, request features, or provide feedback.
+                </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-4 py-4 min-h-0">
+                <Input 
+                    placeholder="Report Title (e.g., 'Login button not working on Safari')"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    disabled={isSubmitting}
+                    required
+                />
+                <RichTextEditor 
+                    content={description}
+                    onChange={setDescription}
+                    editable={!isSubmitting}
+                />
+                <DialogFooter className="mt-auto">
+                    <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting || !title.trim() || !description.trim()}>
+                        {isSubmitting ? 'Submitting...' : 'Submit Report'}
+                    </Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    )
+}
 
 
 function FeedbackComment({ comment }: { comment: Comment }) {
@@ -320,11 +377,13 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [reports, setReports] = useState<ClientReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeView, setActiveView] = useState('progress');
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const { user, userData } = useAuth();
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -335,15 +394,17 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         setIsLoading(true);
       }
       try {
-        const [projectData, ticketData, proposalData, invoiceData] = await Promise.all([
+        const [projectData, ticketData, proposalData, invoiceData, reportData] = await Promise.all([
           getProject(projectId),
           getTickets({ projectId, organizationId: userData.organizationId }),
           getProposals({ projectId, organizationId: userData.organizationId }),
-          getInvoices({ projectId, organizationId: userData.organizationId })
+          getInvoices({ projectId, organizationId: userData.organizationId }),
+          getClientReports({ projectId, organizationId: userData.organizationId, clientId: user.uid }),
         ]);
 
         setProject(projectData);
         setTickets(ticketData);
+        setReports(reportData);
 
         const filteredProposals = proposalData
             .filter(p => p.clientId === user.uid && p.status !== 'draft')
@@ -484,6 +545,31 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     }
   }
 
+  const handleReportSubmit = async (title: string, description: string) => {
+    if (!project || !user || !userData) return;
+    try {
+      await createClientReport({
+        title,
+        description,
+        projectId: project.id,
+        projectName: project.name,
+        clientId: user.uid,
+        clientName: userData.name,
+        organizationId: userData.organizationId,
+      });
+      toast({ title: 'Report Submitted', description: 'Thank you for your feedback!' });
+      setIsReportDialogOpen(false);
+      await fetchClientData();
+    } catch (error) {
+       console.error("Failed to submit report:", error);
+       toast({
+            title: 'Error',
+            description: 'Could not submit your report.',
+            variant: 'destructive'
+        });
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -526,6 +612,15 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         default: return 'outline';
     }
   }
+  
+   const getReportStatusBadgeVariant = (status: ClientReport['status']) => {
+    switch (status) {
+        case 'new': return 'default';
+        case 'viewed': return 'secondary';
+        case 'archived': return 'outline';
+        default: return 'outline';
+    }
+  }
 
   const inProgressTickets = tickets.filter(t => t.status === 'in-progress' || t.status === 'review' || t.status === 'todo' || t.status === 'backlog');
   const doneTickets = tickets.filter(t => t.status === 'done');
@@ -537,10 +632,11 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   }
 
   return (
-    <Dialog open={!!selectedProposal || !!selectedInvoice} onOpenChange={(isOpen) => {
+    <Dialog open={!!selectedProposal || !!selectedInvoice || isReportDialogOpen} onOpenChange={(isOpen) => {
         if (!isOpen) {
             setSelectedProposal(null);
             setSelectedInvoice(null);
+            setIsReportDialogOpen(false);
         }
     }}>
     <div className="flex flex-col h-full">
@@ -552,6 +648,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
             </Link>
         </Button>
         <h1 className="text-xl font-semibold text-foreground truncate">{project.name}</h1>
+        <Button size="sm" className="ml-auto" onClick={() => setIsReportDialogOpen(true)}>Submit Report</Button>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
@@ -565,6 +662,16 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
               >
                 <GanttChartSquare className="mr-2 h-4 w-4"/>
                 Progress
+              </Button>
+            </li>
+            <li>
+              <Button
+                 variant={activeView === 'reports' ? 'secondary' : 'ghost'}
+                className="w-full justify-start"
+                onClick={() => setActiveView('reports')}
+              >
+                <ClipboardCheck className="mr-2 h-4 w-4"/>
+                Reports
               </Button>
             </li>
             <li>
@@ -673,6 +780,31 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
               </div>
             </div>
           )}
+           {activeView === 'reports' && (
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Your Submitted Reports</h2>
+                <div className="border rounded-lg">
+                   <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Submitted</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {reports.length > 0 ? reports.map(report => (
+                            <TableRow key={report.id}>
+                                <TableCell className="font-medium">{report.title}</TableCell>
+                                <TableCell><Badge variant={getReportStatusBadgeVariant(report.status)} className="capitalize">{report.status}</Badge></TableCell>
+                                <TableCell>{format(report.createdAt.toDate(), 'MMM d, yyyy')}</TableCell>
+                            </TableRow>
+                        )) : <TableRow><TableCell colSpan={3} className="text-center h-24">You have not submitted any reports for this project.</TableCell></TableRow>}
+                    </TableBody>
+                </Table>
+                </div>
+              </div>
+           )}
            {activeView === 'invoices' && (
               <div>
                 <h2 className="text-2xl font-bold mb-4">Invoices</h2>
@@ -740,6 +872,13 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         </main>
       </div>
 
+        {project && isReportDialogOpen && (
+          <SubmitReportDialog
+            project={project}
+            onClose={() => setIsReportDialogOpen(false)}
+            onReportSubmit={handleReportSubmit}
+           />
+        )}
        {selectedProposal && <ProposalDetailDialog
             proposal={selectedProposal}
             onClose={() => setSelectedProposal(null)}
