@@ -154,7 +154,8 @@ export default function UsersPage() {
     if (!userData?.organizationId) return;
     try {
       const fetchedUsers = await getUsers(userData.organizationId);
-      setUsers(fetchedUsers.sort((a,b) => a.name.localeCompare(b.name)));
+      // Filter out clients from this page
+      setUsers(fetchedUsers.filter(u => u.role !== 'client').sort((a,b) => a.name.localeCompare(b.name)));
     } catch (error) {
       console.error("Failed to fetch users:", error);
       toast({
@@ -197,7 +198,7 @@ export default function UsersPage() {
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-    const role = formData.get('role') as 'admin' | 'user' | 'client';
+    const role = formData.get('role') as 'admin' | 'user';
 
     if (name && email && password && role) {
       try {
@@ -321,7 +322,6 @@ export default function UsersPage() {
                   <SelectContent>
                     <SelectItem value="user">User</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="client">Client</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -354,7 +354,6 @@ export default function UsersPage() {
                     <SelectItem value="all">All Roles</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="client">Client</SelectItem>
                 </SelectContent>
             </Select>
         </div>
@@ -410,7 +409,7 @@ export default function UsersPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'client' ? 'secondary' : 'default'}>
+                    <Badge variant={user.role === 'admin' ? 'destructive' : 'default'}>
                       {user.role}
                     </Badge>
                   </TableCell>

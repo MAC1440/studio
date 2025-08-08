@@ -1,6 +1,6 @@
 
 import { db } from './config';
-import { collection, addDoc, doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, serverTimestamp, Timestamp, updateDoc } from 'firebase/firestore';
 import type { Organization } from '@/lib/types';
 
 type CreateOrganizationArgs = {
@@ -22,4 +22,11 @@ export async function createOrganization(args: CreateOrganizationArgs): Promise<
     await setDoc(doc(db, "organizations", docRef.id), newOrganizationData);
 
     return newOrganizationData;
+}
+
+export async function updateOrganizationPlan(organizationId: string, newPlan: Organization['subscriptionPlan']): Promise<void> {
+    const orgRef = doc(db, 'organizations', organizationId);
+    await updateDoc(orgRef, {
+        subscriptionPlan: newPlan
+    });
 }

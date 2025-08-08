@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User as FirebaseUser, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import type { User } from '@/lib/types';
 import { getUsers, updateUserProfile } from '@/lib/firebase/users';
@@ -48,9 +48,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const userDocSnap = await getDoc(userDocRef);
 
     if (userDocSnap.exists()) {
+      // Existing user
       let userDataFromDb = userDocSnap.data() as User;
       
-      // If user has no organizationId, create one for them (data migration)
+      // Data migration for users without an organizationId
       if (!userDataFromDb.organizationId) {
         console.log(`User ${firebaseUser.uid} is missing an organization. Creating one now.`);
         const newOrg = await createOrganization({ name: `${userDataFromDb.name}'s Workspace`, ownerId: firebaseUser.uid });
@@ -61,9 +62,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserData(userDataFromDb);
       return userDataFromDb;
     } else {
-      console.warn(`User document not found for UID: ${firebaseUser.uid}`);
-      setUserData(null);
-      return null;
+      // This is a new user signing up.
+      // The user has been created in Firebase Auth, but not yet in Firestore.
+      console.log("New user detected, creating Firestore user document and organization...");
+      const newOrg = await createOrganization({ name: `${firebaseUser.displayName || firebaseUser.email}'s Workspace`, ownerId: firebaseUser.uid });
+      
+      const newUser: User = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'New User',
+        email: firebaseUser.email!,
+        role: 'admin', // New sign-ups are always admins of their own org
+        organizationId: newOrg.id,
+        avatarUrl: firebaseUser.photoURL || `https://placehold.co/150x150.png`
+      };
+
+      await setDoc(doc(db, "users", firebaseUser.uid), newUser);
+      
+      setUserData(newUser);
+      return newUser;
     }
   }, []);
 
@@ -94,8 +110,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!userCredential.user) {
         throw new Error("Login failed: no user returned");
     }
-    // Fetch and return user data immediately after login to ensure it's available for routing.
-    return fetchAndSetUserData(userCredential.user);
+    // The onAuthStateChanged listener will handle fetching data, but we need to wait
+    // for the user data to be available before returning, especially for redirects.
+    return await fetchAndSetUserData(userCredential.user);
   };
 
 

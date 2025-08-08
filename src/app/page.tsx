@@ -11,12 +11,14 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LayoutGrid, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
-import { forgotPassword } from '@/lib/firebase/users';
+import { forgotPassword, createUser } from '@/lib/firebase/users';
 import { useToast } from '@/hooks/use-toast';
 
-function LoginPage() {
+function AuthForm() {
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,26 +26,58 @@ function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuthAction = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
+
     try {
-      const userData = await login(email, password);
-      if (userData?.role === 'admin') {
-        router.push('/admin');
-      } else if (userData?.role === 'client') {
-        router.push('/client');
+      if (isLogin) {
+        await login(email, password);
+        // Redirect logic is now handled in the main Home component's useEffect
       } else {
-        router.push('/board');
+        // Sign up
+        if (!name) {
+            setError("Name is required for sign up.");
+            setIsLoading(false);
+            return;
+        }
+        // Step 1: Create the user in Firebase Auth system only
+        await createUser({ name, email, password, role: 'admin' });
+
+        // Step 2: Log the new user in. The AuthContext will then handle
+        // creating the user document in Firestore and their new organization.
+        await login(email, password);
+        
+        toast({
+          title: "Account Created",
+          description: "Welcome! Your new workspace is ready.",
+        });
       }
     } catch (err: any) {
-      if (err.code === 'auth/invalid-credential') {
-        setError('Invalid email or password. Please try again.');
+      let friendlyMessage = 'An unexpected error occurred. Please try again later.';
+      if (err.code) {
+          switch (err.code) {
+              case 'auth/invalid-credential':
+              case 'auth/wrong-password':
+                  friendlyMessage = 'Invalid email or password. Please try again.';
+                  break;
+              case 'auth/email-already-in-use':
+                  friendlyMessage = 'This email address is already in use. Please log in or use a different email.';
+                  break;
+              case 'auth/weak-password':
+                  friendlyMessage = 'The password is too weak. Please use at least 6 characters.';
+                  break;
+              case 'permission-denied':
+                  friendlyMessage = 'You do not have permission to perform this action.';
+                  break;
+              default:
+                  console.error("Auth error:", err.code, err.message);
+          }
       } else {
-        setError('An unexpected error occurred. Please try again later.');
+          console.error(err);
       }
-      console.error(err);
+      setError(friendlyMessage);
     } finally {
         setIsLoading(false);
     }
@@ -70,26 +104,50 @@ function LoginPage() {
       });
     }
   };
+  
+  const toggleForm = () => {
+      setIsLogin(!isLogin);
+      setError(null);
+      setEmail('');
+      setPassword('');
+      setName('');
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
        <div className="absolute top-8 left-8">
-         <Link href="/board" className="flex items-center gap-2">
+         <Link href="/" className="flex items-center gap-2">
             <LayoutGrid className="h-6 w-6 text-primary" />
             <span className="text-lg font-bold tracking-tight">BoardR</span>
         </Link>
        </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Enter your email below to login to your account.</CardDescription>
+          <CardTitle className="text-2xl">{isLogin ? 'Login' : 'Create an Account'}</CardTitle>
+          <CardDescription>
+            {isLogin ? 'Enter your email below to login to your account.' : 'Enter your details to create a new workspace.'}
+          </CardDescription>
         </CardHeader>
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleAuthAction}>
           <CardContent className="grid gap-4">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
+            )}
+            {!isLogin && (
+                 <div className="grid gap-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                        id="name"
+                        type="text"
+                        placeholder="John Doe"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        disabled={isLoading}
+                    />
+                </div>
             )}
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
@@ -106,9 +164,9 @@ function LoginPage() {
             <div className="grid gap-2">
                 <div className="flex items-center">
                     <Label htmlFor="password">Password</Label>
-                    <Button type="button" variant="link" className="ml-auto p-0 h-auto" onClick={handleForgotPassword}>
+                    {isLogin && <Button type="button" variant="link" className="ml-auto p-0 h-auto" onClick={handleForgotPassword}>
                         Forgot password?
-                    </Button>
+                    </Button>}
                 </div>
               <div className="relative">
                 <Input 
@@ -132,10 +190,16 @@ function LoginPage() {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing In...' : 'Sign in'}
+              {isLoading ? (isLogin ? 'Signing In...' : 'Creating Account...') : (isLogin ? 'Sign in' : 'Sign up')}
             </Button>
+             <p className="text-sm text-center text-muted-foreground">
+                {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
+                <Button type="button" variant="link" className="p-0 h-auto" onClick={toggleForm}>
+                     {isLogin ? 'Sign up' : 'Login'}
+                </Button>
+            </p>
           </CardFooter>
         </form>
       </Card>
@@ -171,7 +235,7 @@ export default function Home() {
   }
 
   if (!user) {
-    return <LoginPage />;
+    return <AuthForm />;
   }
 
   // This will be shown briefly before the redirect happens

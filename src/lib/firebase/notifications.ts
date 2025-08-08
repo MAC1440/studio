@@ -22,11 +22,12 @@ type AddNotificationArgs = {
   ticketId?: string;
   proposalId?: string;
   invoiceId?: string;
+  reportId?: string;
   projectId: string;
   projectName?: string;
 };
 
-export async function addNotification({ userId, message, ticketId, proposalId, invoiceId, projectId, projectName }: AddNotificationArgs): Promise<string> {
+export async function addNotification({ userId, message, ticketId, proposalId, invoiceId, reportId, projectId, projectName }: AddNotificationArgs): Promise<string> {
   const notificationsCol = collection(db, 'notifications');
   
   // Set an expiration date 7 days from now for TTL policy
@@ -56,6 +57,7 @@ export async function addNotification({ userId, message, ticketId, proposalId, i
     ...(ticketId && { ticketId }),
     ...(proposalId && { proposalId }),
     ...(invoiceId && { invoiceId }),
+    ...(reportId && { reportId }),
   };
   const docRef = await addDoc(notificationsCol, newNotification);
   return docRef.id;
