@@ -11,11 +11,15 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, Star, Briefcase } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { updateOrganizationPlan } from '@/lib/firebase/organizations';
+import { useToast } from '@/hooks/use-toast';
 
 export default function BillingPage() {
     const { userData } = useAuth();
     const [organization, setOrganization] = useState<Organization | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { toast } = useToast();
 
     useEffect(() => {
         if (userData?.organizationId) {
@@ -32,6 +36,31 @@ export default function BillingPage() {
         }
     }, [userData?.organizationId]);
 
+    const handlePlanChange = async (newPlanId: 'free' | 'pro' | 'enterprise') => {
+        if (!userData?.organizationId || newPlanId === organization?.subscriptionPlan) return;
+        
+        if (newPlanId === 'enterprise') {
+            // In a real app, this would open a contact form or a different flow.
+            toast({ title: "Contact Sales", description: "Please get in touch with us to discuss Enterprise options."});
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await updateOrganizationPlan(userData.organizationId, newPlanId);
+            setOrganization(prev => prev ? { ...prev, subscriptionPlan: newPlanId } : null);
+            toast({
+                title: "Plan Updated",
+                description: `You have successfully switched to the ${newPlanId.charAt(0).toUpperCase() + newPlanId.slice(1)} plan.`
+            })
+        } catch (error) {
+            console.error("Failed to update plan:", error);
+            toast({ title: "Error", description: "Could not update your subscription plan.", variant: "destructive"});
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
     const currentPlan = organization?.subscriptionPlan || 'free';
 
     const plans = [
@@ -40,21 +69,21 @@ export default function BillingPage() {
             price: '$0',
             features: ['5 Projects', '100 Tickets', 'Basic Reporting', 'Community Support'],
             icon: Briefcase,
-            id: 'free',
+            id: 'free' as const,
         },
         {
             name: 'Pro',
             price: '$25',
             features: ['Unlimited Projects', 'Unlimited Tickets', 'Advanced Reporting', 'Priority Email Support', 'Client Portal'],
             icon: Star,
-            id: 'pro',
+            id: 'pro' as const,
         },
         {
             name: 'Enterprise',
             price: 'Custom',
             features: ['All Pro Features', 'Dedicated Account Manager', 'On-premise Options', 'Custom Integrations', '24/7 Support'],
             icon: CheckCircle,
-            id: 'enterprise',
+            id: 'enterprise' as const,
         }
     ];
 
@@ -103,8 +132,15 @@ export default function BillingPage() {
                             {currentPlan === plan.id ? (
                                 <Button className="w-full" disabled>Current Plan</Button>
                             ) : (
-                                <Button className="w-full" variant={plan.id === 'pro' ? 'default' : 'outline'}>
-                                    {plan.id === 'enterprise' ? 'Contact Sales' : 'Upgrade'}
+                                <Button 
+                                    className="w-full" 
+                                    variant={plan.id === 'pro' ? 'default' : 'outline'}
+                                    onClick={() => handlePlanChange(plan.id)}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting && 'Updating...'}
+                                    {!isSubmitting && (plan.id > currentPlan ? 'Upgrade' : 'Downgrade')}
+                                    {plan.id === 'enterprise' && !isSubmitting && 'Contact Sales'}
                                 </Button>
                             )}
                         </CardFooter>
