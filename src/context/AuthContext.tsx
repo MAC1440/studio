@@ -110,10 +110,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!userCredential.user) {
         throw new Error("Login failed: no user returned");
     }
-    // Let the onAuthStateChanged listener handle fetching data.
-    // It will trigger automatically.
-    // For routing purposes, we still return the user data.
-    return fetchAndSetUserData(userCredential.user);
+    // The onAuthStateChanged listener will handle fetching data, but we need to wait
+    // for the user data to be available before returning, especially for redirects.
+    return await fetchAndSetUserData(userCredential.user);
   };
 
 

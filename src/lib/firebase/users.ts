@@ -55,10 +55,9 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
             name: args.name,
             email: args.email,
             role: args.role,
-            // organizationId will be set by AuthContext.
-            // For client invites, it will use the inviting admin's orgId.
-            // For new admin signups, it will create a new org.
-            organizationId: args.organizationId || '',
+            // For new admin signups, organizationId is blank. AuthContext will create it.
+            // For invites, the orgId is passed in.
+            organizationId: args.organizationId || '', 
         };
         
         // This is a special case only for client and internal user invites, where we must pre-create the user document
