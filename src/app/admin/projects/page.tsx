@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createProject, getProjects, updateProject, deleteProject } from '@/lib/firebase/projects';
 import { getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle, Calendar as CalendarIcon, Search, Upgrade } from 'lucide-react';
+import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle, Calendar as CalendarIcon, Search, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -277,7 +277,7 @@ export default function ProjectsPage() {
         action: (
           <Button asChild>
             <Link href="/admin/billing">
-              <Upgrade className="mr-2 h-4 w-4"/> Upgrade Plan
+              <Zap className="mr-2 h-4 w-4"/> Upgrade Plan
             </Link>
           </Button>
         ),
@@ -581,5 +581,3 @@ export default function ProjectsPage() {
     </AlertDialog>
   );
 }
-
-    
