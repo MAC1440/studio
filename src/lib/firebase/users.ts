@@ -15,52 +15,54 @@ type CreateUserArgs = {
     organizationId?: string;
 };
 
+
+// This function will now ONLY create the user in the auth system.
+// The user document and organization creation will be handled by the AuthContext
+// after the user has logged in for the first time.
 export async function createUser(args: CreateUserArgs): Promise<User> {
     const isClientInvite = args.role === 'client';
     if (!args.password) {
         if(isClientInvite){
-            // We can proceed, will auto-generate password
+             // Auto-generate a random password for clients, they will reset it anyway.
+            args.password = Math.random().toString(36).slice(-8);
         } else {
            throw new Error("Password is required to create a user.");
         }
     }
     
-    const password = args.password || Math.random().toString(36).slice(-8);
-
+    // We use a temporary, secondary Firebase app to create the user.
+    // This allows us to create a new user without logging out the current admin user.
     const secondaryAppConfig = auth.app.options;
     const secondaryAppName = `secondary-app-${Date.now()}`;
     const secondaryApp = getApps().find(app => app.name === secondaryAppName) || initializeApp(secondaryAppConfig, secondaryAppName);
     const secondaryAuth = getAuth(secondaryApp);
 
     try {
-        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, args.email, password);
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, args.email, args.password);
         const user = userCredential.user;
 
-        let organizationId = args.organizationId;
-        // If it's a new admin, create a new organization for them.
-        if (args.role === 'admin' && !organizationId) {
-            const newOrg = await createOrganization({ name: `${args.name}'s Workspace`, ownerId: user.uid });
-            organizationId = newOrg.id;
+        // If it's a client invitation, send a password reset email immediately.
+        if (isClientInvite) {
+            await sendPasswordResetEmail(auth, args.email);
         }
 
-        if (!organizationId) {
-            throw new Error("User must be associated with an organization.");
-        }
-
-
+        // We return a temporary User object. The full user data will be created in Firestore
+        // by the AuthContext once this new user logs in.
         const newUser: User = {
             id: user.uid,
             name: args.name,
             email: args.email,
             role: args.role,
-            organizationId: organizationId,
-            avatarUrl: `https://placehold.co/150x150.png`
+            // organizationId will be set by AuthContext.
+            // For client invites, it will use the inviting admin's orgId.
+            // For new admin signups, it will create a new org.
+            organizationId: args.organizationId || '',
         };
-
-        await setDoc(doc(db, "users", user.uid), newUser);
         
-        if (isClientInvite) {
-            await sendPasswordResetEmail(auth, args.email);
+        // This is a special case only for client invites, where we must pre-create the user document
+        // so they exist in the system before they log in for the first time.
+        if (isClientInvite && args.organizationId) {
+             await setDoc(doc(db, "users", user.uid), newUser);
         }
         
         return newUser;

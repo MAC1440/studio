@@ -33,7 +33,7 @@ function AuthForm() {
 
     try {
       if (isLogin) {
-        const userData = await login(email, password);
+        await login(email, password);
         // Redirect logic is now handled in the main Home component's useEffect
       } else {
         // Sign up
@@ -42,9 +42,13 @@ function AuthForm() {
             setIsLoading(false);
             return;
         }
+        // Step 1: Create the user in Firebase Auth system only
         await createUser({ name, email, password, role: 'admin' });
-        // After creating the user, log them in to get the session started
+
+        // Step 2: Log the new user in. The AuthContext will then handle
+        // creating the user document in Firestore and their new organization.
         await login(email, password);
+        
         toast({
           title: "Account Created",
           description: "Welcome! Your new workspace is ready.",
@@ -63,6 +67,9 @@ function AuthForm() {
                   break;
               case 'auth/weak-password':
                   friendlyMessage = 'The password is too weak. Please use at least 6 characters.';
+                  break;
+              case 'permission-denied':
+                  friendlyMessage = 'You do not have permission to perform this action.';
                   break;
               default:
                   console.error("Auth error:", err.code, err.message);
