@@ -63,7 +63,10 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
 
     const handleCreateTicket = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!userData?.organizationId) return;
+        if (!userData?.organizationId) {
+            toast({ title: "Organization not found.", variant: "destructive" });
+            return;
+        }
 
         setIsSubmitting(true);
         const formData = new FormData(event.currentTarget);

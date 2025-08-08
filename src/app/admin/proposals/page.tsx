@@ -80,7 +80,10 @@ export default function ProposalsPage() {
   }
 
   const handleSaveProposal = async (data: { title: string; content: string; clientId: string; projectId: string; status: Proposal['status'] }) => {
-    if (!userData?.organizationId) return;
+    if (!userData?.organizationId) {
+      toast({ title: "Organization not found", variant: "destructive" });
+      return;
+    }
     const client = clients.find(c => c.id === data.clientId);
     if (!client) {
       toast({ title: 'Client not found', variant: 'destructive' });
