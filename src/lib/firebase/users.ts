@@ -21,10 +21,12 @@ type CreateUserArgs = {
 // after the user has logged in for the first time.
 export async function createUser(args: CreateUserArgs): Promise<User> {
     const isClientInvite = args.role === 'client';
-    if (!args.password) {
+    
+    let password = args.password;
+    if (!password) {
         if(isClientInvite){
              // Auto-generate a random password for clients, they will reset it anyway.
-            args.password = Math.random().toString(36).slice(-8);
+            password = Math.random().toString(36).slice(-8);
         } else {
            throw new Error("Password is required to create a user.");
         }
@@ -38,7 +40,7 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
     const secondaryAuth = getAuth(secondaryApp);
 
     try {
-        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, args.email, args.password);
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, args.email, password);
         const user = userCredential.user;
 
         // If it's a client invitation, send a password reset email immediately.
@@ -59,9 +61,9 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
             organizationId: args.organizationId || '',
         };
         
-        // This is a special case only for client invites, where we must pre-create the user document
+        // This is a special case only for client and internal user invites, where we must pre-create the user document
         // so they exist in the system before they log in for the first time.
-        if (isClientInvite && args.organizationId) {
+        if (args.organizationId) {
              await setDoc(doc(db, "users", user.uid), newUser);
         }
         
