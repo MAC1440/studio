@@ -75,9 +75,9 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
 }
 
 
-export async function getUsers(organizationId: string): Promise<User[]> {
+export async function getUsers(organizationId?: string): Promise<User[]> {
     const usersCol = collection(db, 'users');
-    const q = query(usersCol, where('organizationId', '==', organizationId));
+    const q = organizationId ? query(usersCol, where('organizationId', '==', organizationId)) : query(usersCol);
     const userSnapshot = await getDocs(q);
     const userList = userSnapshot.docs.map(doc => {
       const data = doc.data() as Omit<User, 'id'>;
