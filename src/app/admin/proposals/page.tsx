@@ -60,7 +60,7 @@ export default function ProposalsPage() {
 
   useEffect(() => {
     if (userData?.organizationId) {
-        fetchData();
+      fetchData();
     }
   }, [userData?.organizationId]);
 
@@ -111,8 +111,8 @@ export default function ProposalsPage() {
       toast({
         title: toastMessage
       });
-      handleCloseEditor();
       await fetchData(); // Refresh data
+      handleCloseEditor(); // Close the editor after data is refreshed
     } catch (error) {
       console.error('Failed to save proposal:', error);
       toast({
@@ -158,84 +158,84 @@ export default function ProposalsPage() {
   }
 
   return (
-    <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-      <div className='max-w-[95vw] overflow-auto'>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold">Proposals</h1>
-          <Button onClick={handleCreateClick} size="sm">
-            <PlusCircle className="md:mr-2 h-4 w-4" />
-            <span className="hidden md:inline">Create Proposal</span>
-          </Button>
-        </div>
-        <div className="border rounded-lg overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Updated</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-20" /></TableCell>
-                  </TableRow>
-                ))
-              ) : proposals.length > 0 ? (
-                proposals.map((proposal) => (
-                  <TableRow key={proposal.id}>
-                    <TableCell className="font-medium">{proposal.title}</TableCell>
-                    <TableCell>{proposal.clientName}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={getStatusBadgeVariant(proposal.status)} className="capitalize">{proposal.status.replace('-', ' ')}</Badge>
-                        {proposal.status === 'changes-requested' && <MessageSquareWarning className="h-4 w-4 text-amber-500" />}
-                      </div>
-                    </TableCell>
-                    <TableCell>{format(proposal.updatedAt.toDate(), 'MMM d, yyyy')}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end items-center gap-2">
-                        {(proposal.status === 'draft' || proposal.status === 'changes-requested') && (
-                          <Button variant="ghost" size="sm" onClick={() => handleSendProposal(proposal)}>
-                            <Send className="mr-2 h-4 w-4" />
-                            {proposal.status === 'changes-requested' ? 'Re-send' : 'Send'}
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => handleEditClick(proposal)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          {proposal.status === 'draft' || proposal.status === 'changes-requested' ? 'Edit' : 'View'}
+    <div className='max-w-[95vw] overflow-auto'>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold">Proposals</h1>
+        <Button onClick={handleCreateClick} size="sm">
+          <PlusCircle className="md:mr-2 h-4 w-4" />
+          <span className="hidden md:inline">Create Proposal</span>
+        </Button>
+      </div>
+      <div className="border rounded-lg overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Title</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last Updated</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-8 w-20" /></TableCell>
+                </TableRow>
+              ))
+            ) : proposals.length > 0 ? (
+              proposals.map((proposal) => (
+                <TableRow key={proposal.id}>
+                  <TableCell className="font-medium">{proposal.title}</TableCell>
+                  <TableCell>{proposal.clientName}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={getStatusBadgeVariant(proposal.status)} className="capitalize">{proposal.status.replace('-', ' ')}</Badge>
+                      {proposal.status === 'changes-requested' && <MessageSquareWarning className="h-4 w-4 text-amber-500" />}
+                    </div>
+                  </TableCell>
+                  <TableCell>{format(proposal.updatedAt.toDate(), 'MMM d, yyyy')}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end items-center gap-2">
+                      {(proposal.status === 'draft' || proposal.status === 'changes-requested') && (
+                        <Button variant="ghost" size="sm" onClick={() => handleSendProposal(proposal)}>
+                          <Send className="mr-2 h-4 w-4" />
+                          {proposal.status === 'changes-requested' ? 'Re-send' : 'Send'}
                         </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-48 text-center">
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <FileText className="h-12 w-12" />
-                      <h2 className="text-lg font-semibold">No Proposals Yet</h2>
-                      <p>Click "Create Proposal" to get started.</p>
-                      <Button size="sm" className="mt-2" onClick={handleCreateClick}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Create Proposal
+                      )}
+                      <Button variant="ghost" size="sm" onClick={() => handleEditClick(proposal)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        {proposal.status === 'draft' || proposal.status === 'changes-requested' ? 'Edit' : 'View'}
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} className="h-48 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <FileText className="h-12 w-12" />
+                    <h2 className="text-lg font-semibold">No Proposals Yet</h2>
+                    <p>Click "Create Proposal" to get started.</p>
+                    <Button size="sm" className="mt-2" onClick={handleCreateClick}>
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Create Proposal
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
+      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
         <DialogContent className="max-w-4xl h-[90vh]">
           <ProposalEditor
             clients={clients}
@@ -245,7 +245,7 @@ export default function ProposalsPage() {
             proposal={editingProposal}
           />
         </DialogContent>
-      </div>
-    </Dialog>
+      </Dialog>
+    </div>
   );
 }

@@ -90,7 +90,7 @@ export default function ProposalEditor({ clients, projects, onSave, onClose, pro
   const isFormValid = title && clientId && projectId && content;
   const isViewOnly = proposal && !['draft', 'changes-requested'].includes(proposal.status);
   const hasFeedback = proposal && proposal.feedback && proposal.feedback.length > 0;
-
+  
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       <DialogHeader>
