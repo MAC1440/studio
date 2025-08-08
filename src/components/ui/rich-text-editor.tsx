@@ -48,12 +48,6 @@ export default function RichTextEditor({ content, onChange, editable }: RichText
     }
   }, [content, editable, editor]);
 
-  useEffect(() => {
-    if (!editor) return;
-    return () => {
-      editor.destroy();
-    };
-  }, [editor]);
 
   if (!editor) {
     return <div className="flex-1" />;
