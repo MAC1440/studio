@@ -21,11 +21,13 @@ import { getUsers } from '@/lib/firebase/users';
 import { type Project, type User, type InvoiceItem, type Invoice } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 export default function EditInvoicePage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
+  const { userData } = useAuth();
   const invoiceId = params.invoiceId as string;
 
   // Component State
@@ -56,6 +58,7 @@ export default function EditInvoicePage() {
       router.push('/admin/invoices');
       return;
     }
+    if (!userData?.organizationId) return;
 
     const fetchData = async () => {
       setIsLoading(true);
@@ -73,7 +76,7 @@ export default function EditInvoicePage() {
         setValidUntil(invoiceData.validUntil.toDate());
         setStatus(invoiceData.status);
 
-        const [allUsers, allProjects] = await Promise.all([getUsers(), getProjects()]);
+        const [allUsers, allProjects] = await Promise.all([getUsers(userData.organizationId!), getProjects(userData.organizationId!)]);
         const currentClient = allUsers.find(u => u.id === invoiceData.clientId);
         if (!currentClient) throw new Error("Client not found");
 
@@ -87,8 +90,10 @@ export default function EditInvoicePage() {
         setIsLoading(false);
       }
     };
-    fetchData();
-  }, [invoiceId, router, toast]);
+    if (userData?.organizationId) {
+        fetchData();
+    }
+  }, [invoiceId, router, toast, userData?.organizationId]);
 
   const handleAddItem = () => {
     setItems([...items, { description: '', amount: 0 }]);

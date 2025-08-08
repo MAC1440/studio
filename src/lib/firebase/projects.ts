@@ -1,7 +1,7 @@
+
 import { db } from './config';
 import { collection, addDoc, getDocs, getDoc, query, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, where, writeBatch, orderBy, Timestamp } from 'firebase/firestore';
 import type { Project, ProjectStatus } from '@/lib/types';
-
 
 type CreateProjectArgs = {
   name: string;
@@ -9,6 +9,7 @@ type CreateProjectArgs = {
   clientIds?: string[];
   deadline?: Date;
   status?: ProjectStatus;
+  organizationId: string;
 };
 
 export async function createProject(args: CreateProjectArgs): Promise<Project> {
@@ -18,6 +19,7 @@ export async function createProject(args: CreateProjectArgs): Promise<Project> {
         name: args.name,
         description: args.description || '',
         clientIds: args.clientIds || [],
+        organizationId: args.organizationId,
         createdAt: serverTimestamp() as any,
         status: args.status || 'on-track',
         ...(args.deadline && { deadline: Timestamp.fromDate(args.deadline) })
@@ -28,9 +30,12 @@ export async function createProject(args: CreateProjectArgs): Promise<Project> {
     return { ...newProjectData, id: docRef.id } as Project;
 }
 
-export async function getProjects(): Promise<Project[]> {
+export async function getProjects(organizationId: string): Promise<Project[]> {
     const projectsCol = collection(db, 'projects');
-    const q = query(projectsCol, orderBy('createdAt', 'desc'));
+    const q = query(
+        projectsCol, 
+        where('organizationId', '==', organizationId)
+    );
     const projectSnapshot = await getDocs(q);
     const projectList = projectSnapshot.docs.map(doc => {
       const data = doc.data();
@@ -67,11 +72,9 @@ export async function updateProject(projectId: string, updates: Partial<Omit<Pro
 export async function deleteProject(projectId: string): Promise<void> {
   const batch = writeBatch(db);
 
-  // 1. Delete the project document
   const projectRef = doc(db, 'projects', projectId);
   batch.delete(projectRef);
 
-  // 2. Find and delete all tickets associated with the project
   const ticketsCol = collection(db, 'tickets');
   const q = query(ticketsCol, where('projectId', '==', projectId));
   const ticketsSnapshot = await getDocs(q);
@@ -80,6 +83,5 @@ export async function deleteProject(projectId: string): Promise<void> {
     batch.delete(ticketDoc.ref);
   });
   
-  // 3. Commit the batch
   await batch.commit();
 }

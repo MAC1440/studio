@@ -1,12 +1,22 @@
 
 import type { Timestamp } from 'firebase/firestore';
 
-export type User = {
+export type Organization = {
   id: string;
+  name: string;
+  ownerId: string;
+  createdAt: Timestamp;
+  subscriptionPlan?: 'free' | 'pro' | 'enterprise';
+  stripeCustomerId?: string;
+};
+
+export type User = {
+  id:string;
   name: string;
   email: string;
   avatarUrl?: string;
   role: 'admin' | 'user' | 'client';
+  organizationId: string;
 };
 
 // Renamed from User to avoid conflict with Firebase's User type
@@ -22,6 +32,7 @@ export type Project = {
   clientIds?: string[];
   deadline?: Timestamp;
   status?: ProjectStatus;
+  organizationId: string;
 };
 
 export type Proposal = {
@@ -36,6 +47,7 @@ export type Proposal = {
   updatedAt: Timestamp;
   feedback?: Comment[];
   actingUser?: { id: string; name: string }; // Temporary field for notifications
+  organizationId: string;
 }
 
 export type InvoiceItem = {
@@ -62,6 +74,7 @@ export type Invoice = {
     updatedAt: Timestamp;
     feedback?: Comment[];
     actingUser?: { id: string; name: string }; // Temporary field for notifications
+    organizationId: string;
 }
 
 
@@ -102,6 +115,7 @@ export type Ticket = {
   checklist?: ChecklistItem[];
   deadline?: Timestamp;
   loggedHours?: number;
+  organizationId: string;
 };
 
 export type Column = {

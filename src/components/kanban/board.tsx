@@ -57,10 +57,11 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
   }, [user]);
 
   const fetchBoardData = async () => {
+      if (!userData?.organizationId) return;
       setIsLoading(true);
       try {
         const [tickets, projectData] = await Promise.all([
-          getTickets({ projectId }),
+          getTickets({ projectId, organizationId: userData.organizationId }),
           getProject(projectId)
         ]);
         
@@ -91,8 +92,10 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
     };
 
   useEffect(() => {
-    fetchBoardData();
-  }, [projectId, toast, ticketReloadKey]);
+    if (userData?.organizationId) {
+        fetchBoardData();
+    }
+  }, [projectId, toast, ticketReloadKey, userData?.organizationId]);
   
   useEffect(() => {
     const filteredTickets = assigneeFilter === 'all'
@@ -228,9 +231,9 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
     await fetchBoardData();
     if(isDeleted) {
         handleTicketDetailClose();
-    } else if (selectedTicket) {
+    } else if (selectedTicket && userData?.organizationId) {
       // Find the updated ticket in the refreshed list
-      const refreshedTickets = await getTickets({ projectId });
+      const refreshedTickets = await getTickets({ projectId, organizationId: userData.organizationId });
       const freshTicket = refreshedTickets.find(t => t.id === selectedTicket?.id);
       if(freshTicket) {
         setSelectedTicket(freshTicket);

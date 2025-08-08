@@ -46,6 +46,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/context/AuthContext';
 
 const PROJECTS_PER_PAGE = 5;
 
@@ -126,14 +127,15 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
 
-
   const { toast } = useToast();
+  const { userData } = useAuth();
 
   const fetchData = async () => {
+    if (!userData?.organizationId) return;
     try {
       const [fetchedProjects, fetchedUsers] = await Promise.all([
-        getProjects(),
-        getUsers()
+        getProjects(userData.organizationId),
+        getUsers(userData.organizationId)
       ]);
       setProjects(fetchedProjects.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
       setClients(fetchedUsers.filter(u => u.role === 'client'));
@@ -150,9 +152,11 @@ export default function ProjectsPage() {
   };
 
   useEffect(() => {
-    setIsLoading(true);
-    fetchData();
-  }, []);
+    if (userData?.organizationId) {
+        setIsLoading(true);
+        fetchData();
+    }
+  }, [userData?.organizationId]);
   
   const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<any>>) => (value: string) => {
     setter(value);
@@ -167,6 +171,10 @@ export default function ProjectsPage() {
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!userData?.organizationId) {
+        toast({ title: "Organization not found", variant: "destructive" });
+        return;
+    }
     setIsSubmitting(true);
     
     const projectData = {
@@ -174,7 +182,8 @@ export default function ProjectsPage() {
       description,
       clientIds: selectedClientIds,
       deadline,
-      status: projectToEdit ? status : 'on-track' // Default to on-track for new projects
+      status: projectToEdit ? status : 'on-track', // Default to on-track for new projects
+      organizationId: userData.organizationId,
     };
 
     if (name) {

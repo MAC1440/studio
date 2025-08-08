@@ -4,10 +4,11 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, signOut, type User as FirebaseUser, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import type { User } from '@/lib/types';
-import { getUsers } from '@/lib/firebase/users';
+import { getUsers, updateUserProfile } from '@/lib/firebase/users';
+import { createOrganization } from '@/lib/firebase/organizations';
 import { useRouter } from 'next/navigation';
 
 
@@ -42,16 +43,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setRefetchKey(oldKey => oldKey + 1);
   }, []);
   
-  const fetchAndSetUserData = useCallback(async (firebaseUser: FirebaseUser) => {
+  const fetchAndSetUserData = useCallback(async (firebaseUser: FirebaseUser): Promise<User | null> => {
     const userDocRef = doc(db, 'users', firebaseUser.uid);
     const userDocSnap = await getDoc(userDocRef);
+
     if (userDocSnap.exists()) {
-      const userData = userDocSnap.data() as User;
-      setUserData(userData);
-      return userData;
+      let userDataFromDb = userDocSnap.data() as User;
+      
+      // If user has no organizationId, create one for them (data migration)
+      if (!userDataFromDb.organizationId) {
+        console.log(`User ${firebaseUser.uid} is missing an organization. Creating one now.`);
+        const newOrg = await createOrganization({ name: `${userDataFromDb.name}'s Workspace`, ownerId: firebaseUser.uid });
+        await updateUserProfile(firebaseUser.uid, { organizationId: newOrg.id });
+        userDataFromDb.organizationId = newOrg.id;
+      }
+      
+      setUserData(userDataFromDb);
+      return userDataFromDb;
     } else {
-      // User data not found in Firestore. This can happen for a new user.
-      // The calling function should handle this case, e.g., by creating the user document.
       console.warn(`User document not found for UID: ${firebaseUser.uid}`);
       setUserData(null);
       return null;
@@ -64,9 +73,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       if (firebaseUser) {
         setUser(firebaseUser);
-        await fetchAndSetUserData(firebaseUser);
-        const allUsers = await getUsers();
-        setUsers(allUsers);
+        const currentUserData = await fetchAndSetUserData(firebaseUser);
+        if (currentUserData?.organizationId) {
+            const allUsers = await getUsers(currentUserData.organizationId);
+            setUsers(allUsers);
+        }
       } else {
         setUser(null);
         setUserData(null);

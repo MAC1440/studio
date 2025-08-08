@@ -142,7 +142,7 @@ export default function UsersPage() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, userData } = useAuth();
   
   // Filtering and Pagination
   const [searchQuery, setSearchQuery] = useState('');
@@ -151,8 +151,9 @@ export default function UsersPage() {
 
 
   const fetchUsers = async () => {
+    if (!userData?.organizationId) return;
     try {
-      const fetchedUsers = await getUsers();
+      const fetchedUsers = await getUsers(userData.organizationId);
       setUsers(fetchedUsers.sort((a,b) => a.name.localeCompare(b.name)));
     } catch (error) {
       console.error("Failed to fetch users:", error);
@@ -167,9 +168,11 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    setIsLoading(true);
-    fetchUsers();
-  }, []);
+    if (userData?.organizationId) {
+        setIsLoading(true);
+        fetchUsers();
+    }
+  }, [userData?.organizationId]);
   
   const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (value: string) => {
     setter(value);
@@ -183,6 +186,11 @@ export default function UsersPage() {
 
   const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!userData?.organizationId) {
+        toast({ title: "Organization not found", variant: "destructive" });
+        return;
+    };
+
     setIsSubmitting(true);
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -193,7 +201,7 @@ export default function UsersPage() {
 
     if (name && email && password && role) {
       try {
-        await createUser({ name, email, password, role });
+        await createUser({ name, email, password, role, organizationId: userData.organizationId });
         await fetchUsers();
         toast({
           title: "User Created",

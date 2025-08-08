@@ -21,11 +21,13 @@ import { getUsers } from '@/lib/firebase/users';
 import { type Project, type User, type InvoiceItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 export default function CreateInvoicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { userData } = useAuth();
 
   // Component State
   const [isLoading, setIsLoading] = useState(true);
@@ -55,11 +57,12 @@ export default function CreateInvoicePage() {
       router.push('/admin/clients');
       return;
     }
+    if (!userData?.organizationId) return;
 
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [allUsers, allProjects] = await Promise.all([getUsers(), getProjects()]);
+        const [allUsers, allProjects] = await Promise.all([getUsers(userData.organizationId!), getProjects(userData.organizationId!)]);
         const currentClient = allUsers.find(u => u.id === clientId);
         if (!currentClient) throw new Error("Client not found");
 
@@ -72,8 +75,10 @@ export default function CreateInvoicePage() {
         setIsLoading(false);
       }
     };
-    fetchData();
-  }, [clientId, router, toast]);
+    if (userData?.organizationId) {
+        fetchData();
+    }
+  }, [clientId, router, toast, userData?.organizationId]);
 
   const handleAddItem = () => {
     setItems([...items, { description: '', amount: 0 }]);
@@ -94,7 +99,7 @@ export default function CreateInvoicePage() {
   };
   
   const handleSubmit = async (status: 'draft' | 'sent') => {
-    if (!client || !projectId || !validUntil || !title) {
+    if (!client || !projectId || !validUntil || !title || !userData?.organizationId) {
         toast({ title: "Missing Information", description: "Please fill out all required fields.", variant: "destructive" });
         return;
     }
@@ -120,6 +125,7 @@ export default function CreateInvoicePage() {
             items: invoiceType === 'itemized' ? items.map((item, idx) => ({ ...item, id: `item-${idx}`})) : [],
             status,
             validUntil: validUntil,
+            organizationId: userData.organizationId,
         });
         
         toast({ title: status === 'sent' ? "Invoice Sent" : "Invoice Saved as Draft", description: `The invoice for ${client.name} has been processed.` });
@@ -290,4 +296,3 @@ export default function CreateInvoicePage() {
     </div>
   );
 }
-

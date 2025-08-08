@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { startOfMonth, isWithinInterval } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
@@ -23,16 +24,19 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [projectFilter, setProjectFilter] = useState<'this_month' | 'all'>('this_month');
   const { toast } = useToast();
+  const { userData } = useAuth();
 
   useEffect(() => {
+    if (!userData?.organizationId) return;
+
     const fetchData = async () => {
       setIsLoading(true);
       try {
         const [fetchedUsers, fetchedTickets, fetchedProjects, fetchedInvoices] = await Promise.all([
-          getUsers(),
-          getTickets({}),
-          getProjects(),
-          getInvoices(),
+          getUsers(userData.organizationId!),
+          getTickets({ organizationId: userData.organizationId! }),
+          getProjects(userData.organizationId!),
+          getInvoices({ organizationId: userData.organizationId! }),
         ]);
         setUsers(fetchedUsers);
         setTickets(fetchedTickets);
@@ -51,7 +55,7 @@ export default function AdminDashboard() {
     };
 
     fetchData();
-  }, [toast]);
+  }, [toast, userData?.organizationId]);
 
   // --- Metric Calculations ---
 

@@ -20,6 +20,7 @@ export async function createInvoice(args: Partial<CreateInvoiceArgs>): Promise<I
         clientName: args.clientName!,
         projectId: args.projectId!,
         projectName: args.projectName!,
+        organizationId: args.organizationId!,
         type: args.type!,
         status: args.status!,
         validUntil: args.validUntil!,
@@ -47,9 +48,12 @@ export async function createInvoice(args: Partial<CreateInvoiceArgs>): Promise<I
     return { ...newInvoiceData, id: docRef.id } as Invoice;
 }
 
-export async function getInvoices(filters: { clientId?: string, projectId?: string } = {}): Promise<Invoice[]> {
+export async function getInvoices(filters: { clientId?: string, projectId?: string, organizationId: string }): Promise<Invoice[]> {
     const invoicesCol = collection(db, 'invoices');
-    const conditions = [];
+    const conditions = [
+        where('organizationId', '==', filters.organizationId)
+    ];
+
     if (filters.clientId) {
         conditions.push(where('clientId', '==', filters.clientId));
     }
@@ -93,16 +97,14 @@ export async function updateInvoice(invoiceId: string, updates: Partial<Omit<Inv
     
     finalUpdates.updatedAt = serverTimestamp();
     
-    // --- Handle Notifications ---
     const isStatusChanging = updates.status && updates.status !== currentData.status;
 
     if (isStatusChanging && updates.status) {
         const project = await getProject(currentData.projectId);
         const projectName = project?.name || 'a project';
-        const allUsers = await getUsers();
+        const allUsers = await getUsers(currentData.organizationId);
         const admins = allUsers.filter(u => u.role === 'admin');
 
-        // 1. Notify client when invoice is SENT
         if (updates.status === 'sent') {
              await addNotification({
                 userId: currentData.clientId,
@@ -113,7 +115,6 @@ export async function updateInvoice(invoiceId: string, updates: Partial<Omit<Inv
             });
         }
 
-        // 2. Notify admins when invoice is PAID
         if (updates.status === 'paid' && updates.actingUser) {
             const notificationPromises = admins.map(admin => {
                 return addNotification({
@@ -128,11 +129,9 @@ export async function updateInvoice(invoiceId: string, updates: Partial<Omit<Inv
         }
     }
     
-     // Remove the temporary 'actingUser' field before updating the document
     if ('actingUser' in finalUpdates) {
         delete (finalUpdates as any).actingUser;
     }
-
 
     await updateDoc(invoiceRef, finalUpdates);
 }
@@ -173,8 +172,7 @@ export async function addFeedbackToInvoice(invoiceId: string, {userId, message}:
         updatedAt: serverTimestamp(),
     });
 
-    // --- Send notification to admins ---
-    const allUsers = await getUsers();
+    const allUsers = await getUsers(invoiceData.organizationId);
     const admins = allUsers.filter(u => u.role === 'admin');
     const project = await getProject(invoiceData.projectId);
 

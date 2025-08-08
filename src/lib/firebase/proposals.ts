@@ -14,6 +14,7 @@ type CreateProposalArgs = {
   clientName: string;
   projectId: string;
   status: Proposal['status'];
+  organizationId: string;
 };
 
 export async function createProposal(args: CreateProposalArgs): Promise<Proposal> {
@@ -21,6 +22,7 @@ export async function createProposal(args: CreateProposalArgs): Promise<Proposal
 
     const newProposalData: Omit<Proposal, 'id'> = {
         ...args,
+        organizationId: args.organizationId,
         createdAt: serverTimestamp() as any,
         updatedAt: serverTimestamp() as any,
         feedback: [], // Initialize with an empty feedback array
@@ -42,15 +44,20 @@ export async function createProposal(args: CreateProposalArgs): Promise<Proposal
     return { ...newProposalData, id: docRef.id } as Proposal;
 }
 
-export async function getProposals(filters: { clientId?: string, projectId?: string } = {}): Promise<Proposal[]> {
+export async function getProposals(filters: { clientId?: string, projectId?: string, organizationId: string }): Promise<Proposal[]> {
     const proposalsCol = collection(db, 'proposals');
-    const conditions = [];
+    
+    const conditions = [
+        where('organizationId', '==', filters.organizationId)
+    ];
+
     if(filters.clientId) {
         conditions.push(where('clientId', '==', filters.clientId));
     }
     if (filters.projectId) {
         conditions.push(where('projectId', '==', filters.projectId));
     }
+
     const q = query(proposalsCol, ...conditions);
     const proposalSnapshot = await getDocs(q);
     const proposalList = proposalSnapshot.docs.map(doc => {
@@ -71,14 +78,12 @@ export async function updateProposal(proposalId: string, updates: Partial<Omit<P
     }
     const currentData = proposalSnap.data() as Proposal;
 
-    // --- Handle Notifications ---
     const isStatusChanging = updates.status && updates.status !== currentData.status;
 
     if (isStatusChanging) {
         const project = await getProject(currentData.projectId);
         const projectName = project?.name || 'a project';
         
-        // 1. Notify client when proposal is SENT
         if (updates.status === 'sent') {
              await addNotification({
                 userId: currentData.clientId,
@@ -89,9 +94,8 @@ export async function updateProposal(proposalId: string, updates: Partial<Omit<P
             });
         }
 
-        // 2. Notify admins when proposal is ACCEPTED or DECLINED
         if ((updates.status === 'accepted' || updates.status === 'declined') && updates.actingUser) {
-            const allUsers = await getUsers();
+            const allUsers = await getUsers(currentData.organizationId);
             const admins = allUsers.filter(u => u.role === 'admin');
             const notificationPromises = admins.map(admin => {
                 return addNotification({
@@ -110,7 +114,6 @@ export async function updateProposal(proposalId: string, updates: Partial<Omit<P
         ...updates,
         updatedAt: serverTimestamp(),
     };
-    // Remove the temporary 'actingUser' field before updating the document
     if ('actingUser' in finalUpdates) {
         delete (finalUpdates as any).actingUser;
     }
@@ -154,8 +157,7 @@ export async function addFeedbackToProposal(proposalId: string, {userId, message
         updatedAt: serverTimestamp(),
     });
 
-    // --- Send notification to admins ---
-    const allUsers = await getUsers();
+    const allUsers = await getUsers(proposalData.organizationId);
     const admins = allUsers.filter(u => u.role === 'admin');
     const project = await getProject(proposalData.projectId);
 
@@ -177,5 +179,3 @@ export async function deleteProposal(proposalId: string): Promise<void> {
     const proposalRef = doc(db, 'proposals', proposalId);
     await deleteDoc(proposalRef);
 }
-
-    
