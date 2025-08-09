@@ -111,7 +111,7 @@ export default function AdminLayout({
                       <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/billing')}>
                         <Link href="/admin/billing">
                           <CreditCard />
-                          Billing
+                          Billing {"(Beta)"}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
