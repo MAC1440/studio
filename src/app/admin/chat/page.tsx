@@ -23,9 +23,9 @@ export default function AdminChatPage() {
             setIsLoading(true);
             try {
                 const fetchedProjects = await getProjects(userData.organizationId);
-                // For now, let's just show projects with clients.
-                // In a future step, we can build a more complex chat hub.
-                setProjects(fetchedProjects.filter(p => p.clientIds && p.clientIds.length > 0));
+                // We show all projects, as any project might need a chat.
+                // In a future step, we can show an indicator for unread messages.
+                setProjects(fetchedProjects);
             } catch (error) {
                 console.error("Failed to fetch projects for chat:", error);
                 toast({
@@ -42,7 +42,7 @@ export default function AdminChatPage() {
 
     return (
         <div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-6">Client Chats</h1>
+            <h1 className="text-2xl md:text-3xl font-bold mb-6">Client & Team Chats</h1>
              {isLoading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -60,8 +60,7 @@ export default function AdminChatPage() {
             ) : projects.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {projects.map((project) => (
-                    // This now correctly links to the client project view with the chat open
-                    <Link href={`/client/project/${project.id}?open_chat=true`} key={project.id} className="block hover:scale-[1.02] transition-transform duration-200">
+                    <Link href={`/admin/chat/${project.id}`} key={project.id} className="block hover:scale-[1.02] transition-transform duration-200">
                     <Card className="h-full flex flex-col">
                         <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -81,9 +80,9 @@ export default function AdminChatPage() {
             ) : (
                 <div className="flex flex-col items-center justify-center h-[50vh] text-center border rounded-lg bg-card">
                     <FolderKanban className="h-16 w-16 text-muted-foreground mb-4" />
-                    <h2 className="text-2xl font-semibold">No Active Client Projects</h2>
+                    <h2 className="text-2xl font-semibold">No Projects Found</h2>
                     <p className="text-muted-foreground mt-2">
-                        Assign a client to a project to start a chat.
+                        Create a project to start a chat with clients and team members.
                     </p>
                 </div>
             )}
