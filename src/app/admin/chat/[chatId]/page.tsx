@@ -169,7 +169,7 @@ export default function AdminChatViewPage() {
                 )}
                 <div
                   className={cn(
-                    'flex items-start gap-3',
+                    'flex items-start gap-3 w-full',
                     isCurrentUser && 'flex-row-reverse'
                   )}
                 >
@@ -181,7 +181,7 @@ export default function AdminChatViewPage() {
                   </Avatar>
                   <div
                     className={cn(
-                      'max-w-xs md:max-w-md rounded-lg p-3',
+                      'w-full rounded-lg p-3',
                       isCurrentUser
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'

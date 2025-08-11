@@ -443,7 +443,7 @@ function ChatView({ chatId }: { chatId: string }) {
                                         <AvatarImage src={message.sender.avatarUrl} />
                                         <AvatarFallback>{message.sender.name.charAt(0)}</AvatarFallback>
                                     </Avatar>
-                                    <div className={cn("max-w-xs md:max-w-md rounded-lg p-3", isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                                    <div className={cn("w-full rounded-lg p-3", isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted")}>
                                         <p className="text-sm font-semibold mb-1">{message.sender.name}</p>
                                         <p className="whitespace-pre-wrap">{message.text}</p>
                                         <p className={cn("text-xs opacity-70 mt-1", isCurrentUser ? "text-right" : "text-left")}>{format(messageDate, 'p')}</p>
