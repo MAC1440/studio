@@ -85,10 +85,10 @@ export default function LandingPage() {
                   </Button>
                 </div>
               </div>
-              <div className="mx-auto flex items-center justify-center lg:order-last">
+              <div className="mx-auto flex items-center justify-center lg:order-last ">
                 <Image
                   alt="BoardR Light Logo"
-                  className="block dark:hidden"
+                  className="block dark:hidden rounded-xl shadow-lg"
                   height="200"
                   src={lightLogo.src}
                   width="550"
@@ -96,7 +96,7 @@ export default function LandingPage() {
                 />
                  <Image
                   alt="BoardR Dark Logo"
-                  className="hidden dark:block"
+                  className="hidden dark:block rounded-xl shadow-lg"
                   height="200"
                   src={darkLogo.src}
                   width="550"
@@ -123,7 +123,7 @@ export default function LandingPage() {
             </div>
             <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:max-w-none lg:grid-cols-3 mt-12">
               {features.map((feature, index) => (
-                <Card key={index}>
+                <Card key={index} className='h-full'>
                   <CardHeader className="flex flex-col items-start gap-4">
                     {feature.icon}
                     <CardTitle className="text-xl">{feature.title}</CardTitle>
