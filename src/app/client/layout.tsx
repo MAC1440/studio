@@ -8,7 +8,9 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthGuard role="client">
+    // This guard now allows ANY authenticated user to access the project view.
+    // The component itself will handle showing the correct data.
+    <AuthGuard>
       <div className="flex flex-col h-screen w-screen bg-background">
         <AppHeader />
         <main className="flex-1 overflow-hidden">

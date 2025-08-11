@@ -1,17 +1,18 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getProject } from '@/lib/firebase/projects';
 import { getTickets } from '@/lib/firebase/tickets';
 import { getProposals, updateProposal, addFeedbackToProposal } from '@/lib/firebase/proposals';
 import { getInvoices, updateInvoice, addFeedbackToInvoice } from '@/lib/firebase/invoices';
 import { getClientReports, createClientReport } from '@/lib/firebase/client-reports';
-import { type Project, type Ticket, type Proposal, type Invoice, type Comment, ProjectStatus, type ClientReport } from '@/lib/types';
+import { getOrCreateChatForProject, subscribeToMessages, sendMessage } from '@/lib/firebase/chat';
+import { type Project, type Ticket, type Proposal, type Invoice, type Comment, ProjectStatus, type ClientReport, type ChatMessage } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, BarChart, FileText, GanttChartSquare, MessageSquarePlus, CalendarIcon, Flag, DollarSign, CheckCircle, RefreshCw, ClipboardCheck } from 'lucide-react';
+import { ArrowLeft, FileText, GanttChartSquare, CalendarIcon, Flag, DollarSign, CheckCircle, RefreshCw, ClipboardCheck, MessageSquare, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -30,7 +31,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, isSameDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
@@ -371,6 +372,106 @@ function InvoiceDetailDialog({
 
 }
 
+function ChatView({ chatId }: { chatId: string }) {
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [isSending, setIsSending] = useState(false);
+    const { user, userData } = useAuth();
+    const { toast } = useToast();
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!chatId) return;
+
+        const unsubscribe = subscribeToMessages(chatId, (newMessages) => {
+            setMessages(newMessages);
+        });
+
+        return () => unsubscribe();
+    }, [chatId]);
+    
+    useEffect(() => {
+        if(scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight });
+        }
+    }, [messages]);
+
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newMessage.trim() || !user || !userData) return;
+
+        setIsSending(true);
+        try {
+            await sendMessage(chatId, { id: user.uid, name: userData.name, avatarUrl: userData.avatarUrl, role: userData.role }, newMessage);
+            setNewMessage('');
+        } catch (error) {
+            console.error("Failed to send message:", error);
+            toast({ title: 'Error', description: 'Could not send message.', variant: 'destructive' });
+        } finally {
+            setIsSending(false);
+        }
+    };
+    
+    let lastMessageDate: Date | null = null;
+
+    return (
+        <div className="flex flex-col h-full">
+            <h2 className="text-2xl font-bold mb-4">Project Chat</h2>
+            <ScrollArea className="flex-1 -mx-6 px-6" ref={scrollAreaRef}>
+                <div className="space-y-6 pb-4">
+                    {messages.map((message) => {
+                        if (!message.timestamp) return null;
+                        const messageDate = message.timestamp.toDate();
+                        const showDateSeparator = !lastMessageDate || !isSameDay(messageDate, lastMessageDate);
+                        lastMessageDate = messageDate;
+                        const isCurrentUser = message.sender.id === user?.uid;
+
+                        return (
+                            <div key={message.id}>
+                                {showDateSeparator && (
+                                     <div className="relative my-4">
+                                        <div className="absolute inset-0 flex items-center">
+                                            <span className="w-full border-t" />
+                                        </div>
+                                        <div className="relative flex justify-center text-xs uppercase">
+                                            <span className="bg-background px-2 text-muted-foreground">{format(messageDate, 'MMMM d, yyyy')}</span>
+                                        </div>
+                                    </div>
+                                )}
+                                <div className={cn("flex items-start gap-3", isCurrentUser && "flex-row-reverse")}>
+                                    <Avatar>
+                                        <AvatarImage src={message.sender.avatarUrl} />
+                                        <AvatarFallback>{message.sender.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className={cn("w-full rounded-lg p-3", isCurrentUser ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                                        <p className="text-sm font-semibold mb-1">{message.sender.name}</p>
+                                        <p className="whitespace-pre-wrap">{message.text}</p>
+                                        <p className={cn("text-xs opacity-70 mt-1", isCurrentUser ? "text-right" : "text-left")}>{format(messageDate, 'p')}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            </ScrollArea>
+            <form onSubmit={handleSendMessage} className="mt-4 flex gap-2 pt-4 border-t">
+                <Textarea
+                    placeholder="Type your message..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    disabled={isSending}
+                    className="flex-1"
+                    rows={1}
+                />
+                <Button type="submit" disabled={isSending || !newMessage.trim()}>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send
+                </Button>
+            </form>
+        </div>
+    )
+}
+
 
 export default function ClientProjectView({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
@@ -378,6 +479,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [reports, setReports] = useState<ClientReport[]>([]);
+  const [chatId, setChatId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeView, setActiveView] = useState('progress');
@@ -388,23 +490,25 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const { toast } = useToast();
   const searchParams = useSearchParams();
 
-  const fetchClientData = async (options: { openProposalId?: string, openInvoiceId?: string } = {}) => {
+  const fetchClientData = async (options: { openProposalId?: string, openInvoiceId?: string, openChat?: boolean } = {}) => {
       if (!user || !userData?.organizationId) return;
-      if (!options.openProposalId && !options.openInvoiceId) {
+      if (!options.openProposalId && !options.openInvoiceId && !options.openChat) {
         setIsLoading(true);
       }
       try {
-        const [projectData, ticketData, proposalData, invoiceData, reportData] = await Promise.all([
+        const [projectData, ticketData, proposalData, invoiceData, reportData, fetchedChatId] = await Promise.all([
           getProject(projectId),
           getTickets({ projectId, organizationId: userData.organizationId }),
           getProposals({ projectId, organizationId: userData.organizationId }),
           getInvoices({ projectId, organizationId: userData.organizationId }),
           getClientReports({ projectId, organizationId: userData.organizationId, clientId: user.uid }),
+          getOrCreateChatForProject(projectId, userData.organizationId),
         ]);
 
         setProject(projectData);
         setTickets(ticketData);
         setReports(reportData);
+        setChatId(fetchedChatId);
 
         const filteredProposals = proposalData
             .filter(p => p.clientId === user.uid && p.status !== 'draft')
@@ -430,6 +534,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                 setActiveView('invoices');
             }
         }
+        if (options.openChat) {
+            setActiveView('chat');
+        }
 
       } catch (error) {
         console.error("Failed to fetch project data:", error);
@@ -442,7 +549,8 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     if (userData?.organizationId && user) {
       const openProposalId = searchParams.get('open_proposal') || undefined;
       const openInvoiceId = searchParams.get('open_invoice') || undefined;
-      fetchClientData({ openProposalId, openInvoiceId });
+      const openChat = searchParams.get('open_chat') === 'true';
+      fetchClientData({ openProposalId, openInvoiceId, openChat });
     }
   }, [projectId, user, userData?.organizationId, searchParams]);
 
@@ -642,13 +750,15 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-4 p-4 md:px-6 border-b">
          <Button variant="outline" size="sm" asChild>
-            <Link href="/client">
+            <Link href={userData?.role === 'admin' ? '/admin/chat' : '/client'}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                All Projects
+                {userData?.role === 'admin' ? 'All Chats' : 'All Projects'}
             </Link>
         </Button>
         <h1 className="text-xl font-semibold text-foreground truncate">{project.name}</h1>
-        <Button size="sm" className="ml-auto" onClick={() => setIsReportDialogOpen(true)}>Submit Report</Button>
+        {userData?.role === 'client' && (
+            <Button size="sm" className="ml-auto" onClick={() => setIsReportDialogOpen(true)}>Submit Report</Button>
+        )}
       </div>
 
       <div className="flex flex-1 overflow-hidden">
@@ -662,6 +772,16 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
               >
                 <GanttChartSquare className="mr-2 h-4 w-4"/>
                 Progress
+              </Button>
+            </li>
+             <li>
+              <Button
+                 variant={activeView === 'chat' ? 'secondary' : 'ghost'}
+                className="w-full justify-start"
+                onClick={() => setActiveView('chat')}
+              >
+                <MessageSquare className="mr-2 h-4 w-4"/>
+                Chat
               </Button>
             </li>
             <li>
@@ -696,7 +816,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
             </li>
           </ul>
         </nav>
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 flex flex-col">
           {activeView === 'progress' && (
             <div>
               <Card className="mb-6">
@@ -780,6 +900,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
               </div>
             </div>
           )}
+           {activeView === 'chat' && chatId && (
+                <ChatView chatId={chatId} />
+            )}
            {activeView === 'reports' && (
               <div>
                 <h2 className="text-2xl font-bold mb-4">Your Submitted Reports</h2>
@@ -872,7 +995,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         </main>
       </div>
 
-        {project && isReportDialogOpen && (
+        {project && isReportDialogOpen && userData?.role === 'client' && (
           <SubmitReportDialog
             project={project}
             onClose={() => setIsReportDialogOpen(false)}
@@ -895,3 +1018,5 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     </Dialog>
   );
 }
+
+    

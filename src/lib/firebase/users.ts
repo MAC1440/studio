@@ -1,11 +1,9 @@
 
-import { auth, db, storage } from './config';
+import { auth, db } from './config';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, getAuth } from 'firebase/auth';
 import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { User } from '@/lib/types';
 import { initializeApp, getApps, deleteApp } from 'firebase/app';
-import { createOrganization } from './organizations';
 
 type CreateUserArgs = {
     email: string;
@@ -20,15 +18,15 @@ type CreateUserArgs = {
 // The user document and organization creation will be handled by the AuthContext
 // after the user has logged in for the first time.
 export async function createUser(args: CreateUserArgs): Promise<User> {
-    const isClientInvite = args.role === 'client';
+    const isInvite = args.role === 'client' || args.role === 'user';
     
     let password = args.password;
+    // For any invited user (client or internal), we auto-generate a password and send a reset link.
     if (!password) {
-        if(isClientInvite){
-             // Auto-generate a random password for clients, they will reset it anyway.
+        if(isInvite){
             password = Math.random().toString(36).slice(-8);
         } else {
-           throw new Error("Password is required to create a user.");
+           throw new Error("Password is required for self-signup.");
         }
     }
     
@@ -43,25 +41,20 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
         const userCredential = await createUserWithEmailAndPassword(secondaryAuth, args.email, password);
         const user = userCredential.user;
 
-        // If it's a client invitation, send a password reset email immediately.
-        if (isClientInvite) {
+        // If it's an invitation, send a password reset email immediately.
+        if (isInvite) {
             await sendPasswordResetEmail(auth, args.email);
         }
 
-        // We return a temporary User object. The full user data will be created in Firestore
-        // by the AuthContext once this new user logs in.
         const newUser: User = {
             id: user.uid,
             name: args.name,
             email: args.email,
             role: args.role,
-            // For new admin signups, organizationId is blank. AuthContext will create it.
-            // For invites, the orgId is passed in.
             organizationId: args.organizationId || '', 
         };
         
-        // This is a special case only for client and internal user invites, where we must pre-create the user document
-        // so they exist in the system before they log in for the first time.
+        // Pre-create the user document for all invited users so they exist in the system before first login.
         if (args.organizationId) {
              await setDoc(doc(db, "users", user.uid), newUser);
         }
@@ -111,3 +104,5 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, updates);
 }
+
+    

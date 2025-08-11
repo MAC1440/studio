@@ -3,7 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck } from 'lucide-react';
+import { User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck, MessageSquare } from 'lucide-react';
+import Image from 'next/image';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +54,7 @@ import { Separator } from '../ui/separator';
 import { useRouter, usePathname } from 'next/navigation';
 import { SidebarTrigger, useSidebar } from '../ui/sidebar';
 import { ThemeToggle } from './theme-toggle';
+import logo from '../../../public/logos/logo.png'
 
 function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[], projects: Project[], onTicketCreated: () => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -228,11 +230,15 @@ function NotificationBell() {
                 router.push(`/admin/proposals?open_proposal=${notification.proposalId}`);
             } else if (notification.invoiceId) {
                 router.push(`/admin/invoices?open_invoice=${notification.invoiceId}`);
+            } else if(notification.chatId) {
+                 router.push(`/admin/chat`); // Can be improved later to go to the specific chat
             } else if(notification.projectId) {
                 router.push(`/board/${notification.projectId}`);
             }
         } else if (userData?.role === 'client') {
-            if (notification.proposalId && notification.projectId) {
+             if (notification.chatId && notification.projectId) {
+                router.push(`/client/project/${notification.projectId}?open_chat=true`);
+            } else if (notification.proposalId && notification.projectId) {
                 router.push(`/client/project/${notification.projectId}?open_proposal=${notification.proposalId}`);
             } else if (notification.invoiceId && notification.projectId) {
                 router.push(`/client/project/${notification.projectId}?open_invoice=${notification.invoiceId}`);
@@ -246,6 +252,7 @@ function NotificationBell() {
     const unreadCount = notifications.filter(n => !n.read).length;
 
     const getIconForNotification = (n: Notification) => {
+        if(n.chatId) return <MessageSquare className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
         if(n.proposalId) return <FileText className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
         if(n.invoiceId) return <DollarSign className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
         if(n.reportId) return <ClipboardCheck className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
@@ -342,7 +349,7 @@ function HeaderContent() {
         <div className="flex items-center gap-2">
             {isAdminSection && <SidebarTrigger />}
             <Link href={getHomeLink()} className="flex items-center gap-2">
-              <LayoutGrid className="h-6 w-6 text-primary" />
+              <Image src={logo.src} alt="BoardR Logo" width={24} height={24} className="h-6 w-6" />
               <span className="text-lg font-bold tracking-tight">BoardR</span>
             </Link>
         </div>
@@ -398,7 +405,7 @@ function HeaderContent() {
             </>
           ) : (
             <Button asChild>
-              <Link href="/">
+              <Link href="/login">
                 <LogIn className="mr-2 h-4 w-4" />
                 Login
               </Link>

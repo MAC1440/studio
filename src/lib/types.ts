@@ -91,6 +91,25 @@ export type ClientReport = {
     updatedAt: Timestamp;
 }
 
+export type ChatMessage = {
+    id: string;
+    sender: Pick<User, 'id' | 'name' | 'avatarUrl' | 'role'>;
+    text: string;
+    timestamp: Timestamp;
+};
+
+export type Chat = {
+    id: string;
+    projectId: string;
+    organizationId: string;
+    userIds: string[];
+    lastMessage?: {
+        text: string;
+        timestamp: Timestamp;
+    }
+    createdAt: Timestamp;
+}
+
 
 export type Tag = {
   id: string;
@@ -146,6 +165,7 @@ export type Notification = {
     proposalId?: string; // Optional
     invoiceId?: string; // Optional
     reportId?: string; // Optional
+    chatId?: string; //Optional
     read: boolean;
     createdAt: Timestamp;
     expiresAt: Timestamp;

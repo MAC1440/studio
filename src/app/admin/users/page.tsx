@@ -46,7 +46,7 @@ import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createUser, getUsers, deleteUser, updateUserProfile } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users as UsersIcon, Trash2, Edit, Eye, EyeOff, PlusCircle, Search } from 'lucide-react';
+import { Users as UsersIcon, Trash2, Edit, PlusCircle, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const USERS_PER_PAGE = 10;
@@ -115,7 +115,6 @@ function EditUserDialog({ user, onUserUpdated, children }: { user: User | null, 
               <SelectContent>
                 <SelectItem value="user">User</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="client">Client</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -140,7 +139,6 @@ export default function UsersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const { user: currentUser, userData } = useAuth();
   
@@ -197,16 +195,15 @@ export default function UsersPage() {
     const formData = new FormData(form);
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
     const role = formData.get('role') as 'admin' | 'user';
 
-    if (name && email && password && role) {
+    if (name && email && role) {
       try {
-        await createUser({ name, email, password, role, organizationId: userData.organizationId });
+        await createUser({ name, email, role, organizationId: userData.organizationId });
         await fetchUsers();
         toast({
-          title: "User Created",
-          description: `${name} has been added to the system.`,
+          title: "User Invited",
+          description: `${name} has been sent an email to set up their password.`,
         });
         setIsCreateDialogOpen(false);
       } catch (error: any) {
@@ -276,12 +273,12 @@ export default function UsersPage() {
           <DialogTrigger asChild>
             <Button size="sm">
               <PlusCircle className="md:mr-2"/>
-              <span className="hidden md:inline">Create User</span>
+              <span className="hidden md:inline">Invite User</span>
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
+              <DialogTitle>Invite New User</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div className="space-y-2">
@@ -291,27 +288,6 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input id="email" name="email" type="email" required disabled={isSubmitting}/>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                    <Input 
-                    id="password" 
-                    name="password" 
-                    type={showPassword ? "text" : "password"} 
-                    required
-                    disabled={isSubmitting}/>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute inset-y-0 right-0 h-full px-3 text-muted-foreground"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={isSubmitting}
-                    >
-                        {showPassword ? <EyeOff /> : <Eye />}
-                    </Button>
-                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
@@ -325,11 +301,12 @@ export default function UsersPage() {
                   </SelectContent>
                 </Select>
               </div>
+               <p className="text-sm text-muted-foreground">An email will be sent to the user with a link to set their password.</p>
               <DialogFooter>
                 <DialogClose asChild>
                     <Button type="button" variant="outline" disabled={isSubmitting}>Cancel</Button>
                 </DialogClose>
-                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creating...' : 'Create User'}</Button>
+                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Sending Invite...' : 'Send Invite'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -500,3 +477,5 @@ export default function UsersPage() {
     </AlertDialog>
   );
 }
+
+    
