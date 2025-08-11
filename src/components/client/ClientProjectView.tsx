@@ -755,7 +755,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
             </Link>
         </Button>
         <h1 className="text-xl font-semibold text-foreground truncate">{project.name}</h1>
-        <Button size="sm" className="ml-auto" onClick={() => setIsReportDialogOpen(true)}>Submit Report</Button>
+        {userData?.role === 'client' && (
+            <Button size="sm" className="ml-auto" onClick={() => setIsReportDialogOpen(true)}>Submit Report</Button>
+        )}
       </div>
 
       <div className="flex flex-1 overflow-hidden">
@@ -992,7 +994,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         </main>
       </div>
 
-        {project && isReportDialogOpen && (
+        {project && isReportDialogOpen && userData?.role === 'client' && (
           <SubmitReportDialog
             project={project}
             onClose={() => setIsReportDialogOpen(false)}

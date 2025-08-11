@@ -8,7 +8,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthGuard role="client">
+    <AuthGuard>
       <div className="flex flex-col h-screen w-screen bg-background">
         <AppHeader />
         <main className="flex-1 overflow-hidden">
