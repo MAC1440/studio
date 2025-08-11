@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid, DollarSign, CreditCard, ClipboardCheck, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 export default function AdminLayout({
@@ -36,7 +37,7 @@ export default function AdminLayout({
                   <SidebarHeader className="border-b">
                     <div className="flex items-center justify-between">
                      <Link href="/admin" className="flex items-center gap-2 font-bold text-lg tracking-tight">
-                        <LayoutGrid className="h-6 w-6 text-primary" />
+                        <Image src="/logo.png" alt="BoardR Logo" width={24} height={24} className="h-6 w-6" />
                         <span className="group-data-[collapsible=icon]:hidden">BoardR</span>
                     </Link>
                     <SidebarTrigger className="hidden md:flex group-data-[collapsible=icon]:hidden" />
