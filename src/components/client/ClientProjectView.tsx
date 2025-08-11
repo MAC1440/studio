@@ -420,10 +420,11 @@ function ChatView({ chatId }: { chatId: string }) {
             <ScrollArea className="flex-1 -mx-6 px-6" ref={scrollAreaRef}>
                 <div className="space-y-6 pb-4">
                     {messages.map((message) => {
-                         const messageDate = message.timestamp.toDate();
-                         const showDateSeparator = !lastMessageDate || !isSameDay(messageDate, lastMessageDate);
-                         lastMessageDate = messageDate;
-                         const isCurrentUser = message.sender.id === user?.uid;
+                        if (!message.timestamp) return null; // FIX: Handle pending messages
+                        const messageDate = message.timestamp.toDate();
+                        const showDateSeparator = !lastMessageDate || !isSameDay(messageDate, lastMessageDate);
+                        lastMessageDate = messageDate;
+                        const isCurrentUser = message.sender.id === user?.uid;
 
                         return (
                             <div key={message.id}>
