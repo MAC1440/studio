@@ -60,9 +60,8 @@ export default function AdminChatPage() {
             ) : projects.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {projects.map((project) => (
-                    // In a future version, this link could go to a dedicated admin chat view.
-                    // For now, it links to the project board where chat could be integrated.
-                    <Link href={`/board/${project.id}`} key={project.id} className="block hover:scale-[1.02] transition-transform duration-200">
+                    // This now correctly links to the client project view with the chat open
+                    <Link href={`/client/project/${project.id}?open_chat=true`} key={project.id} className="block hover:scale-[1.02] transition-transform duration-200">
                     <Card className="h-full flex flex-col">
                         <CardHeader>
                         <CardTitle className="flex items-center gap-2">

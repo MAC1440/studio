@@ -489,9 +489,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const { toast } = useToast();
   const searchParams = useSearchParams();
 
-  const fetchClientData = async (options: { openProposalId?: string, openInvoiceId?: string } = {}) => {
+  const fetchClientData = async (options: { openProposalId?: string, openInvoiceId?: string, openChat?: boolean } = {}) => {
       if (!user || !userData?.organizationId) return;
-      if (!options.openProposalId && !options.openInvoiceId) {
+      if (!options.openProposalId && !options.openInvoiceId && !options.openChat) {
         setIsLoading(true);
       }
       try {
@@ -533,6 +533,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                 setActiveView('invoices');
             }
         }
+        if (options.openChat) {
+            setActiveView('chat');
+        }
 
       } catch (error) {
         console.error("Failed to fetch project data:", error);
@@ -545,7 +548,8 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     if (userData?.organizationId && user) {
       const openProposalId = searchParams.get('open_proposal') || undefined;
       const openInvoiceId = searchParams.get('open_invoice') || undefined;
-      fetchClientData({ openProposalId, openInvoiceId });
+      const openChat = searchParams.get('open_chat') === 'true';
+      fetchClientData({ openProposalId, openInvoiceId, openChat });
     }
   }, [projectId, user, userData?.organizationId, searchParams]);
 
@@ -745,9 +749,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-4 p-4 md:px-6 border-b">
          <Button variant="outline" size="sm" asChild>
-            <Link href="/client">
+            <Link href={userData?.role === 'admin' ? '/admin/chat' : '/client'}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                All Projects
+                {userData?.role === 'admin' ? 'All Chats' : 'All Projects'}
             </Link>
         </Button>
         <h1 className="text-xl font-semibold text-foreground truncate">{project.name}</h1>
