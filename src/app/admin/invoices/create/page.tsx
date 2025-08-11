@@ -22,6 +22,40 @@ import { type Project, type User, type InvoiceItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function CreateInvoiceSkeleton() {
+    return (
+        <div>
+            <div className="flex items-center gap-4 mb-6">
+                <Skeleton className="h-10 w-10" />
+                <div>
+                    <Skeleton className="h-7 w-48" />
+                    <Skeleton className="h-4 w-64 mt-1" />
+                </div>
+            </div>
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-4 w-72 mt-1" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-32 w-full" />
+                </CardContent>
+                <CardFooter className="flex justify-end gap-2">
+                    <Skeleton className="h-10 w-28" />
+                    <Skeleton className="h-10 w-48" />
+                </CardFooter>
+            </Card>
+        </div>
+    )
+}
+
 
 export default function CreateInvoicePage() {
   const router = useRouter();
@@ -140,7 +174,7 @@ export default function CreateInvoicePage() {
   }
 
   if (isLoading) {
-    return <div>Loading...</div>; // TODO: Add Skeleton
+    return <CreateInvoiceSkeleton />;
   }
 
   if (!client) {
@@ -296,3 +330,5 @@ export default function CreateInvoicePage() {
     </div>
   );
 }
+
+    

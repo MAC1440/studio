@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from "react";
@@ -35,7 +36,7 @@ export default function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          "prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl p-3 focus:outline-none flex-1 w-full",
+          "prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl p-3 focus:outline-none flex-1 w-full bg-transparent",
       },
     },
   });
@@ -46,7 +47,7 @@ export default function RichTextEditor({
         editor.setEditable(editable);
       }
       if (content !== editor.getHTML()) {
-        editor.commands.setContent(content);
+        editor.commands.setContent(content, false); // `false` prevents re-triggering the onUpdate callback
       }
     }
   }, [content, editable, editor]);
@@ -56,7 +57,7 @@ export default function RichTextEditor({
   }
 
   return (
-    <div className="relative flex-1 flex flex-col border border-input rounded-md overflow-y-auto">
+    <div className="relative flex-1 flex flex-col border border-input rounded-md overflow-y-auto bg-background">
       {editable && (
         <FloatingMenu
           editor={editor}
@@ -142,3 +143,5 @@ export default function RichTextEditor({
     </div>
   );
 }
+
+    
