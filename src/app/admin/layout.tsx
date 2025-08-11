@@ -14,7 +14,7 @@ import {
   SidebarHeader,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid, DollarSign, CreditCard, ClipboardCheck } from "lucide-react";
+import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid, DollarSign, CreditCard, ClipboardCheck, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -56,6 +56,14 @@ export default function AdminLayout({
                         <Link href="/admin/reports">
                           <ClipboardCheck />
                           Client Reports
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/chat')}>
+                        <Link href="/admin/chat">
+                          <MessageSquare />
+                          Client Chat
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

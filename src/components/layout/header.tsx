@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck } from 'lucide-react';
+import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck, MessageSquare } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -228,11 +228,15 @@ function NotificationBell() {
                 router.push(`/admin/proposals?open_proposal=${notification.proposalId}`);
             } else if (notification.invoiceId) {
                 router.push(`/admin/invoices?open_invoice=${notification.invoiceId}`);
+            } else if(notification.chatId) {
+                 router.push(`/admin/chat`); // Can be improved later to go to the specific chat
             } else if(notification.projectId) {
                 router.push(`/board/${notification.projectId}`);
             }
         } else if (userData?.role === 'client') {
-            if (notification.proposalId && notification.projectId) {
+             if (notification.chatId && notification.projectId) {
+                router.push(`/client/project/${notification.projectId}?open_chat=true`);
+            } else if (notification.proposalId && notification.projectId) {
                 router.push(`/client/project/${notification.projectId}?open_proposal=${notification.proposalId}`);
             } else if (notification.invoiceId && notification.projectId) {
                 router.push(`/client/project/${notification.projectId}?open_invoice=${notification.invoiceId}`);
@@ -246,6 +250,7 @@ function NotificationBell() {
     const unreadCount = notifications.filter(n => !n.read).length;
 
     const getIconForNotification = (n: Notification) => {
+        if(n.chatId) return <MessageSquare className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
         if(n.proposalId) return <FileText className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
         if(n.invoiceId) return <DollarSign className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
         if(n.reportId) return <ClipboardCheck className={cn("h-5 w-5", !n.read ? "text-primary" : "text-muted-foreground")} />;
