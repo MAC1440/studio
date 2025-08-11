@@ -3,7 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutGrid, User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck, MessageSquare } from 'lucide-react';
+import { User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck, MessageSquare } from 'lucide-react';
+import Image from 'next/image';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +54,7 @@ import { Separator } from '../ui/separator';
 import { useRouter, usePathname } from 'next/navigation';
 import { SidebarTrigger, useSidebar } from '../ui/sidebar';
 import { ThemeToggle } from './theme-toggle';
+import logo from '../../../public/logos/logo.png'
 
 function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[], projects: Project[], onTicketCreated: () => void }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -347,7 +349,7 @@ function HeaderContent() {
         <div className="flex items-center gap-2">
             {isAdminSection && <SidebarTrigger />}
             <Link href={getHomeLink()} className="flex items-center gap-2">
-              <LayoutGrid className="h-6 w-6 text-primary" />
+              <Image src={logo.src} alt="BoardR Logo" width={24} height={24} className="h-6 w-6" />
               <span className="text-lg font-bold tracking-tight">BoardR</span>
             </Link>
         </div>

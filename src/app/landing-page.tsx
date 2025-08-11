@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LayoutGrid, GanttChartSquare, FileText, DollarSign, MessageSquare, Users } from 'lucide-react';
 import Image from 'next/image';
+import logo from '../../public/logos/logo.png'
+import darkLogo from '../../public/logos/brand-dark.png'
+import lightLogo from '../../public/logos/brand_light.png'
 
 const features = [
   {
@@ -45,10 +48,11 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <header className="px-4 lg:px-6 h-16 flex items-center border-b">
         <Link href="/" className="flex items-center justify-center">
-          <LayoutGrid className="h-6 w-6 text-primary" />
+        <Image src={logo.src} alt="BoardR Logo" width={40} height={40} />
+          {/* <LayoutGrid className="h-6 w-6 text-primary" /> */}
           <span className="ml-2 text-lg font-bold">BoardR</span>
         </Link>
-        <nav className="ml-auto flex gap-4 sm:gap-6">
+        <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link
             href="#features"
             className="text-sm font-medium hover:underline underline-offset-4"
@@ -86,7 +90,7 @@ export default function LandingPage() {
                   alt="BoardR Light Logo"
                   className="block dark:hidden"
                   height="200"
-                  src="/logos/logo-light.svg"
+                  src={lightLogo.src}
                   width="550"
                   priority
                 />
@@ -94,7 +98,7 @@ export default function LandingPage() {
                   alt="BoardR Dark Logo"
                   className="hidden dark:block"
                   height="200"
-                  src="/logos/logo-dark.svg"
+                  src={darkLogo.src}
                   width="550"
                   priority
                 />

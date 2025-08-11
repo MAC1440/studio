@@ -18,6 +18,7 @@ import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid, Dol
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import logo from '../../../public/logos/logo.png';
 
 export default function AdminLayout({
   children,
@@ -37,7 +38,7 @@ export default function AdminLayout({
                   <SidebarHeader className="border-b">
                     <div className="flex items-center justify-between">
                      <Link href="/admin" className="flex items-center gap-2 font-bold text-lg tracking-tight">
-                        <Image src="/logo.png" alt="BoardR Logo" width={24} height={24} className="h-6 w-6" />
+                        <Image src={logo.src} alt="BoardR Logo" width={24} height={24} className="h-6 w-6" />
                         <span className="group-data-[collapsible=icon]:hidden">BoardR</span>
                     </Link>
                     <SidebarTrigger className="hidden md:flex group-data-[collapsible=icon]:hidden" />
