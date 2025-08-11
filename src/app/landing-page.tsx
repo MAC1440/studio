@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LayoutGrid, GanttChartSquare, FileText, DollarSign, MessageSquare, Users } from 'lucide-react';
+import Image from 'next/image';
 
 const features = [
   {
@@ -80,14 +81,24 @@ export default function LandingPage() {
                   </Button>
                 </div>
               </div>
-              <img
-                alt="Hero"
-                className="mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last lg:aspect-square"
-                data-ai-hint="kanban board abstract"
-                height="550"
-                src="https://placehold.co/550x550.png"
-                width="550"
-              />
+              <div className="mx-auto flex items-center justify-center lg:order-last">
+                <Image
+                  alt="BoardR Light Logo"
+                  className="block dark:hidden"
+                  height="200"
+                  src="/logos/logo-light.svg"
+                  width="550"
+                  priority
+                />
+                 <Image
+                  alt="BoardR Dark Logo"
+                  className="hidden dark:block"
+                  height="200"
+                  src="/logos/logo-dark.svg"
+                  width="550"
+                  priority
+                />
+              </div>
             </div>
           </div>
         </section>
