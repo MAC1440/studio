@@ -420,7 +420,7 @@ function ChatView({ chatId }: { chatId: string }) {
             <ScrollArea className="flex-1 -mx-6 px-6" ref={scrollAreaRef}>
                 <div className="space-y-6 pb-4">
                     {messages.map((message) => {
-                        if (!message.timestamp) return null; // FIX: Handle pending messages
+                        if (!message.timestamp) return null;
                         const messageDate = message.timestamp.toDate();
                         const showDateSeparator = !lastMessageDate || !isSameDay(messageDate, lastMessageDate);
                         lastMessageDate = messageDate;
@@ -1018,3 +1018,5 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     </Dialog>
   );
 }
+
+    

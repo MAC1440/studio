@@ -62,6 +62,9 @@ function AuthForm() {
               case 'auth/wrong-password':
                   friendlyMessage = 'Invalid email or password. Please try again.';
                   break;
+              case 'auth/user-not-found':
+                   friendlyMessage = 'No account found with this email. Please sign up.';
+                   break;
               case 'auth/email-already-in-use':
                   friendlyMessage = 'This email address is already in use. Please log in or use a different email.';
                   break;
@@ -245,3 +248,5 @@ export default function Home() {
     </div>
     );
 }
+
+    
