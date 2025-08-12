@@ -9,10 +9,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { LayoutGrid, Eye, EyeOff } from 'lucide-react';
-import Link from 'next/link';
+import { Eye, EyeOff } from 'lucide-react';
 import { forgotPassword, createUser } from '@/lib/firebase/users';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import darkLogo from '../../../public/logos/brand-dark.png';
+import lightLogo from '../../../public/logos/brand_light.png';
 
 function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
@@ -275,36 +277,29 @@ function AuthPage() {
         <AuthForm />
       </div>
       <div className="hidden bg-muted lg:flex items-center justify-center p-8">
-        <svg
-          className="w-full h-full"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 800 800"
-        >
-          <defs>
-            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="rgba(103, 58, 183, 0.1)" />
-              <stop offset="100%" stopColor="rgba(103, 58, 183, 0)" />
-            </linearGradient>
-            <linearGradient id="grad2" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="rgba(103, 58, 183, 0.15)" />
-              <stop offset="100%" stopColor="rgba(103, 58, 183, 0)" />
-            </linearGradient>
-          </defs>
-          <rect width="800" height="800" fill="hsl(var(--muted))" />
-          <path
-            d="M0 0 H400 V400 H0 Z"
-            transform="translate(200 200) rotate(45)"
-            fill="url(#grad1)"
-          />
-          <path
-            d="M800 800 H400 V400 H800 Z"
-            transform="translate(-200 -200) rotate(45)"
-            fill="url(#grad2)"
-          />
-        </svg>
+        <div className="w-full max-w-md">
+            <Image
+                alt="BoardR Light Logo"
+                className="block dark:hidden rounded-xl"
+                src={lightLogo.src}
+                width="550"
+                height="200"
+                priority
+            />
+            <Image
+                alt="BoardR Dark Logo"
+                className="hidden dark:block rounded-xl"
+                src={darkLogo.src}
+                width="550"
+                height="200"
+                priority
+            />
+        </div>
       </div>
     </div>
   );
 }
 
 export default AuthPage;
+
+    
