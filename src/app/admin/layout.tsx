@@ -24,6 +24,7 @@ import { useState, useEffect } from "react";
 import { type Organization } from "@/lib/types";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { Button } from "@/components/ui/button";
 
 export default function AdminLayout({
   children,
