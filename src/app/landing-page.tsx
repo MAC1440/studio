@@ -193,8 +193,8 @@ export default function LandingPage() {
   const [isAnnual, setIsAnnual] = useState(false);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background/95 backdrop-blur-sm z-50">
+    <div className="flex flex-col min-h-screen bg-background text-foreground items-center">
+      <header className="w-full px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background/95 backdrop-blur-sm z-50">
         <Link href="/" className="flex items-center justify-center">
           <Image src={logo.src} alt="BoardR Logo" width={32} height={32} />
           <span className="ml-2 text-xl font-bold">BoardR</span>
@@ -233,12 +233,12 @@ export default function LandingPage() {
                 <Button asChild size="lg">
                   <Link href="/login">Get Started Free</Link>
                 </Button>
-                <Button asChild size="lg" variant="outline">
+                {/* <Button asChild size="lg" variant="outline">
                   <Link href="#features">
                     <PlayCircle className="mr-2 h-5 w-5" />
                     Watch Demo
                   </Link>
-                </Button>
+                </Button> */}
               </div>
             </div>
             <div className="mt-12 lg:mt-16 w-full max-w-6xl mx-auto">
@@ -506,8 +506,8 @@ export default function LandingPage() {
                     </p>
                 </div>
                 <div className="grid md:grid-cols-3 gap-8 md:gap-12 mt-12 items-start">
-                    <div className="flex flex-col items-center text-center gap-4 h-full">
-                        <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">1</div>
+                    <div className="flex flex-col items-center justify-between text-center gap-4 h-full">
+                        <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold border border-primary shadow-lg">1</div>
                         <h3 className="text-xl font-bold">Create Projects</h3>
                         <p className="text-muted-foreground">Set up your projects, define tasks, and assign team members.</p>
                         <div className="rounded-lg shadow-md border w-full p-4 pointer-events-none">
@@ -516,8 +516,8 @@ export default function LandingPage() {
                              <Button size="sm" className="w-full mt-2 text-xs">Create Project</Button>
                         </div>
                     </div>
-                     <div className="flex flex-col items-center text-center gap-4 h-full">
-                        <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">2</div>
+                     <div className="flex flex-col items-center  justify-between text-center gap-4 h-full">
+                        <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold border border-primary shadow-lg">2</div>
                         <h3 className="text-xl font-bold">Collaborate with Clients</h3>
                         <p className="text-muted-foreground">Invite clients to their dedicated portal to review progress and communicate.</p>
                         <div className="rounded-lg shadow-md border w-full p-4 pointer-events-none">
@@ -526,10 +526,10 @@ export default function LandingPage() {
                             <Button size="sm" className="w-full mt-2 text-xs">Invite Client</Button>
                         </div>
                     </div>
-                     <div className="flex flex-col items-center text-center gap-4 h-full">
-                        <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">3</div>
+                     <div className="flex flex-col items-center justify-between text-center gap-4 h-full">
+                        <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold border border-primary shadow-lg">3</div>
                         <h3 className="text-xl font-bold">Get Paid</h3>
-                        <p className="text-muted-foreground">Send professional invoices directly from the app and keep track of payments.</p>
+                        <p className="text-muted-foreground">Send invoices directly from the app and keep track of payments.</p>
                         <div className="rounded-lg shadow-md border w-full p-4 pointer-events-none">
                             <Label className="text-xs">Invoice Total</Label>
                             <Input value="$1,500.00" disabled />
