@@ -1,12 +1,14 @@
 
 import type { Timestamp } from 'firebase/firestore';
 
+export type OrganizationPlan = 'free' | 'startup' | 'pro';
+
 export type Organization = {
   id: string;
   name: string;
   ownerId: string;
   createdAt: Timestamp;
-  subscriptionPlan: 'free' | 'startup' | 'pro';
+  subscriptionPlan: OrganizationPlan;
   stripeCustomerId?: string;
 };
 

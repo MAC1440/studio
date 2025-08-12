@@ -11,14 +11,15 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, Star, Briefcase } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { updateOrganizationPlan } from '@/lib/firebase/organizations';
 import { useToast } from '@/hooks/use-toast';
+import { generateCheckoutLink } from '@/lib/payments';
 
 export default function BillingPage() {
-    const { userData } = useAuth();
+    const { user, userData } = useAuth();
     const [organization, setOrganization] = useState<Organization | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isRedirecting, setIsRedirecting] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -36,22 +37,37 @@ export default function BillingPage() {
         }
     }, [userData?.organizationId]);
 
-    const handlePlanChange = async (newPlanId: 'free' | 'startup' | 'pro') => {
-        if (!userData?.organizationId || newPlanId === organization?.subscriptionPlan) return;
+    const handlePlanChange = async (newPlanId: 'startup' | 'pro') => {
+        if (!user || !userData?.organizationId || newPlanId === organization?.subscriptionPlan) return;
         
         setIsSubmitting(true);
+        setIsRedirecting(true);
+        
         try {
-            await updateOrganizationPlan(userData.organizationId, newPlanId);
-            setOrganization(prev => prev ? { ...prev, subscriptionPlan: newPlanId } : null);
-            toast({
-                title: "Plan Updated",
-                description: `You have successfully switched to the ${newPlanId.charAt(0).toUpperCase() + newPlanId.slice(1)} plan.`
-            })
+            const checkoutUrl = await generateCheckoutLink({
+                planId: newPlanId,
+                userId: user.uid,
+                email: user.email!,
+                organizationId: userData.organizationId,
+            });
+
+            if (checkoutUrl) {
+                // Redirect user to the payment provider's checkout page
+                window.location.href = checkoutUrl;
+            } else {
+                 toast({
+                    title: "Setup Incomplete",
+                    description: "Payment gateways are not configured yet. Please contact support.",
+                    variant: "destructive"
+                });
+                setIsSubmitting(false);
+                setIsRedirecting(false);
+            }
         } catch (error) {
-            console.error("Failed to update plan:", error);
-            toast({ title: "Error", description: "Could not update your subscription plan.", variant: "destructive"});
-        } finally {
+            console.error("Failed to generate checkout link:", error);
+            toast({ title: "Error", description: "Could not initiate plan change. Please try again.", variant: "destructive"});
             setIsSubmitting(false);
+            setIsRedirecting(false);
         }
     }
 
@@ -129,10 +145,10 @@ export default function BillingPage() {
                                 <Button 
                                     className="w-full" 
                                     variant={plan.id !== 'free' ? 'default' : 'outline'}
-                                    onClick={() => handlePlanChange(plan.id)}
-                                    disabled={isSubmitting}
+                                    onClick={() => handlePlanChange(plan.id as 'startup' | 'pro')}
+                                    disabled={isSubmitting || plan.id === 'free'}
                                 >
-                                    {isSubmitting ? 'Updating...' : 'Switch Plan'}
+                                    {isRedirecting && plan.id !== 'free' ? 'Redirecting...' : 'Switch Plan'}
                                 </Button>
                             )}
                         </CardFooter>
