@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, CheckCircle, Flame, ChevronUp, Equal } from 'lucide-react';
+import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, Flame, ChevronUp, Equal, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
 import logo from '../../public/logos/logo.png';
 import darkLogo from '../../public/logos/brand-dark.png';
@@ -506,7 +506,7 @@ export default function LandingPage() {
                     </p>
                 </div>
                 <div className="grid md:grid-cols-3 gap-8 md:gap-12 mt-12 items-start">
-                    <div className="flex flex-col items-center text-center gap-4">
+                    <div className="flex flex-col items-center text-center gap-4 h-full">
                         <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">1</div>
                         <h3 className="text-xl font-bold">Create Projects</h3>
                         <p className="text-muted-foreground">Set up your projects, define tasks, and assign team members.</p>
@@ -516,7 +516,7 @@ export default function LandingPage() {
                              <Button size="sm" className="w-full mt-2 text-xs">Create Project</Button>
                         </div>
                     </div>
-                     <div className="flex flex-col items-center text-center gap-4">
+                     <div className="flex flex-col items-center text-center gap-4 h-full">
                         <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">2</div>
                         <h3 className="text-xl font-bold">Collaborate with Clients</h3>
                         <p className="text-muted-foreground">Invite clients to their dedicated portal to review progress and communicate.</p>
@@ -526,7 +526,7 @@ export default function LandingPage() {
                             <Button size="sm" className="w-full mt-2 text-xs">Invite Client</Button>
                         </div>
                     </div>
-                     <div className="flex flex-col items-center text-center gap-4">
+                     <div className="flex flex-col items-center text-center gap-4 h-full">
                         <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">3</div>
                         <h3 className="text-xl font-bold">Get Paid</h3>
                         <p className="text-muted-foreground">Send professional invoices directly from the app and keep track of payments.</p>
