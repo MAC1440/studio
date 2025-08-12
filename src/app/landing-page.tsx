@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, CheckCircle } from 'lucide-react';
+import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, CheckCircle, Flame, ChevronUp, Equal } from 'lucide-react';
 import Image from 'next/image';
 import logo from '../../public/logos/logo.png';
 import darkLogo from '../../public/logos/brand-dark.png';
@@ -13,51 +13,153 @@ import placeholderLogo from '../../public/logos/placeholder-logo.svg';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+
+const MockKanbanTicket = ({ title, priority, assignedTo, tag }: { title: string, priority: 'critical' | 'medium' | 'low', assignedTo: string, tag: string }) => {
+    const priorityIcons = {
+        critical: <Flame className="h-4 w-4 text-red-500" />,
+        medium: <ChevronUp className="h-4 w-4 text-yellow-500" />,
+        low: <Equal className="h-4 w-4 text-green-500" />,
+    }
+
+    return (
+        <Card className="p-2 shadow-sm">
+            <p className="text-xs font-semibold mb-2">{title}</p>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                    {priorityIcons[priority]}
+                    <Badge variant="secondary" className="text-xs">{tag}</Badge>
+                </div>
+                <Avatar className="h-5 w-5">
+                    <AvatarFallback>{assignedTo.charAt(0)}</AvatarFallback>
+                </Avatar>
+            </div>
+        </Card>
+    )
+}
 
 const features = [
   {
     icon: <GanttChartSquare className="h-8 w-8 text-primary" />,
     title: 'Visualize Your Workflow',
     description: 'Track deadlines effortlessly with our intuitive Kanban boards. Drag, drop, and see your project progress in real-time.',
-    screenshot: 'https://placehold.co/500x300.png',
-    hint: 'kanban board'
+    component: (
+        <div className="w-full bg-muted/50 p-4 rounded-lg border overflow-hidden pointer-events-none">
+            <div className="flex gap-4">
+                <div className="flex-1 space-y-2">
+                    <p className="text-sm font-bold">To Do</p>
+                    <MockKanbanTicket title="Design landing page mockups" priority="critical" assignedTo="S" tag="Design" />
+                    <MockKanbanTicket title="Develop user auth flow" priority="medium" assignedTo="J" tag="Dev" />
+                </div>
+                <div className="flex-1 space-y-2">
+                    <p className="text-sm font-bold">In Progress</p>
+                    <MockKanbanTicket title="Create database schema" priority="medium" assignedTo="M" tag="Backend" />
+                </div>
+            </div>
+        </div>
+    )
   },
   {
     icon: <Users className="h-8 w-8 text-primary" />,
     title: 'Seamless Client Portal',
     description: 'Give clients a dedicated space to track progress, review proposals, and pay invoices. No more endless email chains.',
-    screenshot: 'https://placehold.co/500x300.png',
-    hint: 'client dashboard'
+    component: (
+        <div className="w-full bg-muted/50 p-4 rounded-lg border overflow-hidden pointer-events-none">
+            <Card>
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Project Phoenix</CardTitle>
+                    <CardDescription className="text-xs">Client View</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Label className="text-xs">Progress</Label>
+                    <Progress value={75} className="h-2 my-1"/>
+                    <p className="text-xs text-muted-foreground">3 of 4 tasks complete.</p>
+                     <Button size="sm" variant="outline" className="w-full mt-4 text-xs">View Details</Button>
+                </CardContent>
+            </Card>
+        </div>
+    )
   },
   {
     icon: <DollarSign className="h-8 w-8 text-primary" />,
     title: 'Effortless Invoicing',
     description: 'Generate professional invoices from your project data in seconds. Get paid faster and keep your finances organized.',
-    screenshot: 'https://placehold.co/500x300.png',
-    hint: 'invoice generator'
+    component: (
+        <div className="w-full bg-muted/50 p-4 rounded-lg border overflow-hidden pointer-events-none">
+            <Card className="shadow-md">
+                <CardHeader>
+                     <CardTitle className="text-base">Invoice #INV-007</CardTitle>
+                     <p className="text-xs text-muted-foreground">Due: Dec 31, 2024</p>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-between items-center">
+                        <p className="text-sm">Q4 Services</p>
+                        <p className="font-bold text-sm">$4,200.00</p>
+                    </div>
+                     <Badge className="mt-4" variant="default">Paid</Badge>
+                </CardContent>
+            </Card>
+        </div>
+    )
   },
   {
     icon: <MessageSquare className="h-8 w-8 text-primary" />,
     title: 'Real-Time Chat',
     description: 'Keep all project communication in one place. Chat directly with clients and team members on a per-project basis.',
-    screenshot: 'https://placehold.co/500x300.png',
-    hint: 'chat interface'
+    component: (
+        <div className="w-full bg-muted/50 p-4 rounded-lg border overflow-hidden pointer-events-none">
+            <div className="space-y-3">
+                <div className="flex items-start gap-2">
+                     <Avatar className="h-6 w-6"><AvatarFallback>M</AvatarFallback></Avatar>
+                     <div className="bg-background p-2 rounded-lg text-xs">Great work on the latest mockups!</div>
+                </div>
+                 <div className="flex items-start gap-2 flex-row-reverse">
+                     <Avatar className="h-6 w-6"><AvatarFallback>C</AvatarFallback></Avatar>
+                     <div className="bg-primary text-primary-foreground p-2 rounded-lg text-xs">Thanks! Glad you like them. Any feedback?</div>
+                </div>
+            </div>
+        </div>
+    )
   },
   {
     icon: <FileText className="h-8 w-8 text-primary" />,
     title: 'Proposal Builder',
     description: 'Create, send, and manage beautiful proposals. Get client feedback and approval directly within the app.',
-    screenshot: 'https://placehold.co/500x300.png',
-    hint: 'proposal editor'
+    component: (
+         <div className="w-full bg-muted/50 p-4 rounded-lg border overflow-hidden pointer-events-none">
+             <Card>
+                 <CardHeader>
+                    <CardTitle className="text-base">Website Redesign Proposal</CardTitle>
+                    <div className="flex items-center gap-2 pt-1">
+                        <Badge variant="destructive">Changes Requested</Badge>
+                        <span className="text-xs text-muted-foreground">v2</span>
+                    </div>
+                 </CardHeader>
+                 <CardContent>
+                      <Button size="sm" className="w-full text-xs">Review & Edit</Button>
+                 </CardContent>
+             </Card>
+        </div>
+    )
   },
   {
     icon: <AreaChart className="h-8 w-8 text-primary" />,
     title: 'Reports & Analytics',
     description: 'Gain insights into your project performance and team productivity with easy-to-understand reports.',
-    screenshot: 'https://placehold.co/500x300.png',
-    hint: 'analytics dashboard charts'
+    component: (
+        <div className="w-full bg-muted/50 p-4 rounded-lg border overflow-hidden pointer-events-none">
+            <h3 className="text-sm font-bold mb-2">Monthly Earnings</h3>
+            <div className="flex items-end gap-2 h-24">
+                <div className="w-1/4 h-[50%] bg-primary/20 rounded-t-sm"></div>
+                <div className="w-1/4 h-[70%] bg-primary/40 rounded-t-sm"></div>
+                <div className="w-1/4 h-[60%] bg-primary/60 rounded-t-sm"></div>
+                <div className="w-1/4 h-[90%] bg-primary/80 rounded-t-sm"></div>
+            </div>
+        </div>
+    )
   },
 ];
 
@@ -140,16 +242,44 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="mt-12 lg:mt-16 w-full max-w-6xl mx-auto">
-              <div className="relative rounded-lg shadow-2xl overflow-hidden border">
-                 <Image
-                    src="https://placehold.co/1200x800.png"
-                    alt="BoardR Dashboard and Kanban Board"
-                    width={1200}
-                    height={800}
-                    className="w-full h-auto"
-                    data-ai-hint="dashboard kanban"
-                    priority
-                  />
+              <div className="relative rounded-lg shadow-2xl overflow-hidden border pointer-events-none">
+                 <div className="w-full bg-muted/30 p-4 rounded-lg border overflow-hidden">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <Card className="lg:col-span-1">
+                            <CardHeader>
+                                <CardTitle className="text-base">Project Health</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <Label className="text-xs">Alpha Site Launch</Label>
+                                    <Progress value={80} className="h-2 my-1" />
+                                </div>
+                                <div>
+                                    <Label className="text-xs">Mobile App Beta</Label>
+                                    <Progress value={45} className="h-2 my-1" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <div className="lg:col-span-2 space-y-2">
+                             <div className="flex gap-4">
+                                <div className="flex-1 space-y-2">
+                                    <p className="text-sm font-bold">To Do</p>
+                                    <MockKanbanTicket title="Design landing page mockups" priority="critical" assignedTo="S" tag="Design" />
+                                    <MockKanbanTicket title="Develop user auth flow" priority="medium" assignedTo="J" tag="Dev" />
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                    <p className="text-sm font-bold">In Progress</p>
+                                    <MockKanbanTicket title="Create database schema" priority="medium" assignedTo="M" tag="Backend" />
+                                    <MockKanbanTicket title="API endpoint for tickets" priority="medium" assignedTo="M" tag="Backend" />
+                                </div>
+                                 <div className="flex-1 space-y-2">
+                                    <p className="text-sm font-bold">Done</p>
+                                    <MockKanbanTicket title="Setup project repository" priority="low" assignedTo="J" tag="DevOps" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
               </div>
             </div>
           </div>
@@ -189,15 +319,25 @@ export default function LandingPage() {
                             </li>
                         </ul>
                      </div>
-                     <div className="relative">
-                         <Image
-                            src="https://placehold.co/600x400.png"
-                            width={600}
-                            height={400}
-                            alt="Visual of BoardR solving problems"
-                            className="rounded-xl shadow-lg"
-                            data-ai-hint="chat invoice progress"
-                        />
+                     <div className="relative pointer-events-none">
+                         <div className="w-full bg-background p-4 rounded-xl shadow-lg border overflow-hidden">
+                            <div className="space-y-3">
+                                <div className="flex items-start gap-2">
+                                    <Avatar className="h-6 w-6"><AvatarFallback>M</AvatarFallback></Avatar>
+                                    <div className="bg-muted p-2 rounded-lg text-xs">Great work on the latest mockups!</div>
+                                </div>
+                                <div className="flex items-start gap-2 flex-row-reverse">
+                                    <Avatar className="h-6 w-6"><AvatarFallback>C</AvatarFallback></Avatar>
+                                    <div className="bg-primary text-primary-foreground p-2 rounded-lg text-xs">Thanks! Glad you like them. Any feedback?</div>
+                                </div>
+                                <Card>
+                                    <CardContent className="pt-4 text-xs flex items-center justify-between">
+                                        <p>Invoice #INV-008</p>
+                                        <Badge variant="secondary">Sent</Badge>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
                      </div>
                  </div>
             </div>
@@ -219,23 +359,20 @@ export default function LandingPage() {
             </div>
             <div className="mx-auto grid max-w-7xl gap-8 sm:grid-cols-2 lg:grid-cols-3 mt-12">
               {features.map((feature, index) => (
-                <div key={index} className="flex flex-col gap-4">
-                    <div className="flex items-center gap-4">
-                        {feature.icon}
-                        <h3 className="text-xl font-bold">{feature.title}</h3>
-                    </div>
-                  <p className="text-muted-foreground">{feature.description}</p>
-                   <div className="overflow-hidden rounded-lg border shadow-md">
-                     <Image
-                        src={feature.screenshot}
-                        alt={`${feature.title} screenshot`}
-                        width={500}
-                        height={300}
-                        data-ai-hint={feature.hint}
-                        className="w-full transition-transform hover:scale-105"
-                    />
-                   </div>
-                </div>
+                <Card key={index} className="flex flex-col gap-4 h-full">
+                    <CardHeader>
+                        <div className="flex items-center gap-4">
+                            {feature.icon}
+                            <CardTitle className="text-xl">{feature.title}</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex flex-col flex-1 gap-4">
+                      <p className="text-muted-foreground">{feature.description}</p>
+                       <div className="overflow-hidden rounded-lg border shadow-inner flex-1 flex items-center justify-center">
+                         {feature.component}
+                       </div>
+                    </CardContent>
+                </Card>
               ))}
             </div>
           </div>
@@ -252,7 +389,7 @@ export default function LandingPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
                     {testimonials.map((testimonial, index) => (
-                        <Card key={index}>
+                        <Card key={index} className="h-full">
                             <CardContent className="pt-6">
                                 <p className="italic">"{testimonial.quote}"</p>
                             </CardContent>
@@ -300,7 +437,7 @@ export default function LandingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto">
                 {/* Free Plan */}
-                <Card>
+                <Card className="h-full">
                     <CardHeader>
                         <CardTitle>Free</CardTitle>
                         <CardDescription>Perfect for getting started and managing your first few projects.</CardDescription>
@@ -317,7 +454,7 @@ export default function LandingPage() {
                 </Card>
 
                 {/* Starter Plan */}
-                 <Card className="border-primary ring-2 ring-primary relative">
+                 <Card className="border-primary ring-2 ring-primary relative h-full">
                     <div className="absolute top-0 -translate-y-1/2 w-full flex justify-center">
                         <Badge>Most Popular</Badge>
                     </div>
@@ -338,7 +475,7 @@ export default function LandingPage() {
                 </Card>
 
                 {/* Pro Plan */}
-                <Card>
+                <Card className="h-full">
                     <CardHeader>
                         <CardTitle>Pro</CardTitle>
                         <CardDescription>Advanced features for agencies and teams that need to scale.</CardDescription>
@@ -372,19 +509,31 @@ export default function LandingPage() {
                         <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">1</div>
                         <h3 className="text-xl font-bold">Create Projects</h3>
                         <p className="text-muted-foreground">Set up your projects, define tasks, and assign team members.</p>
-                        <Image src="https://placehold.co/400x300.png" width={400} height={300} alt="Create Project screenshot" data-ai-hint="create project dialog" className="rounded-lg shadow-md border" />
+                        <div className="rounded-lg shadow-md border w-full p-4 pointer-events-none">
+                            <Label className="text-xs">Project Name</Label>
+                            <Input value="New Mobile App" disabled/>
+                             <Button size="sm" className="w-full mt-2 text-xs">Create Project</Button>
+                        </div>
                     </div>
                      <div className="flex flex-col items-center text-center gap-4">
                         <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">2</div>
                         <h3 className="text-xl font-bold">Collaborate with Clients</h3>
                         <p className="text-muted-foreground">Invite clients to their dedicated portal to review progress and communicate.</p>
-                        <Image src="https://placehold.co/400x300.png" width={400} height={300} alt="Client Collaboration screenshot" data-ai-hint="client portal view" className="rounded-lg shadow-md border" />
+                        <div className="rounded-lg shadow-md border w-full p-4 pointer-events-none">
+                            <Label className="text-xs">Client Email</Label>
+                            <Input value="client@example.com" disabled />
+                            <Button size="sm" className="w-full mt-2 text-xs">Invite Client</Button>
+                        </div>
                     </div>
                      <div className="flex flex-col items-center text-center gap-4">
                         <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">3</div>
                         <h3 className="text-xl font-bold">Get Paid</h3>
                         <p className="text-muted-foreground">Send professional invoices directly from the app and keep track of payments.</p>
-                        <Image src="https://placehold.co/400x300.png" width={400} height={300} alt="Get Paid screenshot" data-ai-hint="invoice view" className="rounded-lg shadow-md border" />
+                        <div className="rounded-lg shadow-md border w-full p-4 pointer-events-none">
+                            <Label className="text-xs">Invoice Total</Label>
+                            <Input value="$1,500.00" disabled />
+                            <Button size="sm" className="w-full mt-2 text-xs">Send Invoice</Button>
+                        </div>
                     </div>
                 </div>
             </div>
