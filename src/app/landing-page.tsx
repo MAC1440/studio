@@ -378,7 +378,7 @@ export default function LandingPage() {
           </div>
         </section>
         
-        {/* Social Proof Section */}
+        {/*
         <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
             <div className="container px-4 md:px-6">
                 <div className="text-center max-w-3xl mx-auto">
@@ -417,6 +417,7 @@ export default function LandingPage() {
                 </div>
             </div>
         </section>
+        */}
 
         {/* Pricing Section */}
         <section id="pricing" className="w-full py-12 md:py-24 lg:py-32">
