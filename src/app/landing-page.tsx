@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, Flame, ChevronUp, Equal, CheckCircle } from 'lucide-react';
+import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, Flame, ChevronUp, Equal, CheckCircle, Zap } from 'lucide-react';
 import Image from 'next/image';
 import logo from '../../public/logos/logo.png';
 import darkLogo from '../../public/logos/brand-dark.png';
@@ -233,12 +233,6 @@ export default function LandingPage() {
                 <Button asChild size="lg">
                   <Link href="/login">Get Started Free</Link>
                 </Button>
-                {/* <Button asChild size="lg" variant="outline">
-                  <Link href="#features">
-                    <PlayCircle className="mr-2 h-5 w-5" />
-                    Watch Demo
-                  </Link>
-                </Button> */}
               </div>
             </div>
             <div className="mt-12 lg:mt-16 w-full max-w-6xl mx-auto">
@@ -377,47 +371,6 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-        
-        {/*
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
-            <div className="container px-4 md:px-6">
-                <div className="text-center max-w-3xl mx-auto">
-                    <h2 className="text-3xl font-bold tracking-tighter">Loved by Freelancers & Agencies Worldwide</h2>
-                    <p className="mt-4 text-muted-foreground md:text-xl">
-                        Don't just take our word for it. Here's what our users are saying.
-                    </p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-                    {testimonials.map((testimonial, index) => (
-                        <Card key={index} className="h-full">
-                            <CardContent className="pt-6">
-                                <p className="italic">"{testimonial.quote}"</p>
-                            </CardContent>
-                            <CardHeader>
-                                <div className="flex items-center gap-3">
-                                    <Avatar>
-                                        <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <CardTitle className="text-base">{testimonial.name}</CardTitle>
-                                        <CardDescription>{testimonial.role}</CardDescription>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                        </Card>
-                    ))}
-                </div>
-                <div className="mt-16">
-                    <p className="text-center text-muted-foreground font-semibold">TRUSTED BY TEAMS AT FORWARD-THINKING COMPANIES</p>
-                    <div className="mt-6 flex flex-wrap justify-center items-center gap-8 md:gap-12">
-                       {companyLogos.map((logo, index) => (
-                           <Image key={index} src={logo.src} alt={logo.name} width={130} height={50} className="opacity-60 hover:opacity-100 transition-opacity" />
-                       ))}
-                    </div>
-                </div>
-            </div>
-        </section>
-        */}
 
         {/* Pricing Section */}
         <section id="pricing" className="w-full py-12 md:py-24 lg:py-32">
@@ -438,58 +391,59 @@ export default function LandingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto">
                 {/* Free Plan */}
-                <Card className="h-full">
+                <Card className="h-full flex flex-col">
                     <CardHeader>
                         <CardTitle>Free</CardTitle>
                         <CardDescription>Perfect for getting started and managing your first few projects.</CardDescription>
                         <p className="text-4xl font-bold pt-4">$0</p>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <ul className="space-y-2 text-muted-foreground">
+                    <CardContent className="space-y-4 flex-1 flex flex-col">
+                        <ul className="space-y-2 text-muted-foreground flex-1">
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Up to 3 Projects</li>
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Up to 3 Clients</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Basic Kanban Board</li>
-                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> 1 Client Portal</li>
                         </ul>
-                        <Button className="w-full" variant="outline" asChild><Link href="/login">Get Started</Link></Button>
+                        <Button className="w-full mt-auto" variant="outline" asChild><Link href="/login">Get Started</Link></Button>
                     </CardContent>
                 </Card>
 
-                {/* Starter Plan */}
-                 <Card className="border-primary ring-2 ring-primary relative h-full">
+                {/* Startup Plan */}
+                 <Card className="border-primary ring-2 ring-primary relative h-full flex flex-col">
                     <div className="absolute top-0 -translate-y-1/2 w-full flex justify-center">
                         <Badge>Most Popular</Badge>
                     </div>
                     <CardHeader>
-                        <CardTitle>Pro</CardTitle>
+                        <CardTitle>Startup</CardTitle>
                         <CardDescription>For growing freelancers and small teams who need more power.</CardDescription>
-                         <p className="text-4xl font-bold pt-4">{isAnnual ? '$20' : '$25'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
+                         <p className="text-4xl font-bold pt-4">{isAnnual ? '$23' : '$29'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <ul className="space-y-2 text-muted-foreground">
-                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Unlimited Projects</li>
-                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Unlimited Clients</li>
-                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Invoicing & Proposals</li>
-                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Real-time Chat</li>
+                    <CardContent className="space-y-4 flex-1 flex flex-col">
+                        <ul className="space-y-2 text-muted-foreground flex-1">
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Up to 10 Projects</li>
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Up to 10 Clients</li>
+                             <li className="flex items-center gap-2"><Zap className="h-4 w-4 text-primary"/> Invoicing & Proposals</li>
+                             <li className="flex items-center gap-2"><Zap className="h-4 w-4 text-primary"/> Client Reports</li>
+                             <li className="flex items-center gap-2"><Zap className="h-4 w-4 text-primary"/> Priority Support</li>
                         </ul>
-                        <Button className="w-full" asChild><Link href="/login">Choose Pro</Link></Button>
+                        <Button className="w-full mt-auto" asChild><Link href="/login">Choose Startup</Link></Button>
                     </CardContent>
                 </Card>
 
                 {/* Pro Plan */}
-                <Card className="h-full">
+                <Card className="h-full flex flex-col">
                     <CardHeader>
-                        <CardTitle>Enterprise</CardTitle>
+                        <CardTitle>Pro</CardTitle>
                         <CardDescription>Advanced features for agencies and teams that need to scale.</CardDescription>
-                        <p className="text-4xl font-bold pt-4">{isAnnual ? '$44' : '$55'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
+                        <p className="text-4xl font-bold pt-4">{isAnnual ? '$47' : '$59'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <ul className="space-y-2 text-muted-foreground">
-                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Everything in Pro</li>
-                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Advanced Reports</li>
-                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Team Management Roles</li>
-                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Priority Support</li>
+                    <CardContent className="space-y-4 flex-1 flex flex-col">
+                        <ul className="space-y-2 text-muted-foreground flex-1">
+                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Unlimited Projects & Clients</li>
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> All Startup Features</li>
+                            <li className="flex items-center gap-2"><Zap className="h-4 w-4 text-primary"/> Advanced Reports</li>
+                            <li className="flex items-center gap-2"><Zap className="h-4 w-4 text-primary"/> Team Management Roles</li>
                         </ul>
-                        <Button className="w-full" variant="outline" asChild><Link href="/login">Contact Sales</Link></Button>
+                        <Button className="w-full mt-auto" variant="outline" asChild><Link href="/login">Contact Sales</Link></Button>
                     </CardContent>
                 </Card>
             </div>

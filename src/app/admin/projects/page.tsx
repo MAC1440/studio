@@ -270,19 +270,28 @@ export default function ProjectsPage() {
   };
 
   const openCreateDialog = () => {
-    if (organization?.subscriptionPlan === 'free' && projects.length >= 3) {
-      toast({
-        title: "Free Plan Limit Reached",
-        description: "You have reached the maximum of 3 projects for the free plan.",
-        action: (
-          <Button asChild>
-            <Link href="/admin/billing">
-              <Zap className="mr-2 h-4 w-4"/> Upgrade Plan
-            </Link>
-          </Button>
-        ),
-      });
-      return;
+    const plan = organization?.subscriptionPlan;
+    const projectCount = projects.length;
+
+    const limits = {
+        free: 3,
+        startup: 10,
+        pro: Infinity
+    };
+
+    if (plan && projectCount >= limits[plan]) {
+        toast({
+            title: "Plan Limit Reached",
+            description: `You have reached the maximum of ${limits[plan]} projects for the ${plan} plan.`,
+            action: (
+              <Button asChild>
+                <Link href="/admin/billing">
+                  <Zap className="mr-2 h-4 w-4"/> Upgrade Plan
+                </Link>
+              </Button>
+            ),
+        });
+        return;
     }
     resetFormState();
     setIsDialogOpen(true);

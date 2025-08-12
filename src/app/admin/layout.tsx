@@ -14,11 +14,16 @@ import {
   SidebarHeader,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid, DollarSign, CreditCard, ClipboardCheck, MessageSquare } from "lucide-react";
+import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid, DollarSign, CreditCard, ClipboardCheck, MessageSquare, Zap } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import logo from '../../../public/logos/logo.png';
+import { useAuth } from "@/context/AuthContext";
+import { useState, useEffect } from "react";
+import { type Organization } from "@/lib/types";
+import { getDoc, doc } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
 
 export default function AdminLayout({
   children,
@@ -26,6 +31,21 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { userData } = useAuth();
+  const [organization, setOrganization] = useState<Organization | null>(null);
+
+  useEffect(() => {
+    if (userData?.organizationId) {
+      const orgRef = doc(db, 'organizations', userData.organizationId);
+      getDoc(orgRef).then(docSnap => {
+        if (docSnap.exists()) {
+          setOrganization(docSnap.data() as Organization);
+        }
+      });
+    }
+  }, [userData?.organizationId]);
+  
+  const isPaidPlan = organization?.subscriptionPlan === 'startup' || organization?.subscriptionPlan === 'pro';
   
   return (
     <AuthGuard role="admin">
@@ -53,14 +73,34 @@ export default function AdminLayout({
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/reports')}>
-                        <Link href="/admin/reports">
-                          <ClipboardCheck />
-                          Client Reports
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    {isPaidPlan && (
+                      <>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/reports')}>
+                            <Link href="/admin/reports">
+                              <ClipboardCheck />
+                              Client Reports
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                         <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/proposals')}>
+                            <Link href="/admin/proposals">
+                              <FileText />
+                              Proposals
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                         <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/invoices')}>
+                            <Link href="/admin/invoices">
+                              <DollarSign />
+                              Invoices
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </>
+                    )}
                      <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/chat')}>
                         <Link href="/admin/chat">
@@ -86,22 +126,6 @@ export default function AdminLayout({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/proposals')}>
-                        <Link href="/admin/proposals">
-                          <FileText />
-                          Proposals
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/invoices')}>
-                        <Link href="/admin/invoices">
-                          <DollarSign />
-                          Invoices
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/tickets')}>
                         <Link href="/admin/tickets">
                           <Ticket />
@@ -121,10 +145,23 @@ export default function AdminLayout({
                       <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/billing')}>
                         <Link href="/admin/billing">
                           <CreditCard />
-                          Billing {"(Beta)"}
+                          Billing
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+
+                    {!isPaidPlan && (
+                      <div className="p-4 group-data-[collapsible=icon]:hidden">
+                          <div className="rounded-lg bg-accent/80 p-4 text-center">
+                            <Zap className="mx-auto h-8 w-8 text-primary mb-2" />
+                              <h4 className="font-semibold text-sm">Upgrade for More</h4>
+                              <p className="text-xs text-muted-foreground mt-1 mb-3">Unlock proposals, invoices, reports and more.</p>
+                              <Button size="sm" className="w-full" asChild>
+                                  <Link href="/admin/billing">Upgrade Now</Link>
+                              </Button>
+                          </div>
+                      </div>
+                    )}
                   </SidebarMenu>
                 </SidebarContent>
             </Sidebar>

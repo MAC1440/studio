@@ -6,7 +6,7 @@ export type Organization = {
   name: string;
   ownerId: string;
   createdAt: Timestamp;
-  subscriptionPlan: 'free' | 'pro' | 'enterprise';
+  subscriptionPlan: 'free' | 'startup' | 'pro';
   stripeCustomerId?: string;
 };
 

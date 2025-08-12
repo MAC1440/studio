@@ -36,15 +36,9 @@ export default function BillingPage() {
         }
     }, [userData?.organizationId]);
 
-    const handlePlanChange = async (newPlanId: 'free' | 'pro' | 'enterprise') => {
+    const handlePlanChange = async (newPlanId: 'free' | 'startup' | 'pro') => {
         if (!userData?.organizationId || newPlanId === organization?.subscriptionPlan) return;
         
-        if (newPlanId === 'enterprise') {
-            // In a real app, this would open a contact form or a different flow.
-            toast({ title: "Contact Sales", description: "Please get in touch with us to discuss Enterprise options."});
-            return;
-        }
-
         setIsSubmitting(true);
         try {
             await updateOrganizationPlan(userData.organizationId, newPlanId);
@@ -67,23 +61,23 @@ export default function BillingPage() {
         {
             name: 'Free',
             price: '$0',
-            features: ['3 Projects', '25 Tickets', 'Basic Reporting', 'Community Support'],
+            features: ['3 Projects', '3 Clients', 'Basic Kanban Board', 'Community Support'],
             icon: Briefcase,
             id: 'free' as const,
         },
         {
-            name: 'Pro',
-            price: '$25',
-            features: ['Unlimited Projects', 'Unlimited Tickets', 'Advanced Reporting', 'Priority Email Support', 'Client Portal'],
+            name: 'Startup',
+            price: '$29',
+            features: ['10 Projects', '10 Clients', 'Invoicing & Proposals', 'Client Reports', 'Priority Email Support'],
             icon: Star,
-            id: 'pro' as const,
+            id: 'startup' as const,
         },
         {
-            name: 'Enterprise',
-            price: 'Custom',
-            features: ['All Pro Features', 'Dedicated Account Manager', 'On-premise Options', 'Custom Integrations', '24/7 Support'],
+            name: 'Pro',
+            price: '$59',
+            features: ['Unlimited Projects', 'Unlimited Clients', 'All Startup Features', 'Advanced Reporting', 'API Access (soon)'],
             icon: CheckCircle,
-            id: 'enterprise' as const,
+            id: 'pro' as const,
         }
     ];
 
@@ -115,7 +109,7 @@ export default function BillingPage() {
                             </div>
                              <CardDescription>
                                 <span className="text-3xl font-bold">{plan.price}</span>
-                                {plan.id !== 'enterprise' && <span className="text-muted-foreground">/month</span>}
+                                {plan.id !== 'free' && <span className="text-muted-foreground">/month</span>}
                              </CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1">
@@ -134,13 +128,11 @@ export default function BillingPage() {
                             ) : (
                                 <Button 
                                     className="w-full" 
-                                    variant={plan.id === 'pro' ? 'default' : 'outline'}
+                                    variant={plan.id !== 'free' ? 'default' : 'outline'}
                                     onClick={() => handlePlanChange(plan.id)}
                                     disabled={isSubmitting}
                                 >
-                                    {isSubmitting && 'Updating...'}
-                                    {!isSubmitting && (plan.id === 'pro' ? 'Upgrade' : 'Downgrade')}
-                                    {plan.id === 'enterprise' && !isSubmitting && 'Contact Sales'}
+                                    {isSubmitting ? 'Updating...' : 'Switch Plan'}
                                 </Button>
                             )}
                         </CardFooter>
