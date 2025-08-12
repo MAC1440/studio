@@ -460,9 +460,9 @@ export default function LandingPage() {
                         <Badge>Most Popular</Badge>
                     </div>
                     <CardHeader>
-                        <CardTitle>Starter</CardTitle>
+                        <CardTitle>Pro</CardTitle>
                         <CardDescription>For growing freelancers and small teams who need more power.</CardDescription>
-                         <p className="text-4xl font-bold pt-4">{isAnnual ? '$16' : '$20'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
+                         <p className="text-4xl font-bold pt-4">{isAnnual ? '$20' : '$25'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <ul className="space-y-2 text-muted-foreground">
@@ -471,25 +471,25 @@ export default function LandingPage() {
                              <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Invoicing & Proposals</li>
                              <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Real-time Chat</li>
                         </ul>
-                        <Button className="w-full" asChild><Link href="/login">Choose Starter</Link></Button>
+                        <Button className="w-full" asChild><Link href="/login">Choose Pro</Link></Button>
                     </CardContent>
                 </Card>
 
                 {/* Pro Plan */}
                 <Card className="h-full">
                     <CardHeader>
-                        <CardTitle>Pro</CardTitle>
+                        <CardTitle>Enterprise</CardTitle>
                         <CardDescription>Advanced features for agencies and teams that need to scale.</CardDescription>
-                        <p className="text-4xl font-bold pt-4">{isAnnual ? '$40' : '$50'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
+                        <p className="text-4xl font-bold pt-4">{isAnnual ? '$44' : '$55'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <ul className="space-y-2 text-muted-foreground">
-                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Everything in Starter</li>
+                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Everything in Pro</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Advanced Reports</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Team Management Roles</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Priority Support</li>
                         </ul>
-                        <Button className="w-full" variant="outline" asChild><Link href="/login">Choose Pro</Link></Button>
+                        <Button className="w-full" variant="outline" asChild><Link href="/login">Contact Sales</Link></Button>
                     </CardContent>
                 </Card>
             </div>

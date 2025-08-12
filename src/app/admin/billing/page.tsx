@@ -67,7 +67,7 @@ export default function BillingPage() {
         {
             name: 'Free',
             price: '$0',
-            features: ['5 Projects', '100 Tickets', 'Basic Reporting', 'Community Support'],
+            features: ['3 Projects', '25 Tickets', 'Basic Reporting', 'Community Support'],
             icon: Briefcase,
             id: 'free' as const,
         },
@@ -139,7 +139,7 @@ export default function BillingPage() {
                                     disabled={isSubmitting}
                                 >
                                     {isSubmitting && 'Updating...'}
-                                    {!isSubmitting && (plan.id > currentPlan ? 'Upgrade' : 'Downgrade')}
+                                    {!isSubmitting && (plan.id === 'pro' ? 'Upgrade' : 'Downgrade')}
                                     {plan.id === 'enterprise' && !isSubmitting && 'Contact Sales'}
                                 </Button>
                             )}
