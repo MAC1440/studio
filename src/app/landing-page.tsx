@@ -3,54 +3,99 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LayoutGrid, GanttChartSquare, FileText, DollarSign, MessageSquare, Users } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
-import logo from '../../public/logos/logo.png'
-import darkLogo from '../../public/logos/brand-dark.png'
-import lightLogo from '../../public/logos/brand_light.png'
+import logo from '../../public/logos/logo.png';
+import darkLogo from '../../public/logos/brand-dark.png';
+import lightLogo from '../../public/logos/brand_light.png';
+import placeholderLogo from '../../public/logos/placeholder-logo.svg';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useState } from 'react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 const features = [
   {
     icon: <GanttChartSquare className="h-8 w-8 text-primary" />,
-    title: 'Project Management',
-    description: 'Visualize your workflow with our intuitive Kanban boards. Drag, drop, and track tasks from start to finish.',
+    title: 'Visualize Your Workflow',
+    description: 'Track deadlines effortlessly with our intuitive Kanban boards. Drag, drop, and see your project progress in real-time.',
+    screenshot: 'https://placehold.co/500x300.png',
+    hint: 'kanban board'
   },
   {
-    icon: <FileText className="h-8 w-8 text-primary" />,
-    title: 'Client Proposals',
-    description: 'Create, send, and manage beautiful proposals. Get client feedback and approval directly within the app.',
+    icon: <Users className="h-8 w-8 text-primary" />,
+    title: 'Seamless Client Portal',
+    description: 'Give clients a dedicated space to track progress, review proposals, and pay invoices. No more endless email chains.',
+    screenshot: 'https://placehold.co/500x300.png',
+    hint: 'client dashboard'
   },
   {
     icon: <DollarSign className="h-8 w-8 text-primary" />,
     title: 'Effortless Invoicing',
-    description: 'Generate and send professional invoices based on project work. Keep your finances organized and get paid faster.',
+    description: 'Generate professional invoices from your project data in seconds. Get paid faster and keep your finances organized.',
+    screenshot: 'https://placehold.co/500x300.png',
+    hint: 'invoice generator'
   },
   {
     icon: <MessageSquare className="h-8 w-8 text-primary" />,
     title: 'Real-Time Chat',
-    description: 'Communicate directly with clients on a per-project basis. Keep all your conversations organized and accessible.',
+    description: 'Keep all project communication in one place. Chat directly with clients and team members on a per-project basis.',
+    screenshot: 'https://placehold.co/500x300.png',
+    hint: 'chat interface'
   },
   {
-    icon: <Users className="h-8 w-8 text-primary" />,
-    title: 'User & Client Portals',
-    description: 'Manage your internal team and provide a dedicated portal for clients to track progress and communicate.',
+    icon: <FileText className="h-8 w-8 text-primary" />,
+    title: 'Proposal Builder',
+    description: 'Create, send, and manage beautiful proposals. Get client feedback and approval directly within the app.',
+    screenshot: 'https://placehold.co/500x300.png',
+    hint: 'proposal editor'
   },
-   {
-    icon: <LayoutGrid className="h-8 w-8 text-primary" />,
-    title: 'Customizable Workflow',
-    description: 'Tailor the platform to your needs, from custom ticket statuses to project-specific settings and reports.',
+  {
+    icon: <AreaChart className="h-8 w-8 text-primary" />,
+    title: 'Reports & Analytics',
+    description: 'Gain insights into your project performance and team productivity with easy-to-understand reports.',
+    screenshot: 'https://placehold.co/500x300.png',
+    hint: 'analytics dashboard charts'
   },
 ];
 
+const testimonials = [
+  {
+    quote: "BoardR has been a game-changer for my freelance business. I can finally manage everything from one place and my clients love the portal.",
+    name: "Sarah K.",
+    role: "Freelance Designer"
+  },
+  {
+    quote: "Our agency switched from a clunky, expensive tool to BoardR and we haven't looked back. It's simple, powerful, and our team actually enjoys using it.",
+    name: "Michael R.",
+    role: "Agency Owner"
+  },
+  {
+    quote: "Juggling multiple projects and clients used to be a nightmare. BoardR brought order to the chaos. The invoicing feature alone saves me hours every month.",
+    name: "David L.",
+    role: "Project Manager"
+  }
+];
+
+const companyLogos = [
+  { name: 'Innovate Co', src: placeholderLogo },
+  { name: 'Creative Studio', src: placeholderLogo },
+  { name: 'Apex Solutions', src: placeholderLogo },
+  { name: 'Digital Ascent', src: placeholderLogo },
+  { name: 'Momentum Works', src: placeholderLogo },
+];
+
 export default function LandingPage() {
+  const [isAnnual, setIsAnnual] = useState(false);
+
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <header className="px-4 lg:px-6 h-16 flex items-center border-b">
+    <div className="flex flex-col min-h-screen bg-background text-foreground">
+      <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background/95 backdrop-blur-sm z-50">
         <Link href="/" className="flex items-center justify-center">
-        <Image src={logo.src} alt="BoardR Logo" width={40} height={40} />
-          {/* <LayoutGrid className="h-6 w-6 text-primary" /> */}
-          <span className="ml-2 text-lg font-bold">BoardR</span>
+          <Image src={logo.src} alt="BoardR Logo" width={32} height={32} />
+          <span className="ml-2 text-xl font-bold">BoardR</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link
@@ -59,91 +104,325 @@ export default function LandingPage() {
           >
             Features
           </Link>
+          <Link
+            href="#pricing"
+            className="text-sm font-medium hover:underline underline-offset-4"
+          >
+            Pricing
+          </Link>
           <Button asChild>
             <Link href="/login">Get Started</Link>
           </Button>
         </nav>
       </header>
+
       <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-muted/20">
-          <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-              <div className="flex flex-col justify-center space-y-4">
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    The All-In-One Platform for Agency & Client Collaboration
-                  </h1>
-                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    From proposals to payments, BoardR streamlines every step of your project lifecycle. Manage tasks, communicate with clients, and keep everything organized in one place.
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button asChild size="lg">
-                    <Link href="/login">
-                      Start for Free
-                    </Link>
-                  </Button>
-                </div>
+        {/* Hero Section */}
+        <section className="w-full py-20 md:py-32 lg:py-40">
+          <div className="container px-4 md:px-6 text-center">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl/none">
+                Manage Clients, Projects, and Payments — All in One Place.
+              </h1>
+              <p className="mt-4 text-muted-foreground md:text-xl">
+                BoardR replaces your scattered tools with one simple, powerful workspace.
+              </p>
+              <div className="mt-6 flex flex-col gap-4 min-[400px]:flex-row justify-center">
+                <Button asChild size="lg">
+                  <Link href="/login">Get Started Free</Link>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link href="#features">
+                    <PlayCircle className="mr-2 h-5 w-5" />
+                    Watch Demo
+                  </Link>
+                </Button>
               </div>
-              <div className="mx-auto flex items-center justify-center lg:order-last ">
-                <Image
-                  alt="BoardR Light Logo"
-                  className="block dark:hidden rounded-xl shadow-lg"
-                  height="200"
-                  src={lightLogo.src}
-                  width="550"
-                  priority
-                />
+            </div>
+            <div className="mt-12 lg:mt-16 w-full max-w-6xl mx-auto">
+              <div className="relative rounded-lg shadow-2xl overflow-hidden border">
                  <Image
-                  alt="BoardR Dark Logo"
-                  className="hidden dark:block rounded-xl shadow-lg"
-                  height="200"
-                  src={darkLogo.src}
-                  width="550"
-                  priority
-                />
+                    src="https://placehold.co/1200x800.png"
+                    alt="BoardR Dashboard and Kanban Board"
+                    width={1200}
+                    height={800}
+                    className="w-full h-auto"
+                    data-ai-hint="dashboard kanban"
+                    priority
+                  />
               </div>
             </div>
           </div>
         </section>
+
+        {/* Problem & Solution Section */}
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
+            <div className="container px-4 md:px-6">
+                 <div className="grid md:grid-cols-2 gap-12 items-center">
+                     <div className="space-y-6">
+                        <div className="inline-block rounded-lg bg-muted px-3 py-1 text-sm">The Struggle is Real</div>
+                        <h2 className="text-3xl font-bold tracking-tighter">Tired of Tool Overload?</h2>
+                        <p className="text-muted-foreground text-lg">
+                            If you're juggling spreadsheets, email, chat apps, and invoicing software, you're losing time and creating friction for your clients.
+                        </p>
+                        <ul className="grid gap-4">
+                            <li className="flex items-start gap-3">
+                                <CheckCircle className="mt-1 h-5 w-5 text-primary" />
+                                <div>
+                                    <h3 className="font-semibold">Client Miscommunication</h3>
+                                    <p className="text-muted-foreground">Scattered conversations lead to missed details and unmet expectations.</p>
+                                </div>
+                            </li>
+                             <li className="flex items-start gap-3">
+                                <CheckCircle className="mt-1 h-5 w-5 text-primary" />
+                                <div>
+                                    <h3 className="font-semibold">Disorganized Projects</h3>
+                                    <p className="text-muted-foreground">Without a central source of truth, deadlines get missed and tasks fall through the cracks.</p>
+                                </div>
+                            </li>
+                             <li className="flex items-start gap-3">
+                                <CheckCircle className="mt-1 h-5 w-5 text-primary" />
+                                <div>
+                                    <h3 className="font-semibold">Wasted Admin Time</h3>
+                                    <p className="text-muted-foreground">Manually creating proposals and invoices steals hours you could be billing.</p>
+                                </div>
+                            </li>
+                        </ul>
+                     </div>
+                     <div className="relative">
+                         <Image
+                            src="https://placehold.co/600x400.png"
+                            width={600}
+                            height={400}
+                            alt="Visual of BoardR solving problems"
+                            className="rounded-xl shadow-lg"
+                            data-ai-hint="chat invoice progress"
+                        />
+                     </div>
+                 </div>
+            </div>
+        </section>
+
+        {/* Key Features Section */}
         <section id="features" className="w-full py-12 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-muted px-3 py-1 text-sm">
-                  Key Features
-                </div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-                  Everything You Need. Nothing You Don't.
-                </h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  BoardR is designed to be powerful yet simple, giving you the tools to manage complex projects without the clutter.
-                </p>
+            <div className="text-center max-w-3xl mx-auto">
+              <div className="inline-block rounded-lg bg-muted px-3 py-1 text-sm">
+                Key Features
               </div>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl mt-2">
+                Everything You Need. Nothing You Don't.
+              </h2>
+              <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed mt-4">
+                BoardR is designed to be powerful yet simple, giving you the tools to manage complex projects without the clutter.
+              </p>
             </div>
-            <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:max-w-none lg:grid-cols-3 mt-12">
+            <div className="mx-auto grid max-w-7xl gap-8 sm:grid-cols-2 lg:grid-cols-3 mt-12">
               {features.map((feature, index) => (
-                <Card key={index} className='h-full'>
-                  <CardHeader className="flex flex-col items-start gap-4">
-                    {feature.icon}
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
+                <div key={index} className="flex flex-col gap-4">
+                    <div className="flex items-center gap-4">
+                        {feature.icon}
+                        <h3 className="text-xl font-bold">{feature.title}</h3>
+                    </div>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                   <div className="overflow-hidden rounded-lg border shadow-md">
+                     <Image
+                        src={feature.screenshot}
+                        alt={`${feature.title} screenshot`}
+                        width={500}
+                        height={300}
+                        data-ai-hint={feature.hint}
+                        className="w-full transition-transform hover:scale-105"
+                    />
+                   </div>
+                </div>
               ))}
             </div>
           </div>
         </section>
+        
+        {/* Social Proof Section */}
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
+            <div className="container px-4 md:px-6">
+                <div className="text-center max-w-3xl mx-auto">
+                    <h2 className="text-3xl font-bold tracking-tighter">Loved by Freelancers & Agencies Worldwide</h2>
+                    <p className="mt-4 text-muted-foreground md:text-xl">
+                        Don't just take our word for it. Here's what our users are saying.
+                    </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+                    {testimonials.map((testimonial, index) => (
+                        <Card key={index}>
+                            <CardContent className="pt-6">
+                                <p className="italic">"{testimonial.quote}"</p>
+                            </CardContent>
+                            <CardHeader>
+                                <div className="flex items-center gap-3">
+                                    <Avatar>
+                                        <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <CardTitle className="text-base">{testimonial.name}</CardTitle>
+                                        <CardDescription>{testimonial.role}</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                        </Card>
+                    ))}
+                </div>
+                <div className="mt-16">
+                    <p className="text-center text-muted-foreground font-semibold">TRUSTED BY TEAMS AT FORWARD-THINKING COMPANIES</p>
+                    <div className="mt-6 flex flex-wrap justify-center items-center gap-8 md:gap-12">
+                       {companyLogos.map((logo, index) => (
+                           <Image key={index} src={logo.src} alt={logo.name} width={130} height={50} className="opacity-60 hover:opacity-100 transition-opacity" />
+                       ))}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section id="pricing" className="w-full py-12 md:py-24 lg:py-32">
+          <div className="container px-4 md:px-6">
+             <div className="text-center max-w-3xl mx-auto">
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
+                Choose the Plan That's Right for You
+              </h2>
+              <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed mt-4">
+                Start for free, and scale up as you grow. No hidden fees.
+              </p>
+              <div className="mt-8 flex items-center justify-center gap-4">
+                  <Label htmlFor="pricing-toggle">Monthly</Label>
+                  <Switch id="pricing-toggle" checked={isAnnual} onCheckedChange={setIsAnnual} />
+                  <Label htmlFor="pricing-toggle">Annually (Save 20%)</Label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto">
+                {/* Free Plan */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Free</CardTitle>
+                        <CardDescription>Perfect for getting started and managing your first few projects.</CardDescription>
+                        <p className="text-4xl font-bold pt-4">$0</p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <ul className="space-y-2 text-muted-foreground">
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Up to 3 Projects</li>
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Basic Kanban Board</li>
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> 1 Client Portal</li>
+                        </ul>
+                        <Button className="w-full" variant="outline" asChild><Link href="/login">Get Started</Link></Button>
+                    </CardContent>
+                </Card>
+
+                {/* Starter Plan */}
+                 <Card className="border-primary ring-2 ring-primary relative">
+                    <div className="absolute top-0 -translate-y-1/2 w-full flex justify-center">
+                        <Badge>Most Popular</Badge>
+                    </div>
+                    <CardHeader>
+                        <CardTitle>Starter</CardTitle>
+                        <CardDescription>For growing freelancers and small teams who need more power.</CardDescription>
+                         <p className="text-4xl font-bold pt-4">{isAnnual ? '$16' : '$20'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <ul className="space-y-2 text-muted-foreground">
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Unlimited Projects</li>
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Unlimited Clients</li>
+                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Invoicing & Proposals</li>
+                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Real-time Chat</li>
+                        </ul>
+                        <Button className="w-full" asChild><Link href="/login">Choose Starter</Link></Button>
+                    </CardContent>
+                </Card>
+
+                {/* Pro Plan */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Pro</CardTitle>
+                        <CardDescription>Advanced features for agencies and teams that need to scale.</CardDescription>
+                        <p className="text-4xl font-bold pt-4">{isAnnual ? '$40' : '$50'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <ul className="space-y-2 text-muted-foreground">
+                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Everything in Starter</li>
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Advanced Reports</li>
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Team Management Roles</li>
+                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Priority Support</li>
+                        </ul>
+                        <Button className="w-full" variant="outline" asChild><Link href="/login">Choose Pro</Link></Button>
+                    </CardContent>
+                </Card>
+            </div>
+          </div>
+        </section>
+        
+        {/* How it works */}
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
+            <div className="container px-4 md:px-6">
+                <div className="text-center max-w-3xl mx-auto">
+                    <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Get Started in 3 Simple Steps</h2>
+                    <p className="mt-4 text-muted-foreground md:text-xl">
+                        Go from signup to streamlined workflow in minutes.
+                    </p>
+                </div>
+                <div className="grid md:grid-cols-3 gap-8 md:gap-12 mt-12 items-start">
+                    <div className="flex flex-col items-center text-center gap-4">
+                        <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">1</div>
+                        <h3 className="text-xl font-bold">Create Projects</h3>
+                        <p className="text-muted-foreground">Set up your projects, define tasks, and assign team members.</p>
+                        <Image src="https://placehold.co/400x300.png" width={400} height={300} alt="Create Project screenshot" data-ai-hint="create project dialog" className="rounded-lg shadow-md border" />
+                    </div>
+                     <div className="flex flex-col items-center text-center gap-4">
+                        <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">2</div>
+                        <h3 className="text-xl font-bold">Collaborate with Clients</h3>
+                        <p className="text-muted-foreground">Invite clients to their dedicated portal to review progress and communicate.</p>
+                        <Image src="https://placehold.co/400x300.png" width={400} height={300} alt="Client Collaboration screenshot" data-ai-hint="client portal view" className="rounded-lg shadow-md border" />
+                    </div>
+                     <div className="flex flex-col items-center text-center gap-4">
+                        <div className="bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">3</div>
+                        <h3 className="text-xl font-bold">Get Paid</h3>
+                        <p className="text-muted-foreground">Send professional invoices directly from the app and keep track of payments.</p>
+                        <Image src="https://placehold.co/400x300.png" width={400} height={300} alt="Get Paid screenshot" data-ai-hint="invoice view" className="rounded-lg shadow-md border" />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="w-full py-20 md:py-32">
+            <div className="container px-4 md:px-6 text-center">
+                 <div className="max-w-3xl mx-auto">
+                    <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                       Stop Juggling. Start Building.
+                    </h2>
+                     <p className="mt-4 text-muted-foreground md:text-xl">
+                        Join 500+ freelancers and agencies streamlining their work with BoardR today.
+                    </p>
+                    <div className="mt-6">
+                        <Button asChild size="lg">
+                            <Link href="/login">Start Free and Upgrade Anytime</Link>
+                        </Button>
+                    </div>
+                 </div>
+            </div>
+        </section>
       </main>
+
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-muted-foreground">
           &copy; {new Date().getFullYear()} BoardR. All rights reserved.
         </p>
-        <nav className="sm:ml-auto flex gap-4 sm:gap-6">
+         <div className="flex gap-4 sm:ml-auto items-center">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <ShieldCheck className="h-4 w-4" /> SSL Secure
+            </div>
+             <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Lock className="h-4 w-4" /> Privacy Compliant
+            </div>
+        </div>
+        <nav className="sm:ml-4 flex gap-4 sm:gap-6">
           <Link href="#" className="text-xs hover:underline underline-offset-4">
             Terms of Service
           </Link>
