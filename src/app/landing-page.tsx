@@ -7,13 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, Flame, ChevronUp, Equal, CheckCircle, Zap } from 'lucide-react';
 import Image from 'next/image';
 import logo from '../../public/logos/logo.png';
-import darkLogo from '../../public/logos/brand-dark.png';
-import lightLogo from '../../public/logos/brand_light.png';
 import placeholderLogo from '../../public/logos/placeholder-logo.svg';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
@@ -415,7 +413,7 @@ export default function LandingPage() {
                     <CardHeader>
                         <CardTitle>Startup</CardTitle>
                         <CardDescription>For growing freelancers and small teams who need more power.</CardDescription>
-                         <p className="text-4xl font-bold pt-4">{isAnnual ? '$23' : '$29'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
+                         <p className="text-4xl font-bold pt-4">{isAnnual ? '$16' : '$20'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
                     </CardHeader>
                     <CardContent className="space-y-4 flex-1 flex flex-col">
                         <ul className="space-y-2 text-muted-foreground flex-1">
@@ -434,7 +432,7 @@ export default function LandingPage() {
                     <CardHeader>
                         <CardTitle>Pro</CardTitle>
                         <CardDescription>Advanced features for agencies and teams that need to scale.</CardDescription>
-                        <p className="text-4xl font-bold pt-4">{isAnnual ? '$47' : '$59'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
+                        <p className="text-4xl font-bold pt-4">{isAnnual ? '$40' : '$50'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
                     </CardHeader>
                     <CardContent className="space-y-4 flex-1 flex flex-col">
                         <ul className="space-y-2 text-muted-foreground flex-1">

@@ -67,14 +67,14 @@ export default function BillingPage() {
         },
         {
             name: 'Startup',
-            price: '$29',
+            price: '$20',
             features: ['10 Projects', '10 Clients', 'Invoicing & Proposals', 'Client Reports', 'Priority Email Support'],
             icon: Star,
             id: 'startup' as const,
         },
         {
             name: 'Pro',
-            price: '$59',
+            price: '$50',
             features: ['Unlimited Projects', 'Unlimited Clients', 'All Startup Features', 'Advanced Reporting', 'API Access (soon)'],
             icon: CheckCircle,
             id: 'pro' as const,
