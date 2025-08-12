@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck, MessageSquare } from 'lucide-react';
+import { User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck, MessageSquare, CheckCheck } from 'lucide-react';
 import Image from 'next/image';
 import {
   DropdownMenu,
@@ -18,7 +18,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose
 } from '@/components/ui/dialog';
@@ -47,7 +46,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createTicket } from '@/lib/firebase/tickets';
 import { getProjects } from '@/lib/firebase/projects';
 import { type User, type Notification, Project } from '@/lib/types';
-import { subscribeToNotifications, markNotificationAsRead } from '@/lib/firebase/notifications';
+import { subscribeToNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/lib/firebase/notifications';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Separator } from '../ui/separator';
@@ -209,6 +208,7 @@ function NotificationBell() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const router = useRouter();
+    const { toast } = useToast();
 
     useEffect(() => {
         if (user?.uid) {
@@ -249,6 +249,16 @@ function NotificationBell() {
         setIsOpen(false);
     };
 
+    const handleMarkAllRead = async () => {
+        if (!user) return;
+        try {
+            await markAllNotificationsAsRead(user.uid);
+            toast({ title: "All notifications marked as read." });
+        } catch (error) {
+            toast({ title: "Error", description: "Could not mark notifications as read.", variant: "destructive" });
+        }
+    };
+
     const unreadCount = notifications.filter(n => !n.read).length;
 
     const getIconForNotification = (n: Notification) => {
@@ -272,8 +282,14 @@ function NotificationBell() {
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-0">
-                <div className="p-4">
+                <div className="flex justify-between items-center p-4">
                     <h4 className="font-medium text-sm">Notifications</h4>
+                    {unreadCount > 0 && (
+                        <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="text-xs h-7">
+                            <CheckCheck className="mr-2 h-3.5 w-3.5" />
+                            Mark all as read
+                        </Button>
+                    )}
                 </div>
                 <Separator />
                 <div className="max-h-96 overflow-y-auto">

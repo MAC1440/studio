@@ -12,6 +12,8 @@ import {
   orderBy,
   limit,
   Timestamp,
+  getDocs,
+  writeBatch,
 } from 'firebase/firestore';
 import type { Notification } from '@/lib/types';
 import { getProject } from './projects';
@@ -19,12 +21,15 @@ import { getProject } from './projects';
 type AddNotificationArgs = {
   userId: string;
   message: string;
-  ticketId?: string;
-  proposalId?: string;
-  invoiceId?: string;
-  reportId?: string;
-  chatId?: string;
-  projectId: string;
+  ticketId?: string; // Optional
+  proposalId?: string; // Optional
+  invoiceId?: string; // Optional
+  reportId?: string; // Optional
+  chatId?: string; //Optional
+  read: boolean;
+  createdAt: Timestamp;
+  expiresAt: Timestamp;
+  projectId?: string;
   projectName?: string;
 };
 
@@ -90,4 +95,25 @@ export async function markNotificationAsRead(notificationId: string): Promise<vo
   await updateDoc(notificationRef, {
     read: true,
   });
+}
+
+export async function markAllNotificationsAsRead(userId: string): Promise<void> {
+    const notificationsCol = collection(db, 'notifications');
+    const q = query(
+        notificationsCol,
+        where('userId', '==', userId),
+        where('read', '==', false)
+    );
+
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return;
+    }
+
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(doc => {
+        batch.update(doc.ref, { read: true });
+    });
+
+    await batch.commit();
 }
