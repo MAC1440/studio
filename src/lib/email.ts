@@ -51,7 +51,10 @@ export async function sendPlanChangeEmail(args: SendPlanChangeEmailArgs): Promis
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'BoardR <noreply@resend.dev>', // You might want to use a custom domain in production
+      // IMPORTANT: For this to work, you must verify a domain with Resend.
+      // Using 'noreply@resend.dev' is for development/testing only.
+      // Replace 'BoardR' and the from address with your verified domain.
+      from: 'BoardR <noreply@resend.dev>', 
       to: [ownerEmail], // Send email to the organization owner
       subject: subject,
       html: body,

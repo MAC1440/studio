@@ -22,7 +22,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { sendPlanChangeEmail } from '@/lib/email';
+
 
 type Plan = {
     name: 'Free' | 'Startup' | 'Pro';
@@ -86,45 +88,38 @@ export default function BillingPage() {
     }, [userData?.organizationId]);
 
     const handlePlanChangeRequest = async () => {
-        if (!user || !organization || !selectedPlan) return;
+        if (!user || !organization || !selectedPlan || !userData) return;
 
         setIsSubmitting(true);
-
-        // This will be your support email address
-        const supportEmail = 'your-support-email@example.com';
         
-        const subject = encodeURIComponent(`Plan Change Request: ${organization.name} to ${selectedPlan.name}`);
-        
-        const body = encodeURIComponent(
-`A plan change has been requested. Please process the payment and update the subscription in the Firebase console.
+        try {
+            await sendPlanChangeEmail({
+                userName: userData.name,
+                userEmail: user.email || 'N/A',
+                organizationName: organization.name,
+                organizationOwnerId: organization.ownerId,
+                currentPlan: organization.subscriptionPlan,
+                requestedPlan: selectedPlan.name,
+                planPrice: selectedPlan.price
+            });
 
-User Details:
-- Name: ${userData?.name}
-- Email: ${user.email}
+            toast({
+                title: "Request Submitted",
+                description: "Your plan change request has been sent to the organization owner for approval.",
+                duration: 7000,
+            });
 
-Organization Details:
-- Name: ${organization.name}
-- ID: ${organization.id}
-
-Plan Change Details:
-- Current Plan: ${organization.subscriptionPlan}
-- Requested Plan: ${selectedPlan.name}
-- New Price: ${selectedPlan.price}/month
-
-Thank you.`
-        );
-
-        // Open the user's default email client
-        window.location.href = `mailto:${supportEmail}?subject=${subject}&body=${body}`;
-
-        toast({
-            title: "Email Client Opened",
-            description: "Please send the generated email to complete your plan change request.",
-            duration: 7000,
-        });
-
-        setIsSubmitting(false);
-        setSelectedPlan(null);
+        } catch (error: any) {
+             toast({
+                title: "Request Failed",
+                description: error.message || "Could not submit your plan change request. Please try again later.",
+                variant: "destructive",
+                duration: 9000,
+            });
+        } finally {
+            setIsSubmitting(false);
+            setSelectedPlan(null);
+        }
     }
     
     const isDowngrade = (newPlan: Plan) => {
@@ -204,7 +199,7 @@ Thank you.`
                         <AlertDialogTitle>Confirm Plan Change Request</AlertDialogTitle>
                         <AlertDialogDescription>
                            You are requesting to {isDowngrade(selectedPlan) ? 'downgrade' : 'upgrade'} to the <strong>{selectedPlan.name}</strong> plan at <strong>{selectedPlan.price}/month</strong>. 
-                           Clicking confirm will open your default email client to send a request to our support team.
+                           Clicking confirm will send a request to your organization owner for approval and payment processing.
                            {isDowngrade(selectedPlan) && (
                                 <p className="mt-2 p-3 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 text-sm">
                                     <strong>Important:</strong> Downgrading will limit your account to {selectedPlan.projectLimit} projects. While your existing data will not be deleted, you will only be able to access the {selectedPlan.projectLimit} most recent projects.
@@ -215,7 +210,7 @@ Thank you.`
                     <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => setSelectedPlan(null)} disabled={isSubmitting}>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={handlePlanChangeRequest} disabled={isSubmitting}>
-                            {isSubmitting ? 'Opening Email...' : 'Confirm Request'}
+                            {isSubmitting ? 'Submitting...' : 'Confirm Request'}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
