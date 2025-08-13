@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/lib/firebase/config';
+import { db } from '@/lib/firebase/config';
 import { type Organization, type User } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
