@@ -200,12 +200,12 @@ export default function BillingPage() {
                         <AlertDialogDescription>
                            You are requesting to {isDowngrade(selectedPlan) ? 'downgrade' : 'upgrade'} to the <strong>{selectedPlan.name}</strong> plan at <strong>{selectedPlan.price}/month</strong>. 
                            Clicking confirm will send a request to your organization owner for approval and payment processing.
-                           {isDowngrade(selectedPlan) && (
+                        </AlertDialogDescription>
+                         {isDowngrade(selectedPlan) && (
                                 <div className="mt-2 p-3 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 text-sm">
                                     <strong>Important:</strong> Downgrading will limit your account to {selectedPlan.projectLimit} projects. While your existing data will not be deleted, you will only be able to access the {selectedPlan.projectLimit} most recent projects.
                                 </div>
                            )}
-                        </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => setSelectedPlan(null)} disabled={isSubmitting}>Cancel</AlertDialogCancel>
