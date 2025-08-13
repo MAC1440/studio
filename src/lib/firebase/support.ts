@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './config';
-import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import type { SupportTicket } from '@/lib/types';
 
 type CreateSupportTicketArgs = Omit<SupportTicket, 'id' | 'createdAt' | 'status'>;
@@ -13,14 +13,16 @@ type CreateSupportTicketArgs = Omit<SupportTicket, 'id' | 'createdAt' | 'status'
  */
 export async function createSupportTicket(args: CreateSupportTicketArgs): Promise<void> {
     const supportTicketsCol = collection(db, 'supportTickets');
+    const docRef = doc(supportTicketsCol); // Create a reference to get an ID first
     
-    const newTicket: Omit<SupportTicket, 'id'> = {
+    const newTicket: SupportTicket = {
+        id: docRef.id, // Include the ID in the document data
         ...args,
         status: 'open',
         createdAt: serverTimestamp() as Timestamp,
     };
 
-    await addDoc(supportTicketsCol, newTicket);
+    await setDoc(docRef, newTicket); // Use setDoc to save the complete object
     
     // In the future, you could also add a notification for the super admin here.
 }
