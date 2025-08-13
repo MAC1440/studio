@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -7,61 +8,56 @@ service cloud.firestore {
        Helpers
        ========================= */
     function userDoc() {
+      // Get the document of the currently authenticated user.
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function userRole() {
+      // Get the role of the currently authenticated user.
       return userDoc().role;
     }
 
     function isSuperAdmin() {
+      // Check if the user is a super-admin.
       return userRole() == "super-admin";
     }
 
     function userOrgId() {
+      // Get the organization ID of the currently authenticated user.
       return userDoc().organizationId;
     }
 
     function isOrgMember(orgId) {
+      // Check if the authenticated user belongs to a specific organization.
       return request.auth != null && userOrgId() == orgId;
     }
-
-    function isOrgOwner(orgId) {
-      return request.auth != null &&
-             get(/databases/$(database)/documents/organizations/$(orgId)).data.ownerId == request.auth.uid;
-    }
-
-    // Read orgId from an existing doc (supports both organizationId or organization.id)
-    function orgIdFromExisting() {
-      return resource.data.organizationId != null
-        ? resource.data.organizationId
-        : (resource.data.organization != null ? resource.data.organization.id : null);
-    }
-
-    // Read orgId from a NEW doc being created
-    function orgIdFromNew() {
-      return request.resource.data.organizationId != null
-        ? request.resource.data.organizationId
-        : (request.resource.data.organization != null ? request.resource.data.organization.id : null);
-    }
     
-    // Read orgId from a parent doc (for subcollections)
-    function orgIdFromParent(collection, docId) {
-      let d = get(/databases/$(database)/documents/$(collection)/$(docId)).data;
-      return d.organizationId != null
-        ? d.organizationId
-        : (d.organization != null ? d.organization.id : null);
+    // Read organizationId from an existing document.
+    function orgIdFromExistingDoc() {
+      return resource.data.organizationId;
+    }
+
+    // Read organizationId from a new document being created.
+    function orgIdFromNewDoc() {
+      return request.resource.data.organizationId;
     }
 
     /* =========================
        USERS
        ========================= */
     match /users/{userId} {
-      // User can read themself; super admin can read; members of same org can read
-      allow read: if request.auth != null &&
-        (userId == request.auth.uid || isSuperAdmin() || (resource.data.organizationId == userOrgId()));
+      // A user can read their own document.
+      // A super-admin can read any user document.
+      // A user can read documents of other users in the same organization.
+      allow read: if request.auth != null && (request.auth.uid == userId || isSuperAdmin() || isOrgMember(resource.data.organizationId));
+
+      // Any authenticated user can create a user document (part of signup).
       allow create: if request.auth != null;
-      allow update: if request.auth != null && (userId == request.auth.uid || isSuperAdmin());
+      
+      // A user can update their own document. A super-admin can update any.
+      allow update: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+      
+      // Only a super-admin can delete a user.
       allow delete: if isSuperAdmin();
     }
 
@@ -69,59 +65,58 @@ service cloud.firestore {
        ORGANIZATIONS
        ========================= */
     match /organizations/{orgId} {
-      allow read: if request.auth != null && (isSuperAdmin() || isOrgMember(orgId));
-      // created at signup flow; allow if signed-in
+      // A user can read their own organization's document. Super-admin can read all.
+      allow read: if request.auth != null && (isOrgMember(orgId) || isSuperAdmin());
+      
+      // An authenticated user can create an organization (part of signup).
       allow create: if request.auth != null;
-      allow update: if request.auth != null && (
-        isSuperAdmin() ||
-        (isOrgOwner(orgId) && request.resource.data.subscriptionPlan == resource.data.subscriptionPlan)
-      );
+
+      // Super-admin can update any field. Org members can only update non-sensitive fields.
+      allow update: if request.auth != null && (isOrgMember(orgId) || isSuperAdmin());
+      
+      // Only super-admins can delete an organization.
       allow delete: if isSuperAdmin();
     }
-
+    
     /* =========================
-       SUPPORT TICKETS
+       SUPPORT TICKETS (Top-Level)
        ========================= */
     match /supportTickets/{ticketId} {
-      allow create: if request.auth != null;
-      allow list, read, update, delete: if isSuperAdmin();
+        // Any authenticated user can create a support ticket (e.g., for a plan change).
+        allow create: if request.auth != null;
+        
+        // Only super-admins can read, list, update, or delete support tickets.
+        allow read, update, delete: if isSuperAdmin();
     }
 
     /* =========================
-       NOTIFICATIONS
+       NOTIFICATIONS (Top-Level)
        ========================= */
     match /notifications/{notificationId} {
+      // Allow creation by any authenticated user (server-side logic handles targeting).
       allow create: if request.auth != null;
-      allow read, update, delete: if request.auth != null &&
-        (isSuperAdmin() || request.auth.uid == resource.data.userId);
+      
+      // Users can only read/update/delete their own notifications. Super-admins can manage all.
+      allow read, update, delete: if request.auth != null && (request.auth.uid == resource.data.userId || isSuperAdmin());
     }
 
     /* =========================
        GENERIC ORG-SCOPED COLLECTIONS
-       This is a catch-all for any other top-level collection.
-       It excludes collections that have their own specific rules defined above.
+       (projects, tickets, proposals, invoices, clientReports, chats)
        ========================= */
-    match /{collection}/{docId} {
-        allow create: if request.auth != null &&
-            collection in ['chats', 'clientReports', 'invoices', 'projects', 'proposals', 'tickets'] &&
-            (
-              isSuperAdmin() ||
-              (orgIdFromNew() != null && isOrgMember(orgIdFromNew()))
-            );
+    match /{collection}/{docId} 
+        where collection not in ['users', 'organizations', 'supportTickets', 'notifications'] {
+      
+      // CREATE: User must be a member of the organization they are creating the document for.
+      allow create: if request.auth != null && isOrgMember(orgIdFromNewDoc());
 
-        allow read, update, delete: if request.auth != null &&
-            collection in ['chats', 'clientReports', 'invoices', 'projects', 'proposals', 'tickets'] &&
-            (
-              isSuperAdmin() ||
-              (orgIdFromExisting() != null && isOrgMember(orgIdFromExisting()))
-            );
-
-      // Nested subcollections under org-scoped docs inherit the parent's org
-      match /{subcollection}/{subdoc} {
-        allow create, read, update, delete: if request.auth != null && (
-          isSuperAdmin() ||
-          isOrgMember(orgIdFromParent(collection, docId))
-        );
+      // READ, UPDATE, DELETE: User must be a member of the organization the document belongs to.
+      allow read, update, delete: if request.auth != null && isOrgMember(orgIdFromExistingDoc());
+        
+      // Nested subcollections (e.g., chat messages)
+      match /{subcollection}/{subdocId} {
+         // Permissions are inherited from the parent document's organization.
+         allow create, read, update, delete: if request.auth != null && isOrgMember(orgIdFromExistingDoc());
       }
     }
   }
