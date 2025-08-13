@@ -25,6 +25,7 @@ export async function generateProposal(input: GenerateProposalInput): Promise<Ge
 
 const prompt = ai.definePrompt({
   name: 'generateProposalPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: { schema: GenerateProposalInputSchema },
   output: { schema: GenerateProposalOutputSchema },
   prompt: `You are an expert business proposal writer for a creative agency. 
