@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getDoc, doc } from 'firebase/firestore';
+import { getDoc, doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { type Organization, type User } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -89,20 +89,21 @@ export default function BillingPage() {
 
     const handlePlanChangeRequest = async () => {
         if (!user || !organization || !selectedPlan) return;
-
+    
         setIsSubmitting(true);
-        
+    
         try {
-            // Fetch the organization owner's data to ensure the correct user is referenced
+            // Fetch organization owner's data
             const ownerRef = doc(db, 'users', organization.ownerId);
             const ownerSnap = await getDoc(ownerRef);
-
+    
             if (!ownerSnap.exists()) {
                 throw new Error("Could not find the organization owner's account.");
             }
             const ownerData = ownerSnap.data() as User;
-
-             await createSupportTicket({
+    
+            // Prepare the new ticket
+            const newTicket = {
                 requester: {
                     id: ownerData.id,
                     name: ownerData.name,
@@ -116,17 +117,20 @@ export default function BillingPage() {
                     currentPlan: organization.subscriptionPlan,
                     requestedPlan: selectedPlan.name,
                     price: selectedPlan.price
-                }
-            });
-
+                },
+            };
+    
+            // The createSupportTicket is a server action, so it's fine.
+            await createSupportTicket(newTicket);
+    
             toast({
                 title: "Request Submitted",
                 description: "Your plan change request has been sent to support. We will process it shortly.",
                 duration: 7000,
             });
-
+    
         } catch (error: any) {
-             toast({
+            toast({
                 title: "Request Failed",
                 description: error.message || "Could not submit your plan change request. Please try again later.",
                 variant: "destructive",
@@ -136,7 +140,7 @@ export default function BillingPage() {
             setIsSubmitting(false);
             setSelectedPlan(null);
         }
-    }
+    };
     
     const isDowngrade = (newPlan: Plan) => {
         const currentPlanId = organization?.subscriptionPlan || 'free';
