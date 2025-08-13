@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -102,19 +101,20 @@ service cloud.firestore {
        This is a catch-all for any other top-level collection.
        It excludes collections that have their own specific rules defined above.
        ========================= */
-    match /{collection}/{docId} 
-        where collection NOT IN ['users', 'organizations', 'supportTickets', 'notifications'] {
-      // CREATE: must include orgId in the new doc and be a member of that org (or super admin)
-      allow create: if request.auth != null && (
-        isSuperAdmin() ||
-        (orgIdFromNew() != null && isOrgMember(orgIdFromNew()))
-      );
+    match /{collection}/{docId} {
+        allow create: if request.auth != null &&
+            collection in ['chats', 'clientReports', 'invoices', 'projects', 'proposals', 'tickets'] &&
+            (
+              isSuperAdmin() ||
+              (orgIdFromNew() != null && isOrgMember(orgIdFromNew()))
+            );
 
-      // READ/UPDATE/DELETE: caller must belong to the doc's org (or be super admin)
-      allow read, update, delete: if request.auth != null && (
-        isSuperAdmin() ||
-        (orgIdFromExisting() != null && isOrgMember(orgIdFromExisting()))
-      );
+        allow read, update, delete: if request.auth != null &&
+            collection in ['chats', 'clientReports', 'invoices', 'projects', 'proposals', 'tickets'] &&
+            (
+              isSuperAdmin() ||
+              (orgIdFromExisting() != null && isOrgMember(orgIdFromExisting()))
+            );
 
       // Nested subcollections under org-scoped docs inherit the parent's org
       match /{subcollection}/{subdoc} {
