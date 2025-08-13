@@ -4,8 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import { type Organization } from '@/lib/types';
+import { db } from '@/lib/lib/firebase/config';
+import { type Organization, type User } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Star, Briefcase } from 'lucide-react';
@@ -88,16 +88,25 @@ export default function BillingPage() {
     }, [userData?.organizationId]);
 
     const handlePlanChangeRequest = async () => {
-        if (!user || !organization || !selectedPlan || !userData) return;
+        if (!user || !organization || !selectedPlan) return;
 
         setIsSubmitting(true);
         
         try {
+            // Fetch the organization owner's data to ensure the correct user is referenced
+            const ownerRef = doc(db, 'users', organization.ownerId);
+            const ownerSnap = await getDoc(ownerRef);
+
+            if (!ownerSnap.exists()) {
+                throw new Error("Could not find the organization owner's account.");
+            }
+            const ownerData = ownerSnap.data() as User;
+
              await createSupportTicket({
                 requester: {
-                    id: user.uid,
-                    name: userData.name,
-                    email: user.email || 'N/A',
+                    id: ownerData.id,
+                    name: ownerData.name,
+                    email: ownerData.email || 'N/A',
                 },
                 organization: {
                     id: organization.id,
