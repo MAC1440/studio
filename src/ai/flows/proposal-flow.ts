@@ -50,7 +50,7 @@ const generateProposalFlow = ai.defineFlow(
     outputSchema: GenerateProposalOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt.generate(input);
+    const { output } = await prompt(input);
     return output!;
   }
 );
