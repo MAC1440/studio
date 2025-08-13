@@ -90,7 +90,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (firebaseUser) {
         setUser(firebaseUser);
         const currentUserData = await fetchAndSetUserData(firebaseUser);
-        if (currentUserData?.organizationId) {
+        // Do not fetch org-specific users if the user is a super-admin
+        if (currentUserData?.organizationId && currentUserData.role !== 'super-admin') {
             const allUsers = await getUsers(currentUserData.organizationId);
             setUsers(allUsers);
         }
