@@ -12,6 +12,7 @@ import {
   SidebarContent,
   SidebarHeader,
   SidebarTrigger,
+  SidebarInset,
 } from "@/components/ui/sidebar";
 import { AreaChart, Building, LifeBuoy } from "lucide-react";
 import Link from "next/link";
