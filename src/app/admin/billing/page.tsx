@@ -18,8 +18,6 @@ export default function BillingPage() {
     const { user, userData } = useAuth();
     const [organization, setOrganization] = useState<Organization | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isRedirecting, setIsRedirecting] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -40,35 +38,11 @@ export default function BillingPage() {
     const handlePlanChange = async (newPlanId: 'startup' | 'pro') => {
         if (!user || !userData?.organizationId || newPlanId === organization?.subscriptionPlan) return;
         
-        setIsSubmitting(true);
-        setIsRedirecting(true);
-        
-        try {
-            const checkoutUrl = await generateCheckoutLink({
-                planId: newPlanId,
-                userId: user.uid,
-                email: user.email!,
-                organizationId: userData.organizationId,
-            });
-
-            if (checkoutUrl) {
-                // Redirect user to the payment provider's checkout page
-                window.location.href = checkoutUrl;
-            } else {
-                 toast({
-                    title: "Setup Incomplete",
-                    description: "Payment gateways are not configured yet. Please contact support.",
-                    variant: "destructive"
-                });
-                setIsSubmitting(false);
-                setIsRedirecting(false);
-            }
-        } catch (error) {
-            console.error("Failed to generate checkout link:", error);
-            toast({ title: "Error", description: "Could not initiate plan change. Please try again.", variant: "destructive"});
-            setIsSubmitting(false);
-            setIsRedirecting(false);
-        }
+        toast({
+            title: "Payment Gateway Coming Soon",
+            description: "We are finalizing our payment integration. To upgrade your plan, please contact support.",
+            duration: 5000,
+        });
     }
 
     const currentPlan = organization?.subscriptionPlan || 'free';
@@ -146,9 +120,9 @@ export default function BillingPage() {
                                     className="w-full" 
                                     variant={plan.id !== 'free' ? 'default' : 'outline'}
                                     onClick={() => handlePlanChange(plan.id as 'startup' | 'pro')}
-                                    disabled={isSubmitting || plan.id === 'free'}
+                                    disabled={plan.id === 'free'}
                                 >
-                                    {isRedirecting && plan.id !== 'free' ? 'Redirecting...' : 'Switch Plan'}
+                                    Switch Plan
                                 </Button>
                             )}
                         </CardFooter>
