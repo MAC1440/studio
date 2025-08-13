@@ -118,10 +118,12 @@ export default function BillingPage() {
                     requestedPlan: selectedPlan.name,
                     price: selectedPlan.price
                 },
+                status: 'open',
+                createdAt: serverTimestamp(),
             };
     
-            // The createSupportTicket is a server action, so it's fine.
-            await createSupportTicket(newTicket);
+            // Save to Firestore (client SDK — sends current user auth automatically)
+            await addDoc(collection(db, 'supportTickets'), newTicket);
     
             toast({
                 title: "Request Submitted",
