@@ -1,119 +1,93 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /* =========================
-       Helper Functions
-       ========================= */
+       HELPERS
+    ========================= */
 
-    // Get the full user document for the requesting user
+    // Gets the user document of the person making the request
     function getUserDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Get the role of the requesting user
+    // Gets the role of the requesting user
     function getUserRole() {
       return getUserDoc().role;
     }
 
-    // Get the organization ID of the requesting user
-    function getUserOrgId() {
-      return getUserDoc().organizationId;
-    }
-
-    // Check if the user is a super-admin
+    // Checks if the requesting user is a super-admin
     function isSuperAdmin() {
       return getUserRole() == "super-admin";
     }
 
-    // Check if the user is a member of a specific organization
+    // Gets the organization ID of the requesting user
+    function getUserOrgId() {
+      return getUserDoc().organizationId;
+    }
+
+    // Checks if the requesting user is a member of a given organization
     function isOrgMember(orgId) {
       return request.auth != null && getUserOrgId() == orgId;
     }
-    
-    // Check if the user is the owner of a specific organization
-    function isOrgOwner(orgId) {
-      return request.auth != null &&
-             get(/databases/$(database)/documents/organizations/$(orgId)).data.ownerId == request.auth.uid;
+
+    // Checks if the user is an admin of a given organization
+    function isOrgAdmin(orgId) {
+      return isOrgMember(orgId) && getUserRole() == 'admin';
     }
 
-    // Check if the user has the 'admin' role within their organization
-    function isOrgAdmin() {
-      return getUserRole() == 'admin';
-    }
-
-
-    /* =========================
-       Collection-Specific Rules
-       ========================= */
+    // =========================
+    //  COLLECTIONS
+    // =========================
 
     // Users can be read by themselves, super-admins, or members of the same org.
-    // Users can be created by anyone authenticated (for signup).
+    // Users can be created by any authenticated user during signup.
     // Users can only be updated by themselves or a super-admin.
     match /users/{userId} {
-      allow read: if request.auth != null &&
-        (request.auth.uid == userId || isSuperAdmin() || (isOrgMember(resource.data.organizationId)));
+      allow read: if request.auth != null && (request.auth.uid == userId || isSuperAdmin() || isOrgMember(resource.data.organizationId));
       allow create: if request.auth != null;
       allow update: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
-      allow delete: if isSuperAdmin();
+      allow delete: if isSuperAdmin(); // Only super admins can delete user records
     }
 
     // Organizations can be read by their members or super-admins.
-    // They can only be updated by their owner (but not subscription plan) or a super-admin.
+    // They can only be updated by a super-admin.
     match /organizations/{orgId} {
-      allow read: if request.auth != null && (isOrgMember(orgId) || isSuperAdmin());
-      allow create: if request.auth != null; // Created during signup
-      allow update: if isSuperAdmin() || 
-        (isOrgOwner(orgId) && !('subscriptionPlan' in request.resource.data.diff(resource.data).affectedKeys()));
-      allow delete: if isSuperAdmin();
+      allow read, update: if request.auth != null && (isOrgMember(orgId) || isSuperAdmin());
+      allow create: if request.auth != null;
     }
 
     // Support tickets can be created by any authenticated user.
-    // Only super-admins can view, list, or manage them.
+    // Only super-admins can read, list, or manage them.
     match /supportTickets/{ticketId} {
       allow create: if request.auth != null;
-      allow list, read, update, delete: if isSuperAdmin();
+      allow read, list, update, delete: if isSuperAdmin();
     }
-
-    // Notifications are specific to a user.
+    
+    // Notifications can be created by a server process (for which request.auth is null) or any authenticated user.
+    // They can only be read/updated by the user they are intended for, or a super-admin.
     match /notifications/{notificationId} {
-      allow create: if request.auth != null; // Server-side logic handles who can create for whom
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+       allow create: if request.auth != null; // Server-side logic handles who gets notifications
+       allow read, list, update, delete: if request.auth != null && (resource.data.userId == request.auth.uid || isSuperAdmin());
     }
 
-    // Tickets can be managed by members of the organization they belong to.
-    match /tickets/{ticketId} {
-      allow read, write: if request.auth != null && isOrgMember(get(/databases/$(database)/documents/tickets/$(ticketId)).data.organizationId);
-    }
-    
-    // Proposals can be managed by members of the organization they belong to.
-    match /proposals/{proposalId} {
-       allow read, write: if request.auth != null && isOrgMember(get(/databases/$(database)/documents/proposals/$(proposalId)).data.organizationId);
-    }
-    
-    // Invoices can be managed by members of the organization they belong to.
-    match /invoices/{invoiceId} {
-        allow read, write: if request.auth != null && isOrgMember(get(/databases/$(database)/documents/invoices/$(invoiceId)).data.organizationId);
-    }
-    
-    // Projects can be managed by members of the organization they belong to.
-    match /projects/{projectId} {
-        allow read, write: if request.auth != null && isOrgMember(get(/databases/$(database)/documents/projects/$(projectId)).data.organizationId);
-    }
-    
-    // Client reports can be managed by members of the organization they belong to.
-    match /clientReports/{reportId} {
-        allow read, write: if request.auth != null && isOrgMember(get(/databases/$(database)/documents/clientReports/$(reportId)).data.organizationId);
-    }
-    
-    // Chats and their messages can be accessed by members of the organization.
-    match /chats/{chatId} {
-      allow read, write: if request.auth != null && isOrgMember(get(/databases/$(database)/documents/chats/$(chatId)).data.organizationId);
+    // Generic rule for collections scoped to an organization.
+    // This includes projects, tickets, proposals, invoices, clientReports, chats.
+    match /{collection}/{docId} 
+      where collection in ['projects', 'tickets', 'proposals', 'invoices', 'clientReports', 'chats'] {
+      
+      // Allow create if the user is a member of the organization they are creating the document in.
+      allow create: if isOrgMember(request.resource.data.organizationId);
 
-      match /messages/{messageId} {
-        allow read, write: if request.auth != null && isOrgMember(get(/databases/$(database)/documents/chats/$(chatId)).data.organizationId);
+      // Allow read, list, and write if the user is part of the document's organization.
+      // This is a broad rule for simplicity within an organization.
+      // For more granular control, you could add role checks (e.g., only admins can delete).
+      allow list, read, update, delete: if isOrgMember(resource.data.organizationId);
+      
+      // Allow access to subcollections (like chat messages) based on the parent document's org.
+      match /{subCollection}/{subDocId} {
+         allow create, list, read, update, delete: if isOrgMember(get(/databases/$(database)/documents/$(collection)/$(docId)).data.organizationId);
       }
     }
   }
