@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck, MessageSquare, CheckCheck } from 'lucide-react';
+import { User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck, MessageSquare, CheckCheck, Crown } from 'lucide-react';
 import Image from 'next/image';
 import {
   DropdownMenu,
@@ -352,13 +352,14 @@ function HeaderContent() {
   const getHomeLink = () => {
     if (!userData) return '/';
     switch (userData.role) {
+        case 'super-admin': return '/super-admin';
         case 'admin': return '/admin';
         case 'client': return '/client';
         default: return '/board';
     }
   }
   
-  const isAdminSection = pathname.startsWith('/admin');
+  const isAdminSection = pathname.startsWith('/admin') || pathname.startsWith('/super-admin');
 
   return (
     <header className="border-b border-border/60">
@@ -400,6 +401,14 @@ function HeaderContent() {
                       <span>Profile</span>
                     </Link>
                   </DropdownMenuItem>
+                   {userData?.role === 'super-admin' && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/super-admin">
+                        <Crown className="mr-2 h-4 w-4" />
+                        <span>Super Admin</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   {userData?.role === 'admin' && (
                     <DropdownMenuItem asChild>
                       <Link href="/admin">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
@@ -7,7 +8,7 @@ import { Skeleton } from '../ui/skeleton';
 
 type AuthGuardProps = {
   children: React.ReactNode;
-  role?: 'admin' | 'user' | 'client';
+  role?: 'admin' | 'user' | 'client' | 'super-admin';
 };
 
 export default function AuthGuard({ children, role }: AuthGuardProps) {
@@ -22,7 +23,8 @@ export default function AuthGuard({ children, role }: AuthGuardProps) {
       } else if (role && userData?.role !== role) {
         // Logged in, but does not have the required role
         // For simplicity, redirecting to home. In a real app, you might show an "Access Denied" page.
-        if(userData?.role === 'admin') router.push('/admin');
+        if (userData?.role === 'super-admin') router.push('/super-admin');
+        else if (userData?.role === 'admin') router.push('/admin');
         else if (userData?.role === 'client') router.push('/client');
         else router.push('/board');
       }

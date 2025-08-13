@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './config';
-import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, orderBy } from 'firebase/firestore';
 import type { SupportTicket } from '@/lib/types';
 
 type CreateSupportTicketArgs = Omit<SupportTicket, 'id' | 'createdAt' | 'status'>;
@@ -23,4 +23,15 @@ export async function createSupportTicket(args: CreateSupportTicketArgs): Promis
     await addDoc(supportTicketsCol, newTicket);
     
     // In the future, you could also add a notification for the super admin here.
+}
+
+
+export async function getAllSupportTickets(): Promise<SupportTicket[]> {
+    const supportTicketsCol = collection(db, 'supportTickets');
+    const q = query(supportTicketsCol, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    } as SupportTicket));
 }

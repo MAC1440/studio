@@ -51,8 +51,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Existing user
       let userDataFromDb = userDocSnap.data() as User;
       
-      // Data migration for users without an organizationId
-      if (!userDataFromDb.organizationId) {
+      // Data migration for users without an organizationId, but not for super-admin
+      if (!userDataFromDb.organizationId && userDataFromDb.role !== 'super-admin') {
         console.log(`User ${firebaseUser.uid} is missing an organization. Creating one now.`);
         const newOrg = await createOrganization({ name: `${userDataFromDb.name}'s Workspace`, ownerId: firebaseUser.uid });
         await updateUserProfile(firebaseUser.uid, { organizationId: newOrg.id });

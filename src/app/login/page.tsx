@@ -252,7 +252,9 @@ function AuthPage() {
   useEffect(() => {
     if (!loading) {
       if (user && userData) {
-        if (userData.role === 'admin') {
+        if (userData.role === 'super-admin') {
+            router.replace('/super-admin');
+        } else if (userData.role === 'admin') {
             router.replace('/admin');
         } else if (userData.role === 'client') {
             router.replace('/client');
@@ -301,5 +303,3 @@ function AuthPage() {
 }
 
 export default AuthPage;
-
-    
