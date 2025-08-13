@@ -98,6 +98,9 @@ export async function forgotPassword(email: string): Promise<void> {
 export async function deleteUser(userId: string): Promise<void> {
     const userRef = doc(db, 'users', userId);
     await deleteDoc(userRef);
+    // Note: This does NOT delete the user from Firebase Authentication.
+    // For a production app, you would want to use a Cloud Function to do that
+    // to ensure you don't leave orphaned auth accounts.
 }
 
 export async function updateUserProfile(userId: string, updates: Partial<User>): Promise<void> {

@@ -55,7 +55,7 @@ function EditUserDialog({ user, onUserUpdated, children }: { user: User | null, 
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'admin' | 'user' | 'client'>('user');
+  const [role, setRole] = useState<'admin' | 'user' | 'client' | 'super-admin'>('user');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -386,14 +386,14 @@ export default function UsersPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.role === 'admin' ? 'destructive' : 'default'}>
+                    <Badge variant={user.role === 'admin' || user.role === 'super-admin' ? 'destructive' : 'default'}>
                       {user.role}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                        <EditUserDialog user={user} onUserUpdated={fetchUsers}>
-                         <Button variant="ghost" size="sm">
+                         <Button variant="ghost" size="sm" disabled={user.role === 'super-admin'}>
                           <Edit className="mr-2 h-4 w-4"/>
                           Edit
                          </Button>
@@ -403,7 +403,7 @@ export default function UsersPage() {
                            variant="destructive"
                            size="sm"
                            onClick={() => setUserToDelete(user)}
-                           disabled={user.id === currentUser?.uid}
+                           disabled={user.id === currentUser?.uid || user.role === 'super-admin'}
                          >
                            <Trash2 className="mr-2 h-4 w-4" />
                            Delete

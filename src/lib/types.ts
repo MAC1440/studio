@@ -17,7 +17,7 @@ export type User = {
   name: string;
   email: string;
   avatarUrl?: string;
-  role: 'admin' | 'user' | 'client';
+  role: 'admin' | 'user' | 'client' | 'super-admin';
   organizationId: string;
 };
 
@@ -92,6 +92,27 @@ export type ClientReport = {
     createdAt: Timestamp;
     updatedAt: Timestamp;
 }
+
+export type SupportTicket = {
+    id: string;
+    requester: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    organization: {
+        id: string;
+        name: string;
+    };
+    requestDetails: {
+        currentPlan: string;
+        requestedPlan: string;
+        price: string;
+    };
+    status: 'open' | 'in-progress' | 'closed';
+    createdAt: Timestamp;
+};
+
 
 export type ChatMessage = {
     id: string;
