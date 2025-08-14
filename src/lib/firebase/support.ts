@@ -4,7 +4,26 @@
 import { db } from './config';
 import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import type { SupportTicket } from '@/lib/types';
-import { getAuth } from 'firebase/auth';
+import * as admin from 'firebase-admin';
+
+// Initialize the admin app if it hasn't been already
+if (!admin.apps.length) {
+    try {
+        admin.initializeApp({
+            credential: admin.credential.cert({
+                projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+                clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+                privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY
+                    ? process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n')
+                    : undefined,
+            }),
+        });
+    } catch (error) {
+        console.error('Firebase admin initialization error', error);
+    }
+}
+
+const adminDb = admin.apps.length ? admin.firestore() : null;
 
 type CreateSupportTicketArgs = Omit<SupportTicket, 'id' | 'createdAt' | 'status'>;
 
@@ -32,14 +51,28 @@ export async function createSupportTicket(args: CreateSupportTicketArgs): Promis
 export async function getAllSupportTickets(): Promise<SupportTicket[]> {
     // This function runs on the server. The AuthGuard on the page component
     // ensures only super-admins can even trigger this server-side execution.
-    // Therefore, we don't need to re-check roles here.
+    // We use the Admin SDK to bypass security rules and fetch all tickets.
     
-    const supportTicketsCol = collection(db, 'supportTickets');
-    const q = query(supportTicketsCol, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
+    if (!adminDb) {
+        throw new Error("Firebase Admin SDK is not initialized. Cannot fetch support tickets.");
+    }
+    
+    const supportTicketsCol = adminDb.collection('supportTickets');
+    const q = supportTicketsCol.orderBy('createdAt', 'desc');
+    const snapshot = await q.get();
 
-    return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    } as SupportTicket));
+    if (snapshot.empty) {
+        return [];
+    }
+    
+    // The data from the admin SDK needs to be manually processed to match the client-side types
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            ...data,
+            id: doc.id,
+            // Convert Admin SDK Timestamps to a format that can be serialized
+            createdAt: (data.createdAt as admin.firestore.Timestamp).toDate().toISOString(),
+        } as unknown as SupportTicket; // We cast here after transformation
+    });
 }

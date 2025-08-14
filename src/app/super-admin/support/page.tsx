@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -22,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getAllSupportTickets } from "@/lib/firebase/support";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LifeBuoy, Search } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
 export default function SupportPage() {
@@ -36,17 +37,30 @@ export default function SupportPage() {
   const { toast } = useToast();
 
   const fetchData = async () => {
-    console.log("fetchedTickets");
     setIsLoading(true);
-    const fetchedTickets = await getAllSupportTickets()
-      .then((data) => {
-        setTickets(data);
-      })
-      .catch(console.log)
-      .finally(() => {
+    try {
+        const fetchedTickets = await getAllSupportTickets();
+        
+        // The server function now returns dates as ISO strings, so we need to parse them back to Date objects
+        const processedTickets = fetchedTickets.map(ticket => ({
+            ...ticket,
+            createdAt: typeof ticket.createdAt === 'string' ? parseISO(ticket.createdAt) : ticket.createdAt,
+        })) as unknown as SupportTicket[]; // We cast here after we've processed the date.
+        
+        setTickets(processedTickets);
+
+    } catch (error: any) {
+        console.error("Failed to fetch support tickets:", error);
+        toast({
+            title: "Failed to load tickets",
+            description: error.message || "Could not retrieve support tickets from the server.",
+            variant: "destructive"
+        });
+    } finally {
         setIsLoading(false);
-      });
+    }
   };
+
 
   useEffect(() => {
     fetchData();
@@ -181,7 +195,7 @@ export default function SupportPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {format(ticket.createdAt.toDate(), "MMM d, yyyy - p")}
+                    {format(ticket.createdAt as Date, "MMM d, yyyy - p")}
                   </TableCell>
                 </TableRow>
               ))
