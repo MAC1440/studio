@@ -4,6 +4,7 @@
 import { db } from './config';
 import { collection, addDoc, serverTimestamp, Timestamp, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import type { SupportTicket } from '@/lib/types';
+import { getAuth } from 'firebase/auth';
 
 type CreateSupportTicketArgs = Omit<SupportTicket, 'id' | 'createdAt' | 'status'>;
 
@@ -29,9 +30,14 @@ export async function createSupportTicket(args: CreateSupportTicketArgs): Promis
 
 
 export async function getAllSupportTickets(): Promise<SupportTicket[]> {
+    // This function runs on the server. The AuthGuard on the page component
+    // ensures only super-admins can even trigger this server-side execution.
+    // Therefore, we don't need to re-check roles here.
+    
     const supportTicketsCol = collection(db, 'supportTickets');
     const q = query(supportTicketsCol, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
+
     return snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
