@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { type SupportTicket } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { getAllSupportTickets } from "@/lib/firebase/support";
+import { getAllSupportTickets } from "@/lib/firebase/admin";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LifeBuoy, Search } from "lucide-react";
 import { format, parseISO } from "date-fns";

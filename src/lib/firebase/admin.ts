@@ -1,5 +1,7 @@
 // src/lib/firebase/admin.ts
 import * as admin from 'firebase-admin';
+import type { SupportTicket } from '@/lib/types';
+import type { firestore as adminFirestore } from 'firebase-admin';
 
 // Check if the required environment variables are set
 const hasRequiredEnvVars =
@@ -33,3 +35,34 @@ if (!admin.apps.length) {
 
 // Export auth only if the app was initialized
 export const adminAuth = admin.apps.length ? admin.auth() : null;
+const adminDb = admin.apps.length ? admin.firestore() : null;
+
+
+export async function getAllSupportTickets(): Promise<SupportTicket[]> {
+    // This function runs on the server. The AuthGuard on the page component
+    // ensures only super-admins can even trigger this server-side execution.
+    // We use the Admin SDK to bypass security rules and fetch all tickets.
+    
+    if (!adminDb) {
+        throw new Error("Firebase Admin SDK is not initialized. Cannot fetch support tickets.");
+    }
+    
+    const supportTicketsCol = adminDb.collection('supportTickets');
+    const q = supportTicketsCol.orderBy('createdAt', 'desc');
+    const snapshot = await q.get();
+
+    if (snapshot.empty) {
+        return [];
+    }
+    
+    // The data from the admin SDK needs to be manually processed to match the client-side types
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            ...data,
+            id: doc.id,
+            // Convert Admin SDK Timestamps to a format that can be serialized
+            createdAt: (data.createdAt as adminFirestore.Timestamp).toDate().toISOString(),
+        } as unknown as SupportTicket; // We cast here after transformation
+    });
+}
