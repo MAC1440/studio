@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff } from 'lucide-react';
-import { forgotPassword, createUser } from '@/lib/firebase/users';
+import { forgotPassword } from '@/lib/firebase/users';
+import { createUser } from '@/lib/firebase/admin'; // Corrected import
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import darkLogo from '../../../public/logos/brand-dark.png';

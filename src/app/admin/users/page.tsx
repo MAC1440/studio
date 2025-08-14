@@ -44,7 +44,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { createUser, getUsers, deleteUser, updateUserProfile } from '@/lib/firebase/users';
+import { getUsers, deleteUser, updateUserProfile } from '@/lib/firebase/users';
+import { createUser } from '@/lib/firebase/admin'; // Corrected import
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users as UsersIcon, Trash2, Edit, PlusCircle, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';

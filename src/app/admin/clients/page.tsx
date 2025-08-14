@@ -37,7 +37,8 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { createUser, getUsers, deleteUser } from '@/lib/firebase/users';
+import { getUsers, deleteUser } from '@/lib/firebase/users';
+import { createUser } from '@/lib/firebase/admin'; // Corrected import
 import { Skeleton } from '@/components/ui/skeleton';
 import { Briefcase, Trash2, Send, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -88,12 +89,10 @@ export default function ClientsPage() {
     const formData = new FormData(form);
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
-    // Auto-generate a random password for clients, as it's required but they will set their own.
-    const password = Math.random().toString(36).slice(-8);
-
+    
     if (name && email) {
       try {
-        await createUser({ name, email, password, role: 'client', organizationId: userData.organizationId });
+        await createUser({ name, email, role: 'client', organizationId: userData.organizationId });
         await fetchClients();
         toast({
           title: "Client Invited",
