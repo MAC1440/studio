@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getDoc, doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { type Organization, type User } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -88,42 +88,28 @@ export default function BillingPage() {
     }, [userData?.organizationId]);
 
     const handlePlanChangeRequest = async () => {
-        if (!user || !organization || !selectedPlan) return;
+        if (!user || !organization || !selectedPlan || !userData) return;
     
         setIsSubmitting(true);
     
         try {
-            // Fetch organization owner's data
-            const ownerRef = doc(db, 'users', organization.ownerId);
-            const ownerSnap = await getDoc(ownerRef);
-    
-            if (!ownerSnap.exists()) {
-                throw new Error("Could not find the organization owner's account.");
-            }
-            const ownerData = ownerSnap.data() as User;
-    
-            // Prepare the new ticket
-            const newTicket = {
-                requester: {
-                    id: ownerData.id,
-                    name: ownerData.name,
-                    email: ownerData.email || 'N/A',
+            await createSupportTicket({
+                 requester: {
+                    id: userData.id,
+                    name: userData.name,
+                    email: userData.email || 'N/A',
                 },
                 organization: {
                     id: organization.id,
-                    name: organization.name
+                    name: organization.name,
+                    ownerId: organization.ownerId
                 },
                 requestDetails: {
                     currentPlan: organization.subscriptionPlan,
                     requestedPlan: selectedPlan.name,
                     price: selectedPlan.price
                 },
-                status: 'open',
-                createdAt: serverTimestamp(),
-            };
-    
-            // Save to Firestore (client SDK — sends current user auth automatically)
-            await addDoc(collection(db, 'supportTickets'), newTicket);
+            });
     
             toast({
                 title: "Request Submitted",
@@ -240,3 +226,4 @@ export default function BillingPage() {
         </AlertDialog>
     );
 }
+

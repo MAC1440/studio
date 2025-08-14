@@ -18,7 +18,7 @@ export type User = {
   email: string;
   avatarUrl?: string;
   role: 'admin' | 'user' | 'client' | 'super-admin';
-  organizationId: string;
+  organizationId?: string; // Optional for super-admin
 };
 
 // Renamed from User to avoid conflict with Firebase's User type
@@ -103,6 +103,7 @@ export type SupportTicket = {
     organization: {
         id: string;
         name: string;
+        ownerId: string;
     };
     requestDetails: {
         currentPlan: string;
@@ -195,3 +196,4 @@ export type Notification = {
     projectId?: string;
     projectName?: string;
 }
+
