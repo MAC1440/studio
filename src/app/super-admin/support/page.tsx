@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/select";
 import { type SupportTicket } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { getAllSupportTickets } from "@/lib/firebase/super-admin-actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LifeBuoy, Search } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -36,35 +35,37 @@ export default function SupportPage() {
 
   const { toast } = useToast();
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-        const fetchedTickets = await getAllSupportTickets();
-        
-        // The server function now returns dates as ISO strings, so we need to parse them back to Date objects
-        const processedTickets = fetchedTickets.map(ticket => ({
-            ...ticket,
-            createdAt: typeof ticket.createdAt === 'string' ? parseISO(ticket.createdAt) : ticket.createdAt,
-        })) as unknown as SupportTicket[]; // We cast here after we've processed the date.
-        
-        setTickets(processedTickets);
-
-    } catch (error: any) {
-        console.error("Failed to fetch support tickets:", error);
-        toast({
-            title: "Failed to load tickets",
-            description: error.message || "Could not retrieve support tickets from the server.",
-            variant: "destructive"
-        });
-    } finally {
-        setIsLoading(false);
-    }
-  };
-
-
   useEffect(() => {
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/support-tickets');
+            if (!response.ok) {
+                throw new Error('Failed to fetch support tickets');
+            }
+            const fetchedTickets = await response.json();
+            
+            // The server function now returns dates as ISO strings, so we need to parse them back to Date objects
+            const processedTickets = fetchedTickets.map((ticket: any) => ({
+                ...ticket,
+                createdAt: typeof ticket.createdAt === 'string' ? parseISO(ticket.createdAt) : ticket.createdAt,
+            })) as unknown as SupportTicket[]; // We cast here after we've processed the date.
+            
+            setTickets(processedTickets);
+
+        } catch (error: any) {
+            console.error("Failed to fetch support tickets:", error);
+            toast({
+                title: "Failed to load tickets",
+                description: error.message || "Could not retrieve support tickets from the server.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
     fetchData();
-  }, []);
+  }, [toast]);
 
   const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {

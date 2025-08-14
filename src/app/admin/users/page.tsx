@@ -44,8 +44,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getUsers, deleteUser, updateUserProfile } from '@/lib/firebase/users';
-import { createUser } from '@/lib/firebase/admin'; // Corrected import
+import { getUsers, deleteUser, updateUserProfile, createUser } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users as UsersIcon, Trash2, Edit, PlusCircle, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -478,5 +477,3 @@ export default function UsersPage() {
     </AlertDialog>
   );
 }
-
-    

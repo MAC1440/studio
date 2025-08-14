@@ -37,8 +37,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { type User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getUsers, deleteUser } from '@/lib/firebase/users';
-import { createUser } from '@/lib/firebase/admin'; // Corrected import
+import { getUsers, deleteUser, createUser } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Briefcase, Trash2, Send, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
