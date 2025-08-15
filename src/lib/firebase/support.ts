@@ -65,3 +65,16 @@ export async function createSupportTicket(args: CreateSupportTicketArgs): Promis
         // This can be monitored and retried separately.
     }
 }
+
+/**
+ * Fetches all support tickets.
+ * This function is intended to be called from a server component or route.
+ */
+export async function getSupportTickets(): Promise<SupportTicket[]> {
+    const ticketsCol = collection(db, 'supportTickets');
+    const snapshot = await getDocs(ticketsCol);
+    if (snapshot.empty) {
+        return [];
+    }
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SupportTicket));
+}

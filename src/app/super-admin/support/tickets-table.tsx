@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { type SupportTicket } from "@/lib/types";
-import { Skeleton } from "@/components/ui/skeleton";
 import { LifeBuoy, Search } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +31,14 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
   >("all");
 
   const filteredTickets = useMemo(() => {
-    return tickets.filter((ticket) => {
+    // Ensure tickets are sorted by date before filtering and displaying
+    const sortedTickets = [...tickets].sort((a, b) => {
+        const dateA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0;
+        const dateB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0;
+        return dateB - dateA;
+    });
+
+    return sortedTickets.filter((ticket) => {
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch = searchLower
         ? ticket.requester.email.toLowerCase().includes(searchLower) ||
@@ -138,7 +144,7 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {format(new Date(ticket.createdAt.seconds * 1000), "MMM d, yyyy - p")}
+                    {ticket.createdAt?.seconds ? format(new Date(ticket.createdAt.seconds * 1000), "MMM d, yyyy - p") : 'N/A'}
                   </TableCell>
                 </TableRow>
               ))

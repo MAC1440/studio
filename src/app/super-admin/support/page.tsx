@@ -1,5 +1,5 @@
 
-import { getSupportTickets } from '@/lib/firebase/super-admin-actions';
+import { getSupportTickets } from '@/lib/firebase/support';
 import TicketsTable from './tickets-table';
 
 // This is now a Server Component
