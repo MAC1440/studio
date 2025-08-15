@@ -1,5 +1,4 @@
 
-
 import type { Timestamp } from 'firebase/firestore';
 
 export type OrganizationPlan = 'free' | 'startup' | 'pro';
