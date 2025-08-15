@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
 import { SupportTicket } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Timestamp } from 'firebase/firestore';
 
 export default function SupportPage() {
   const [initialTickets, setInitialTickets] = useState<SupportTicket[]>([])
@@ -14,10 +15,18 @@ export default function SupportPage() {
 
   useEffect(() => {
     getSupportTickets().then((rawTickets) => {
-      const tickets = rawTickets.map(ticket => ({
-        ...ticket,
-        createdAt: (ticket.createdAt as any).toDate().toISOString(),
-      }));
+      const tickets = rawTickets.map(ticket => {
+        let createdAtString: string;
+        if (ticket.createdAt instanceof Timestamp) {
+            createdAtString = ticket.createdAt.toDate().toISOString();
+        } else {
+            createdAtString = ticket.createdAt as string;
+        }
+        return {
+          ...ticket,
+          createdAt: createdAtString,
+        };
+      });
       setInitialTickets(tickets)
     }).finally(() => {
       setIsLoading(false)
