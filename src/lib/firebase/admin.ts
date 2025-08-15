@@ -5,21 +5,21 @@ import * as admin from 'firebase-admin';
 
 // Check if the required environment variables are set
 const hasRequiredEnvVars =
-  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
-  process.env.FIREBASE_ADMIN_CLIENT_EMAIL &&
-  process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+  process.env.FIREBASE_PROJECT_ID &&
+  process.env.FIREBASE_CLIENT_EMAIL &&
+  process.env.FIREBASE_PRIVATE_KEY;
 
 if (!admin.apps.length) {
   if (hasRequiredEnvVars) {
     try {
       admin.initializeApp({
         credential: admin.credential.cert({
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
           // The private key must be formatted correctly.
           // In your .env file, it should be a single line string with newlines represented as \\n
-          privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY
-            ? process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n')
+          privateKey: process.env.FIREBASE_PRIVATE_KEY
+            ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
             : undefined,
         }),
       });
@@ -28,7 +28,7 @@ if (!admin.apps.length) {
     }
   } else {
     console.warn(
-      'Firebase admin initialization skipped. Missing one or more required environment variables: NEXT_PUBLIC_FIREBASE_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY.'
+      'Firebase admin initialization skipped. Missing one or more required environment variables: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY.'
     );
   }
 }
