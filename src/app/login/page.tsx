@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff } from 'lucide-react';
-import { forgotPassword, createUser, completeInvitation } from '@/lib/firebase/users';
+import { forgotPassword, createUser } from '@/lib/firebase/users';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import darkLogo from '../../../public/logos/brand-dark.png';
@@ -18,7 +18,6 @@ import lightLogo from '../../../public/logos/brand_light.png';
 
 function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
-  const [isInviteFlow, setIsInviteFlow] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -28,29 +27,13 @@ function AuthForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
-
-   useEffect(() => {
-    // This handles the case where a user is invited and clicks the email link.
-    const inviteEmail = searchParams.get('email');
-    if (inviteEmail) {
-      setEmail(inviteEmail);
-      setIsLogin(false); // Switch to sign-up view
-      setIsInviteFlow(true); // Enter the guided invite completion flow
-      toast({
-        title: "Welcome! Please set a password.",
-        description: "Create a password to complete your account setup.",
-      });
-    }
-  }, [searchParams, toast]);
 
   const handleAuthAction = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!isLogin) { // Covers both Sign Up and Invite Completion
+    if (!isLogin) {
       if (password !== confirmPassword) {
         setError("Passwords do not match.");
         return;
@@ -66,22 +49,13 @@ function AuthForm() {
     try {
       if (isLogin) {
         await login(email, password);
-        // Redirect logic is now handled in the main Home component's useEffect
       } else {
-        if (isInviteFlow) {
-          // Complete the invitation process for a user who clicked the email link.
-          await completeInvitation(email, password);
-        } else {
-          // Standard sign up for a new admin user creating their own workspace.
-          if (!name) {
-              setError("Name is required for sign up.");
-              setIsLoading(false);
-              return;
-          }
-          await createUser({ name, email, password, role: 'admin' });
+        if (!name) {
+            setError("Name is required for sign up.");
+            setIsLoading(false);
+            return;
         }
-        
-        // After either sign-up flow, log the user in.
+        await createUser({ name, email, password, role: 'admin' });
         await login(email, password);
         
         toast({
@@ -133,7 +107,7 @@ function AuthForm() {
         title: "Password Reset Email Sent",
         description: "Please check your inbox for instructions to reset your password.",
       });
-    } catch (error: any) {
+    } catch (error: any) => {
       setError(error.message);
       toast({
         title: "Error",
@@ -153,21 +127,17 @@ function AuthForm() {
   }
   
   const getTitle = () => {
-    if (isInviteFlow) return 'Complete Your Account Setup';
     return isLogin ? 'Login' : 'Create an Account';
   }
 
   const getDescription = () => {
-    if (isInviteFlow) return 'Create a password to securely access your workspace.';
     return isLogin ? 'Enter your email below to login to your account.' : 'Enter your details to create a new workspace.';
   }
 
   const getButtonText = () => {
       if (isLoading) {
-          if (isInviteFlow) return 'Setting up...';
           return isLogin ? 'Signing In...' : 'Creating Account...';
       }
-      if (isInviteFlow) return 'Set Password & Login';
       return isLogin ? 'Sign in' : 'Sign up';
   }
 
@@ -184,7 +154,7 @@ function AuthForm() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          {!isLogin && !isInviteFlow && (
+          {!isLogin && (
                <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input
@@ -207,7 +177,7 @@ function AuthForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading || isInviteFlow}
+              disabled={isLoading}
             />
           </div>
           <div className="grid gap-2">
@@ -268,12 +238,12 @@ function AuthForm() {
           <Button type="submit" className="w-full" disabled={isLoading}>
             {getButtonText()}
           </Button>
-           {!isInviteFlow && <p className="text-sm text-center text-muted-foreground">
+           <p className="text-sm text-center text-muted-foreground">
               {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
               <Button type="button" variant="link" className="p-0 h-auto" onClick={toggleForm}>
                    {isLogin ? 'Sign up' : 'Login'}
               </Button>
-          </p>}
+          </p>
         </CardFooter>
       </form>
     </Card>
