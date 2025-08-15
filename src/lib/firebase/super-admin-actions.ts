@@ -1,17 +1,13 @@
 
 'use server';
 
-import { adminDb } from '@/lib/firebase/admin';
+import { initializeFirebaseAdmin } from '@/lib/firebase/admin';
 import { type SupportTicket } from '@/lib/types';
 import type { firestore as adminFirestore } from 'firebase-admin';
 
 export async function getSupportTickets(): Promise<SupportTicket[]> {
-    if (!adminDb) {
-        console.error('Firebase Admin SDK is not initialized');
-        return [];
-    }
-    
     try {
+        const { adminDb } = initializeFirebaseAdmin();
         const supportTicketsCol = adminDb.collection('supportTickets');
         const snapshot = await supportTicketsCol.orderBy('createdAt', 'desc').get();
 
