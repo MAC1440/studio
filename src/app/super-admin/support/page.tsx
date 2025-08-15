@@ -1,17 +1,30 @@
 
+'use client'
+
 import { getSupportTickets } from '@/lib/firebase/support';
 import TicketsTable from './tickets-table';
 import { Badge } from '@/components/ui/badge';
+import { useEffect, useState } from 'react';
+import { SupportTicket } from '@/lib/types';
 
 // This is now a Server Component
-export default async function SupportPage() {
-  const rawTickets = await getSupportTickets();
+export default function SupportPage() {
+  const [initialTickets, setInitialTickets] = useState<SupportTicket[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Manually serialize the Timestamp to a string before passing to the client component
-  const initialTickets = rawTickets.map(ticket => ({
-    ...ticket,
-    createdAt: (ticket.createdAt as any).toDate().toISOString(),
-  }));
+  useEffect(() => {
+    getSupportTickets().then((rawTickets) => {
+      const tickets = rawTickets.map(ticket => ({
+        ...ticket,
+        createdAt: (ticket.createdAt as any).toDate().toISOString(),
+      }));
+      setInitialTickets(tickets)
+    }).finally(() => {
+      setIsLoading(false)
+    })
+
+  }, [])
+
 
   const openTicketsCount = initialTickets.filter(ticket => ticket.status === 'open').length;
 

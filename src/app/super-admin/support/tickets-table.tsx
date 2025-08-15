@@ -292,7 +292,8 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
             <SelectItem value="closed">Closed</SelectItem>
           </SelectContent>
         </Select>
-        <div className="w-full md:w-auto md:ml-auto">
+      </div>
+        <div className="w-full md:w-auto md:ml-auto my-3">
             <AlertDialogTrigger asChild>
                 <Button 
                     variant="outline" 
@@ -304,7 +305,6 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
                 </Button>
             </AlertDialogTrigger>
         </div>
-      </div>
 
       <div className="border rounded-lg">
         <div className="flex flex-col">
