@@ -9,6 +9,7 @@ import { getAllOrganizations } from '@/lib/firebase/organizations';
 import { getAllUsers } from '@/lib/firebase/users';
 import { getSupportTickets } from '@/lib/firebase/support';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Timestamp } from 'firebase/firestore';
 
 
 export default function SuperAdminDashboard() {
@@ -27,11 +28,18 @@ export default function SuperAdminDashboard() {
                 getSupportTickets(),
             ]);
 
-            const tickets = rawTickets.map(ticket => ({
-                ...ticket,
-                // Convert timestamp to string to prevent hydration errors
-                createdAt: (ticket.createdAt as any).toDate().toISOString(), 
-            }));
+            const tickets = rawTickets.map(ticket => {
+                let createdAtString: string;
+                if (ticket.createdAt instanceof Timestamp) {
+                    createdAtString = ticket.createdAt.toDate().toISOString();
+                } else {
+                    createdAtString = ticket.createdAt as string;
+                }
+                return {
+                    ...ticket,
+                    createdAt: createdAtString,
+                };
+            });
 
             setOrganizations(orgs);
             setUsers(allUsers);
