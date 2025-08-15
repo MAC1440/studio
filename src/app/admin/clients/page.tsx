@@ -49,7 +49,9 @@ export default function ClientsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const { toast } = useToast();
-  const { user: currentUser, userData } = useAuth();
+  const { user: currentUser, userData, organization } = useAuth();
+  
+  const isPaidPlan = organization?.subscriptionPlan === 'startup' || organization?.subscriptionPlan === 'pro';
 
   const fetchClients = async () => {
     if (!userData?.organizationId) return;
@@ -222,12 +224,14 @@ export default function ClientsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                           <Link href={`/admin/invoices/create?clientId=${client.id}`}>
-                                <Send className="mr-2 h-4 w-4"/>
-                                Send Invoice
-                           </Link>
-                        </Button>
+                        {isPaidPlan && (
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/admin/invoices/create?clientId=${client.id}`}>
+                                  <Send className="mr-2 h-4 w-4"/>
+                                  Send Invoice
+                            </Link>
+                          </Button>
+                        )}
                        <AlertDialogTrigger asChild>
                          <Button
                            variant="destructive"

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Calendar as CalendarIcon, DollarSign, PlusCircle, Trash2, ArrowLeft } from 'lucide-react';
+import { Calendar as CalendarIcon, DollarSign, PlusCircle, Trash2, ArrowLeft, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { createInvoice } from '@/lib/firebase/invoices';
@@ -59,7 +59,7 @@ export default function CreateInvoicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { userData, users, projects: allProjects, activeProjectIds } = useAuth();
+  const { userData, users, projects: allProjects, activeProjectIds, organization } = useAuth();
 
   // Component State
   const [isLoading, setIsLoading] = useState(true);
@@ -84,6 +84,19 @@ export default function CreateInvoicePage() {
   }
 
   useEffect(() => {
+    // Plan guard
+    if (organization && organization.subscriptionPlan === 'free') {
+        toast({
+            title: "Upgrade to Access Invoices",
+            description: "Invoicing is a feature of our paid plans. Please upgrade to continue.",
+            variant: "destructive",
+            duration: 8000,
+            action: <Button asChild><Link href="/admin/billing"><Zap className="mr-2 h-4 w-4"/>Upgrade</Link></Button>
+        });
+        router.replace('/admin/billing');
+        return;
+    }
+
     if (!clientId) {
       toast({ title: "Client not specified", description: "Please select a client to create an invoice for.", variant: "destructive" });
       router.push('/admin/clients');
@@ -105,7 +118,7 @@ export default function CreateInvoicePage() {
     } finally {
         setIsLoading(false);
     }
-  }, [clientId, router, toast, userData?.organizationId, users, allProjects, activeProjectIds]);
+  }, [clientId, router, toast, userData?.organizationId, users, allProjects, activeProjectIds, organization]);
 
   const handleAddItem = () => {
     setItems([...items, { description: '', amount: 0 }]);
