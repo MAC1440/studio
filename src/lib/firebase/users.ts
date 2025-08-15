@@ -1,9 +1,11 @@
 
+
 import { auth, db } from './config';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, sendSignInLinkToEmail } from 'firebase/auth';
 import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where, getDoc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { createOrganization } from './organizations';
+import { sendInvitationEmail } from '../email';
 
 
 type CreateUserArgs = {
@@ -50,26 +52,13 @@ export async function createUser(args: CreateUserArgs): Promise<void> {
     }
     
     // This flow is for inviting a client or user.
-    // We create a user record in Firestore first, then send a password reset email.
-    // The user doesn't exist in Firebase Auth until they complete the password reset.
     if (!args.organizationId) {
         throw new Error("Organization ID is required to invite a user.");
     }
     
-    const tempUserId = doc(collection(db, 'users')).id; // Generate a temporary ID
-
-    const newUser: User = {
-        id: tempUserId, // We will update this later if needed, but it's a placeholder
-        name: args.name,
-        email: args.email,
-        role: args.role,
-        organizationId: args.organizationId,
-    };
-    // Note: We are creating a user document in Firestore *before* an auth user exists.
-    // This is okay for this flow. We'll need a way to link them up later if necessary,
-    // but for now, the login flow will find this document by email.
-    // A more robust solution might involve a temporary `invites` collection.
-    
+    // This part should be handled by a backend function for security reasons in a real app,
+    // but for simplicity here we'll assume an admin client can do this.
+    // In a real app, this would be a Cloud Function that uses the Admin SDK.
     const userQuery = query(collection(db, 'users'), where("email", "==", args.email));
     const existingUser = await getDocs(userQuery);
 
@@ -77,8 +66,23 @@ export async function createUser(args: CreateUserArgs): Promise<void> {
         throw new Error("User with this email already exists in the system.");
     }
 
-    await setDoc(doc(db, "users", tempUserId), newUser);
-    await forgotPassword(args.email);
+    // We can't create a user in Firebase Auth on the client side without a password.
+    // So, we send a password reset email. When the user clicks the link, they can set a password.
+    // After setting the password, they can log in.
+    
+    // Create the user document in Firestore first.
+    // We use a temporary ID for the document, which will be updated when the user first logs in
+    // via a cloud function or on the client side.
+    const tempId = doc(collection(db, 'temp_ids')).id;
+    await setDoc(doc(db, "users", tempId), {
+        id: tempId,
+        name: args.name,
+        email: args.email,
+        role: args.role,
+        organizationId: args.organizationId,
+    });
+    
+    await sendPasswordResetEmail(auth, args.email);
 }
 
 
