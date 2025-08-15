@@ -108,7 +108,7 @@ function TicketDetailModal({
             <div className="flex-1">
                 <h3 className="font-semibold">Request Details</h3>
                 <div className="text-muted-foreground">
-                    From <Badge variant="outline" className="capitalize">{ticket.requestDetails.currentPlan}</Badge> to <Badge variant="default" className="capitalize">{ticket.requestDetails.requestedPlan}</Badge> at {ticket.requestDetails.price}/month.
+                    From <Badge variant="outline" className="capitalize">{ticket.requestDetails.currentPlan}</Badge> to <Badge className="capitalize">{ticket.requestDetails.requestedPlan}</Badge> at {ticket.requestDetails.price}/month.
                 </div>
             </div>
         </div>
@@ -268,8 +268,8 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
 
   return (
     <AlertDialog>
-      <div className="flex items-center gap-4 mb-4">
-        <div className="relative w-full max-w-sm">
+      <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
+        <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by email, org, plan..."
@@ -282,7 +282,7 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as any)}
         >
-          <SelectTrigger className="w-full max-w-xs">
+          <SelectTrigger className="w-full sm:w-auto">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -295,7 +295,7 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
         <AlertDialogTrigger asChild>
             <Button 
                 variant="outline" 
-                className="ml-auto" 
+                className="w-full sm:w-auto sm:ml-auto" 
                 disabled={!hasClosedTickets || isBulkDeleting}
             >
                 <Trash2 className="mr-2 h-4 w-4" />

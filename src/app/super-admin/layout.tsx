@@ -73,7 +73,7 @@ export default function SuperAdminLayout({
                 </SidebarContent>
             </Sidebar>
             <SidebarInset>
-              <main className="flex-1 overflow-auto p-4 md:p-8 mb-[60px]">
+              <main className="flex-1 overflow-auto p-4 md:p-8">
                 {children}
               </main>
             </SidebarInset>
