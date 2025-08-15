@@ -18,16 +18,11 @@ type CreateSupportTicketArgs = Omit<SupportTicket, 'id' | 'createdAt' | 'status'
  */
 export async function createSupportTicket(args: CreateSupportTicketArgs): Promise<void> {
     const supportTicketsCol = collection(db, 'supportTickets');
-    const docRef = doc(supportTicketsCol); // Create a reference to get an ID first
-    
-    const newTicket: Omit<SupportTicket, 'id' | 'createdAt'> & { createdAt: Timestamp } = {
-        id: docRef.id, // Include the ID in the document data
+    const docRef = await addDoc(supportTicketsCol, {
         ...args,
         status: 'open',
-        createdAt: serverTimestamp() as Timestamp,
-    };
-
-    await setDoc(docRef, newTicket);
+        createdAt: serverTimestamp(),
+    });
 
     // Notify all super admins
     const superAdmins = await getSuperAdmins();
@@ -58,7 +53,7 @@ export async function getSupportTickets(): Promise<SupportTicket[]> {
         return {
             ...data,
             id: doc.id,
-            createdAt: createdAt.toDate().toISOString(),
+            createdAt: createdAt ? createdAt.toDate().toISOString() : new Date().toISOString(),
         } as SupportTicket;
     });
 }
