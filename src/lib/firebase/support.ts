@@ -65,29 +65,3 @@ export async function createSupportTicket(args: CreateSupportTicketArgs): Promis
         // This can be monitored and retried separately.
     }
 }
-
-/**
- * Fetches all support tickets.
- * This function is intended to be called from a secure, server-side context
- * where the user has already been verified as a super-admin.
- */
-export async function getSupportTickets(): Promise<SupportTicket[]> {
-    // This uses the standard CLIENT SDK, and relies on Firestore rules for security.
-    // The rules should ensure only super-admins can call this.
-    const ticketsCol = collection(db, 'supportTickets');
-    const q = query(ticketsCol);
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-        return [];
-    }
-
-    const tickets = snapshot.docs.map(doc => {
-        return {
-            id: doc.id,
-            ...doc.data(),
-        } as SupportTicket;
-    });
-
-    return tickets;
-}

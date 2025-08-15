@@ -1,4 +1,40 @@
-// src/lib/firebase/admin.ts
-// This file is intentionally left blank. 
-// The Admin SDK is powerful and should be used within specific, secure server-side environments like Cloud Functions or dedicated backend servers, not directly within Next.js API routes or Server Components in this project's architecture to avoid bundling issues.
-// For actions requiring admin privileges, a Cloud Function callable via HTTPS is the recommended approach.
+
+import * as admin from 'firebase-admin';
+
+// This function initializes the Firebase Admin SDK.
+// It ensures that we don't try to re-initialize it if it's already been set up.
+export function initializeFirebaseAdmin() {
+    // Check if the app is already initialized
+    if (admin.apps.length > 0) {
+        return {
+            adminDb: admin.firestore(),
+            adminAuth: admin.auth(),
+        };
+    }
+
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+    // Check for essential environment variables
+    if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !privateKey) {
+        throw new Error('Firebase admin environment variables are not set.');
+    }
+
+    try {
+        admin.initializeApp({
+            credential: admin.credential.cert({
+                projectId: process.env.FIREBASE_PROJECT_ID,
+                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                privateKey: privateKey,
+            }),
+        });
+    } catch (error: any) {
+        // Catch and re-throw a more informative error.
+        throw new Error(`Firebase admin initialization error "${error.message}"`);
+    }
+
+
+    return {
+        adminDb: admin.firestore(),
+        adminAuth: admin.auth(),
+    };
+}
