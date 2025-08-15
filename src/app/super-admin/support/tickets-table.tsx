@@ -79,9 +79,9 @@ function TicketDetailModal({ ticket, onClose, onStatusChange }: { ticket: Suppor
             <User className="h-5 w-5 mt-1 text-muted-foreground" />
             <div className="flex-1">
                 <h3 className="font-semibold">Request Details</h3>
-                <p className="text-muted-foreground">
+                <div className="text-muted-foreground">
                     From <Badge variant="outline" className="capitalize">{ticket.requestDetails.currentPlan}</Badge> to <Badge variant="default" className="capitalize">{ticket.requestDetails.requestedPlan}</Badge> at {ticket.requestDetails.price}/month.
-                </p>
+                </div>
             </div>
         </div>
         <div className="flex items-start gap-4">
