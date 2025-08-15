@@ -49,7 +49,14 @@ export default function SupportPage() {
             const processedTickets = fetchedTickets.map((ticket: any) => ({
                 ...ticket,
                 createdAt: typeof ticket.createdAt === 'string' ? parseISO(ticket.createdAt) : ticket.createdAt,
-            })) as unknown as SupportTicket[]; // We cast here after we've processed the date.
+            })) as unknown as SupportTicket[];
+            
+            // Sort on the client side after fetching
+            processedTickets.sort((a, b) => {
+                const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+                const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+                return dateB - dateA;
+            });
             
             setTickets(processedTickets);
 

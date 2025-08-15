@@ -12,8 +12,8 @@ export async function GET() {
     
     try {
         const supportTicketsCol = adminDb.collection('supportTickets');
-        const q = supportTicketsCol.orderBy('createdAt', 'desc');
-        const snapshot = await q.get();
+        // Removed orderBy to prevent query failure without a composite index
+        const snapshot = await supportTicketsCol.get();
 
         if (snapshot.empty) {
             return NextResponse.json([]);
@@ -36,4 +36,3 @@ export async function GET() {
         return NextResponse.json({ error: 'Failed to fetch support tickets' }, { status: 500 });
     }
 }
-
