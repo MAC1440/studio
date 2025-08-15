@@ -39,7 +39,6 @@ export async function createSupportTicket(args: CreateSupportTicketArgs): Promis
             userName: args.requester.name,
             userEmail: args.requester.email,
             organizationName: args.organization.name,
-            organizationOwnerId: args.organization.ownerId,
             ownerEmail: ownerData.email,
             currentPlan: args.requestDetails.currentPlan,
             requestedPlan: args.requestDetails.requestedPlan,
