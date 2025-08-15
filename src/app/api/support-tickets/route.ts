@@ -22,11 +22,16 @@ export async function GET() {
         const tickets = snapshot.docs.map(doc => {
             const data = doc.data();
             const createdAt = data.createdAt as adminFirestore.Timestamp;
+            // Check if createdAt is a valid Timestamp object before calling toDate()
+            const createdAtISO = (createdAt && typeof createdAt.toDate === 'function')
+                ? createdAt.toDate().toISOString() 
+                : new Date().toISOString();
+
             return {
                 ...data,
                 id: doc.id,
                 // Convert Timestamp to a serializable format (ISO string)
-                createdAt: createdAt ? createdAt.toDate().toISOString() : new Date().toISOString(),
+                createdAt: createdAtISO,
             } as unknown as SupportTicket;
         });
         
@@ -36,3 +41,4 @@ export async function GET() {
         return NextResponse.json({ error: 'Failed to fetch support tickets' }, { status: 500 });
     }
 }
+
