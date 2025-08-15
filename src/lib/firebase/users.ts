@@ -1,109 +1,78 @@
 
-
 import { auth, db } from './config';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signInWithCredential } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, getAuth } from 'firebase/auth';
 import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where, getDoc } from 'firebase/firestore';
-import type { User, Organization } from '@/lib/types';
-import { createOrganization } from './organizations';
-
+import type { User } from '@/lib/types';
+import { initializeApp, getApps, deleteApp } from 'firebase/app';
 
 type CreateUserArgs = {
     email: string;
+    password?: string;
     name: string;
     role: 'admin' | 'user' | 'client';
     organizationId?: string;
 };
 
-// This function handles creating both new admins (self-signup) and inviting team/clients.
-export async function createUser(args: CreateUserArgs): Promise<void> {
+
+// This function will now ONLY create the user in the auth system.
+// The user document and organization creation will be handled by the AuthContext
+// after the user has logged in for the first time.
+export async function createUser(args: CreateUserArgs): Promise<User> {
     const isInvite = args.role === 'client' || args.role === 'user';
-
-    // --- Flow 1: Admin self-signup ---
-    if (!isInvite) {
-        // This flow is currently not used in the UI, but kept for potential future use.
-        // It requires a password to be passed in args.
-        throw new Error("Admin self-signup is not currently supported from the client-side.");
+    
+    let password = args.password;
+    // For any invited user (client or internal), we auto-generate a password and send a reset link.
+    if (!password) {
+        if(isInvite){
+            password = Math.random().toString(36).slice(-8);
+        } else {
+           throw new Error("Password is required for self-signup.");
+        }
     }
     
-    // --- Flow 2: Inviting a client or team user ---
-    if (!args.organizationId) {
-        throw new Error("Organization ID is required to invite a user.");
-    }
-    
-    const userQuery = query(collection(db, 'users'), where("email", "==", args.email));
-    const existingUser = await getDocs(userQuery);
+    // We use a temporary, secondary Firebase app to create the user.
+    // This allows us to create a new user without logging out the current admin user.
+    const secondaryAppConfig = auth.app.options;
+    const secondaryAppName = `secondary-app-${Date.now()}`;
+    const secondaryApp = getApps().find(app => app.name === secondaryAppName) || initializeApp(secondaryAppConfig, secondaryAppName);
+    const secondaryAuth = getAuth(secondaryApp);
 
-    if(!existingUser.empty){
-        throw new Error("User with this email already exists in the system.");
-    }
-    
-    // Send a sign-in link to the user.
-    const actionCodeSettings = {
-        url: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
-        handleCodeInApp: true,
-    };
-    
-    await sendSignInLinkToEmail(auth, args.email, actionCodeSettings);
-    
-    // We also store the email locally so the app can recognize the user
-    // when they return from the email link.
-    window.localStorage.setItem('emailForSignIn', args.email);
-    
-    // Create a temporary "invite" document. This holds the user's role and org
-    // so we can assign it to them when they first sign in.
-    await setDoc(doc(db, "invites", args.email), {
-        name: args.name,
-        email: args.email,
-        role: args.role,
-        organizationId: args.organizationId,
-    });
-}
+    try {
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, args.email, password);
+        const user = userCredential.user;
 
-
-export async function completeInvitation(email: string, password?: string): Promise<User | null> {
-    if (!isSignInWithEmailLink(auth, window.location.href)) {
-        throw new Error("This is not a valid sign-in link.");
-    }
-    
-    // This will sign the user in.
-    const userCredential = await signInWithEmailLink(auth, email, window.location.href);
-    const firebaseUser = userCredential.user;
-
-    if (firebaseUser) {
-        // Now, find the invite document to get their role and organization.
-        const inviteRef = doc(db, 'invites', email);
-        const inviteSnap = await getDoc(inviteRef);
-
-        if (!inviteSnap.exists()) {
-            throw new Error("No pending invitation found for this email address.");
+        // If it's an invitation, send a password reset email immediately.
+        if (isInvite) {
+            await sendPasswordResetEmail(auth, args.email);
         }
 
-        const inviteData = inviteSnap.data();
-        await updateProfile(firebaseUser, { displayName: inviteData.name });
-        
         const newUser: User = {
-            id: firebaseUser.uid,
-            name: inviteData.name,
-            email: email,
-            role: inviteData.role,
-            organizationId: inviteData.organizationId,
-            avatarUrl: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(inviteData.name)}`,
+            id: user.uid,
+            name: args.name,
+            email: args.email,
+            role: args.role,
+            organizationId: args.organizationId || '',
+            avatarUrl: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(args.name)}`,
         };
         
-        // Create the permanent user document.
-        await setDoc(doc(db, "users", firebaseUser.uid), newUser);
-
-        // Delete the temporary invite document.
-        await deleteDoc(inviteRef);
+        // Pre-create the user document for all invited users so they exist in the system before first login.
+        if (args.organizationId) {
+             await setDoc(doc(db, "users", user.uid), newUser);
+        }
         
-        window.localStorage.removeItem('emailForSignIn');
-
         return newUser;
+    } catch (error) {
+        console.error("Error in createUser:", error);
+        if ((error as any).code === 'auth/email-already-in-use') {
+            throw new Error('A user with this email address already exists.');
+        }
+        throw error;
+    } finally {
+        if (getApps().some(app => app.name === secondaryAppName)) {
+           await deleteApp(secondaryApp);
+        }
     }
-    
-    return null;
 }
-
 
 export async function getUsers(organizationId?: string): Promise<User[]> {
     if (!organizationId) {
@@ -146,6 +115,8 @@ export async function forgotPassword(email: string): Promise<void> {
 export async function deleteUser(userId: string): Promise<void> {
     const userRef = doc(db, 'users', userId);
     await deleteDoc(userRef);
+    // Note: This does not delete the user from Firebase Auth.
+    // That requires admin privileges and is typically done from a backend environment.
 }
 
 export async function updateUserProfile(userId: string, updates: Partial<User>): Promise<void> {
