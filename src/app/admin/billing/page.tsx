@@ -113,7 +113,7 @@ export default function BillingPage() {
     
             toast({
                 title: "Request Submitted",
-                description: "Your plan change request has been sent to support. We will process it shortly.",
+                description: "Your plan change request has been sent to our team. We will process it shortly.",
                 duration: 7000,
             });
     
@@ -207,7 +207,7 @@ export default function BillingPage() {
                         <AlertDialogTitle>Confirm Plan Change Request</AlertDialogTitle>
                         <AlertDialogDescription>
                            You are requesting to {isDowngrade(selectedPlan) ? 'downgrade' : 'upgrade'} to the <strong>{selectedPlan.name}</strong> plan at <strong>{selectedPlan.price}/month</strong>. 
-                           Clicking confirm will send a request to support for manual processing.
+                           Clicking confirm will send a request to our team for manual processing.
                         </AlertDialogDescription>
                          {isDowngrade(selectedPlan) && (
                                 <div className="mt-2 p-3 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 text-sm">
