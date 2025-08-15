@@ -33,8 +33,9 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
   const filteredTickets = useMemo(() => {
     // Ensure tickets are sorted by date before filtering and displaying
     const sortedTickets = [...tickets].sort((a, b) => {
-        const dateA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0;
-        const dateB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0;
+        // Since createdAt is now a string, we need to parse it back to a Date for sorting
+        const dateA = new Date(a.createdAt as string).getTime();
+        const dateB = new Date(b.createdAt as string).getTime();
         return dateB - dateA;
     });
 
@@ -144,7 +145,7 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {ticket.createdAt?.seconds ? format(new Date(ticket.createdAt.seconds * 1000), "MMM d, yyyy - p") : 'N/A'}
+                    {ticket.createdAt ? format(new Date(ticket.createdAt as string), "MMM d, yyyy - p") : 'N/A'}
                   </TableCell>
                 </TableRow>
               ))

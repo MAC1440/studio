@@ -4,7 +4,13 @@ import TicketsTable from './tickets-table';
 
 // This is now a Server Component
 export default async function SupportPage() {
-  const initialTickets = await getSupportTickets();
+  const rawTickets = await getSupportTickets();
+
+  // Manually serialize the Timestamp to a string before passing to the client component
+  const initialTickets = rawTickets.map(ticket => ({
+    ...ticket,
+    createdAt: (ticket.createdAt as any).toDate().toISOString(),
+  }));
 
   return (
     <div>

@@ -1,4 +1,5 @@
 
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type OrganizationPlan = 'free' | 'startup' | 'pro';
@@ -111,7 +112,7 @@ export type SupportTicket = {
         price: string;
     };
     status: 'open' | 'in-progress' | 'closed';
-    createdAt: Timestamp;
+    createdAt: Timestamp | string;
 };
 
 
@@ -196,4 +197,3 @@ export type Notification = {
     projectId?: string;
     projectName?: string;
 }
-
