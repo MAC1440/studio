@@ -17,6 +17,7 @@ export default function SupportPage() {
     getSupportTickets().then((rawTickets) => {
       const tickets = rawTickets.map(ticket => {
         let createdAtString: string;
+        // Safely handle both Timestamp objects and strings
         if (ticket.createdAt instanceof Timestamp) {
             createdAtString = ticket.createdAt.toDate().toISOString();
         } else {
