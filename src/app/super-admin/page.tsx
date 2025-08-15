@@ -21,11 +21,18 @@ export default function SuperAdminDashboard() {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [orgs, allUsers, tickets] = await Promise.all([
+            const [orgs, allUsers, rawTickets] = await Promise.all([
                 getAllOrganizations(),
                 getAllUsers(),
                 getSupportTickets(),
             ]);
+
+            const tickets = rawTickets.map(ticket => ({
+                ...ticket,
+                // Convert timestamp to string to prevent hydration errors
+                createdAt: (ticket.createdAt as any).toDate().toISOString(), 
+            }));
+
             setOrganizations(orgs);
             setUsers(allUsers);
             setSupportTickets(tickets);
