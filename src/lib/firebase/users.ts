@@ -27,7 +27,7 @@ export async function createUser(args: CreateUserArgs): Promise<void> {
         const actionCodeSettings = {
             // URL you want to redirect back to. The domain (www.example.com) for this
             // URL must be in the authorized domains list in the Firebase Console.
-            url: `${window.location.origin}/login`,
+            url: `https://boardr.vercel.app/login`,
             handleCodeInApp: true, // This must be true.
         };
 
