@@ -13,6 +13,7 @@ import {
   SidebarInset,
   SidebarHeader,
   SidebarTrigger,
+  SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Home, Users, Ticket, FolderKanban, Briefcase, FileText, LayoutGrid, DollarSign, CreditCard, ClipboardCheck, MessageSquare, Zap } from "lucide-react";
 import Link from "next/link";
@@ -34,15 +35,25 @@ export default function AdminLayout({
   const pathname = usePathname();
   const { userData } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [isOrgLoading, setIsOrgLoading] = useState(true);
 
   useEffect(() => {
     if (userData?.organizationId) {
+      setIsOrgLoading(true);
       const orgRef = doc(db, 'organizations', userData.organizationId);
       getDoc(orgRef).then(docSnap => {
         if (docSnap.exists()) {
           setOrganization(docSnap.data() as Organization);
         }
+      }).finally(() => {
+        setIsOrgLoading(false);
       });
+    } else if (!userData) {
+        // If there's no user data at all yet, we are in a loading state.
+        setIsOrgLoading(true);
+    } else {
+        // User data exists but no orgId (shouldn't happen for admin, but good practice)
+        setIsOrgLoading(false);
     }
   }, [userData?.organizationId]);
   
@@ -74,7 +85,14 @@ export default function AdminLayout({
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    {isPaidPlan && (
+                    
+                    {isOrgLoading ? (
+                      <>
+                        <SidebarMenuSkeleton showIcon />
+                        <SidebarMenuSkeleton showIcon />
+                        <SidebarMenuSkeleton showIcon />
+                      </>
+                    ) : isPaidPlan ? (
                       <>
                         <SidebarMenuItem>
                           <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/reports')}>
@@ -101,7 +119,8 @@ export default function AdminLayout({
                           </SidebarMenuButton>
                         </SidebarMenuItem>
                       </>
-                    )}
+                    ) : null}
+
                      <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/chat')}>
                         <Link href="/admin/chat">
@@ -151,7 +170,7 @@ export default function AdminLayout({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
 
-                    {!isPaidPlan && (
+                    {!isOrgLoading && !isPaidPlan && (
                       <div className="p-4 group-data-[collapsible=icon]:hidden">
                           <div className="rounded-lg bg-accent/80 p-4 text-center">
                             <Zap className="mx-auto h-8 w-8 text-primary mb-2" />
