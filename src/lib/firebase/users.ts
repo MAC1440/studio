@@ -1,7 +1,7 @@
 
 
 import { auth, db } from './config';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signInWithCredential } from 'firebase/auth';
 import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where, getDoc } from 'firebase/firestore';
 import type { User, Organization } from '@/lib/types';
 import { createOrganization } from './organizations';
@@ -9,7 +9,6 @@ import { createOrganization } from './organizations';
 
 type CreateUserArgs = {
     email: string;
-    password?: string;
     name: string;
     role: 'admin' | 'user' | 'client';
     organizationId?: string;
@@ -21,32 +20,9 @@ export async function createUser(args: CreateUserArgs): Promise<void> {
 
     // --- Flow 1: Admin self-signup ---
     if (!isInvite) {
-        if (!args.password) {
-            throw new Error("Password is required for admin self-signup.");
-        }
-        
-        const userCredential = await createUserWithEmailAndPassword(auth, args.email, args.password);
-        const firebaseUser = userCredential.user;
-
-        if (firebaseUser) {
-            await updateProfile(firebaseUser, { displayName: args.name });
-
-            let orgId = args.organizationId;
-            // Every new admin signup creates a new organization for them.
-            const newOrg = await createOrganization({ name: `${args.name}'s Workspace`, ownerId: firebaseUser.uid });
-            orgId = newOrg.id;
-
-            const newUser: User = {
-                id: firebaseUser.uid,
-                name: args.name,
-                email: args.email,
-                role: args.role,
-                organizationId: orgId!,
-                avatarUrl: firebaseUser.photoURL || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(args.name)}`,
-            };
-            await setDoc(doc(db, "users", firebaseUser.uid), newUser);
-        }
-        return;
+        // This flow is currently not used in the UI, but kept for potential future use.
+        // It requires a password to be passed in args.
+        throw new Error("Admin self-signup is not currently supported from the client-side.");
     }
     
     // --- Flow 2: Inviting a client or team user ---
@@ -63,7 +39,7 @@ export async function createUser(args: CreateUserArgs): Promise<void> {
     
     // Send a sign-in link to the user.
     const actionCodeSettings = {
-        url: `${window.location.origin}/login`,
+        url: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
         handleCodeInApp: true,
     };
     
@@ -89,8 +65,8 @@ export async function completeInvitation(email: string, password?: string): Prom
         throw new Error("This is not a valid sign-in link.");
     }
     
-    // This will sign the user in and create their Firebase Auth account.
-    const userCredential = await signInWithEmailAndPassword(auth, email, password || ''); // Password can be empty for link sign-in
+    // This will sign the user in.
+    const userCredential = await signInWithEmailLink(auth, email, window.location.href);
     const firebaseUser = userCredential.user;
 
     if (firebaseUser) {
@@ -105,9 +81,6 @@ export async function completeInvitation(email: string, password?: string): Prom
         const inviteData = inviteSnap.data();
         await updateProfile(firebaseUser, { displayName: inviteData.name });
         
-        // If a password was provided, update it.
-        // This flow is simplified for now. In a real app, you would force password creation.
-
         const newUser: User = {
             id: firebaseUser.uid,
             name: inviteData.name,
