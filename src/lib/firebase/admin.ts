@@ -1,6 +1,5 @@
 
 // src/lib/firebase/admin.ts
-'use server';
 
 import * as admin from 'firebase-admin';
 
