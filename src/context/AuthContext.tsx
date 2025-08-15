@@ -1,10 +1,11 @@
 
+
 // src/context/AuthContext.tsx
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { onAuthStateChanged, signOut, type User as FirebaseUser, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signOut, type User as FirebaseUser, isSignInWithEmailLink, signInWithEmailLink, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import type { User, Organization, Project } from '@/lib/types';
 import { getUsers, updateUserProfile } from '@/lib/firebase/users';
@@ -68,28 +69,73 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserData(userDataFromDb);
       return userDataFromDb;
     } else {
-      // This is a new user signing up.
-      console.log("New user detected, creating Firestore user document and organization...");
-      const newOrg = await createOrganization({ name: `${firebaseUser.displayName || firebaseUser.email}'s Workspace`, ownerId: firebaseUser.uid });
-      
-      const newUser: User = {
-        id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'New User',
-        email: firebaseUser.email!,
-        role: 'admin',
-        organizationId: newOrg.id,
-        avatarUrl: firebaseUser.photoURL || `https://placehold.co/150x150.png`
-      };
+        // This is a new user who just signed in via an email link.
+        // Their temporary invite data should be in the 'invites' collection.
+        const inviteRef = doc(db, 'invites', firebaseUser.email!);
+        const inviteSnap = await getDoc(inviteRef);
+        
+        if (!inviteSnap.exists()) {
+            // This could be a new user signing up directly, not from an invite.
+            console.log("No existing user or invite found. Creating new admin user and organization...");
+             const newOrg = await createOrganization({ name: `${firebaseUser.displayName || firebaseUser.email}'s Workspace`, ownerId: firebaseUser.uid });
+              const newUser: User = {
+                id: firebaseUser.uid,
+                name: firebaseUser.displayName || 'New User',
+                email: firebaseUser.email!,
+                role: 'admin',
+                organizationId: newOrg.id,
+                avatarUrl: firebaseUser.photoURL,
+            };
+            await setDoc(userDocRef, newUser);
+            setUserData(newUser);
+            return newUser;
+        }
 
-      await setDoc(doc(db, "users", firebaseUser.uid), newUser);
+        const inviteData = inviteSnap.data();
+        
+        const newUser: User = {
+            id: firebaseUser.uid,
+            name: inviteData.name,
+            email: firebaseUser.email!,
+            role: inviteData.role,
+            organizationId: inviteData.organizationId,
+            avatarUrl: firebaseUser.photoURL,
+        };
+
+        await setDoc(userDocRef, newUser);
+        // Clean up the invite document
+        await deleteDoc(inviteRef);
       
-      setUserData(newUser);
-      return newUser;
+        setUserData(newUser);
+        return newUser;
     }
   }, []);
 
 
   useEffect(() => {
+    // Handle the sign-in with email link flow.
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+        let email = window.localStorage.getItem('emailForSignIn');
+        if (!email) {
+            // User opened the link on a different device. To prevent session fixation
+            // attacks, ask the user to provide their email again.
+            email = window.prompt('Please provide your email for confirmation');
+        }
+        if (email) {
+            signInWithEmailLink(auth, email, window.location.href)
+                .then(() => {
+                    window.localStorage.removeItem('emailForSignIn');
+                    // The onAuthStateChanged listener will handle the rest.
+                })
+                .catch((error) => {
+                    // Some error occurred, you can inspect the code: error.code
+                    console.error("Error signing in with email link", error);
+                    setLoading(false);
+                });
+        }
+    }
+
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
       if (firebaseUser) {

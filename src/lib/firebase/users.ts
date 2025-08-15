@@ -1,7 +1,7 @@
 
 
 import { auth, db } from './config';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, sendSignInLinkToEmail } from 'firebase/auth';
 import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { createOrganization } from './organizations';
@@ -22,29 +22,38 @@ export async function createUser(args: CreateUserArgs): Promise<void> {
     const isInvite = args.role === 'client' || args.role === 'user';
     let password = args.password;
 
+    if (!password && isInvite) {
+        // This flow is for inviting a user who will set their own password via an email link.
+        const actionCodeSettings = {
+            // URL you want to redirect back to. The domain (www.example.com) for this
+            // URL must be in the authorized domains list in the Firebase Console.
+            url: `${window.location.origin}/login`,
+            handleCodeInApp: true, // This must be true.
+        };
+
+        // When a user is invited, we store their intended role and organization
+        // in a temporary 'invites' collection. When they click the link and
+        // sign in for the first time, we'll use this data to create their real user document.
+        await setDoc(doc(db, "invites", args.email), {
+            name: args.name,
+            email: args.email,
+            role: args.role,
+            organizationId: args.organizationId,
+        });
+
+        await sendSignInLinkToEmail(auth, args.email, actionCodeSettings);
+        
+        // We also store the email locally so the app can recognize the user
+        // when they return from the email link.
+        window.localStorage.setItem('emailForSignIn', args.email);
+        return;
+    }
+
     if (!password) {
-        if (isInvite) {
-            // This is for inviting a user who will set their own password.
-            // We can't create a user without a password with the client SDK,
-            // so this flow relies on a backend function (or manual creation + email).
-            // For now, we'll throw an error if this is attempted from the client.
-            // A cloud function would be the robust solution here.
-             await sendPasswordResetEmail(auth, args.email);
-             // Create a placeholder user doc so they can be assigned to things
-              await setDoc(doc(db, "users", args.email), { // using email as temporary ID
-                name: args.name,
-                email: args.email,
-                role: args.role,
-                organizationId: args.organizationId,
-                invited: true, // A flag to show this user needs to complete setup
-             });
-            return;
-        } else {
-            throw new Error("Password is required for self-signup.");
-        }
+        throw new Error("Password is required for self-signup.");
     }
     
-    // This flow is for a user signing themselves up.
+    // This flow is for a user signing themselves up directly.
     const userCredential = await createUserWithEmailAndPassword(auth, args.email, password);
     const firebaseUser = userCredential.user;
 
