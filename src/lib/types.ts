@@ -186,11 +186,12 @@ export type Notification = {
     id: string;
     userId: string;
     message: string;
-    ticketId?: string; // Optional
-    proposalId?: string; // Optional
-    invoiceId?: string; // Optional
-    reportId?: string; // Optional
-    chatId?: string; //Optional
+    ticketId?: string;
+    proposalId?: string;
+    invoiceId?: string;
+    reportId?: string;
+    chatId?: string;
+    supportTicketId?: string;
     read: boolean;
     createdAt: Timestamp;
     expiresAt: Timestamp;

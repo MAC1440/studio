@@ -1,4 +1,5 @@
 
+
 import { auth, db } from './config';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile } from 'firebase/auth';
 import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where } from 'firebase/firestore';
@@ -83,6 +84,17 @@ export async function getUsers(organizationId?: string): Promise<User[]> {
     const userList = userSnapshot.docs.map(doc => {
       const data = doc.data() as Omit<User, 'id'>;
       return { ...data, id: doc.id };
+    });
+    return userList;
+}
+
+export async function getSuperAdmins(): Promise<User[]> {
+    const usersCol = collection(db, 'users');
+    const q = query(usersCol, where('role', '==', 'super-admin'));
+    const userSnapshot = await getDocs(q);
+    const userList = userSnapshot.docs.map(doc => {
+        const data = doc.data() as Omit<User, 'id'>;
+        return { ...data, id: doc.id };
     });
     return userList;
 }

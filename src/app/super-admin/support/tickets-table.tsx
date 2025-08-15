@@ -21,22 +21,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { type SupportTicket } from "@/lib/types";
-import { LifeBuoy, Search, Mail, Building, User, Clock, CheckCircle, CircleDot } from "lucide-react";
+import { LifeBuoy, Search, Mail, Building, User, CircleDot } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { updateSupportTicketStatus } from "@/lib/firebase/support";
-import { useRouter } from "next/navigation";
 
 
-function TicketDetailModal({ ticket, onClose, onStatusChange }: { ticket: SupportTicket, onClose: () => void, onStatusChange: (status: SupportTicket['status']) => void }) {
+function TicketDetailModal({ ticket, onClose, onStatusChange }: { ticket: SupportTicket, onClose: () => void, onStatusChange: (ticketId: string, status: SupportTicket['status']) => Promise<void> }) {
     const [newStatus, setNewStatus] = useState(ticket.status);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSave = async () => {
         setIsSubmitting(true);
-        await onStatusChange(newStatus);
+        await onStatusChange(ticket.id, newStatus);
         setIsSubmitting(false);
     }
     
@@ -122,7 +121,6 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | SupportTicket["status"]>("all");
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
-  const router = useRouter();
   const { toast } = useToast();
 
   const filteredTickets = useMemo(() => {
@@ -147,16 +145,15 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
     });
   }, [tickets, searchQuery, statusFilter]);
   
-  const handleStatusChange = async (newStatus: SupportTicket['status']) => {
-    if (!selectedTicket) return;
+  const handleStatusChange = async (ticketId: string, newStatus: SupportTicket['status']) => {
     try {
-        await updateSupportTicketStatus(selectedTicket.id, newStatus);
+        await updateSupportTicketStatus(ticketId, newStatus);
         toast({
             title: "Status Updated",
             description: `Ticket status changed to "${newStatus}".`
         });
         // Optimistically update the UI
-        setTickets(currentTickets => currentTickets.map(t => t.id === selectedTicket.id ? {...t, status: newStatus} : t));
+        setTickets(currentTickets => currentTickets.map(t => t.id === ticketId ? {...t, status: newStatus} : t));
         setSelectedTicket(null);
     } catch (error) {
         toast({

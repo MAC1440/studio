@@ -1,4 +1,5 @@
 
+
 import { db } from './config';
 import {
   collection,
@@ -26,24 +27,22 @@ type AddNotificationArgs = {
   invoiceId?: string; // Optional
   reportId?: string; // Optional
   chatId?: string; //Optional
-  read: boolean;
-  createdAt: Timestamp;
-  expiresAt: Timestamp;
+  supportTicketId?: string; // Optional
   projectId?: string;
   projectName?: string;
 };
 
-export async function addNotification({ userId, message, ticketId, proposalId, invoiceId, reportId, chatId, projectId, projectName }: AddNotificationArgs): Promise<string> {
+export async function addNotification(args: AddNotificationArgs): Promise<string> {
   const notificationsCol = collection(db, 'notifications');
   
   // Set an expiration date 7 days from now for TTL policy
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  let finalProjectName = projectName;
-  if (!finalProjectName) {
+  let finalProjectName = args.projectName;
+  if (!finalProjectName && args.projectId) {
       try {
-          const project = await getProject(projectId);
+          const project = await getProject(args.projectId);
           if (project) {
               finalProjectName = project.name;
           }
@@ -53,18 +52,19 @@ export async function addNotification({ userId, message, ticketId, proposalId, i
   }
 
   const newNotification: Omit<Notification, 'id'> = {
-    userId,
-    message,
+    userId: args.userId,
+    message: args.message,
     read: false,
     createdAt: serverTimestamp() as Timestamp,
     expiresAt: Timestamp.fromDate(expiresAt),
-    projectId,
-    projectName: finalProjectName || 'Unknown Project',
-    ...(ticketId && { ticketId }),
-    ...(proposalId && { proposalId }),
-    ...(invoiceId && { invoiceId }),
-    ...(reportId && { reportId }),
-    ...(chatId && { chatId }),
+    projectId: args.projectId,
+    projectName: finalProjectName,
+    ...(args.ticketId && { ticketId: args.ticketId }),
+    ...(args.proposalId && { proposalId: args.proposalId }),
+    ...(args.invoiceId && { invoiceId: args.invoiceId }),
+    ...(args.reportId && { reportId: args.reportId }),
+    ...(args.chatId && { chatId: args.chatId }),
+    ...(args.supportTicketId && { supportTicketId: args.supportTicketId }),
   };
   const docRef = await addDoc(notificationsCol, newNotification);
   return docRef.id;
