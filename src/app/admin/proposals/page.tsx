@@ -29,8 +29,6 @@ import {
 
 import { useToast } from '@/hooks/use-toast';
 import { getProposals, updateProposal, createProposal, deleteProposal } from '@/lib/firebase/proposals';
-import { getUsers } from '@/lib/firebase/users';
-import { getProjects } from '@/lib/firebase/projects';
 import { type Proposal, type User, type Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileText, PlusCircle, Edit, Send, MessageSquareWarning, Trash2, Eye } from 'lucide-react';
@@ -41,8 +39,6 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function ProposalsPage() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [clients, setClients] = useState<User[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -51,20 +47,15 @@ export default function ProposalsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { toast } = useToast();
-  const { userData } = useAuth();
+  const { userData, users } = useAuth();
+  const clients = users.filter(u => u.role === 'client');
 
   const fetchData = async () => {
     if (!userData?.organizationId) return;
     setIsLoading(true);
     try {
-      const [fetchedProposals, fetchedUsers, fetchedProjects] = await Promise.all([
-        getProposals({ organizationId: userData.organizationId }),
-        getUsers(userData.organizationId),
-        getProjects(userData.organizationId),
-      ]);
+      const fetchedProposals = await getProposals({ organizationId: userData.organizationId });
       setProposals(fetchedProposals.sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis()));
-      setClients(fetchedUsers.filter(u => u.role === 'client'));
-      setProjects(fetchedProjects);
     } catch (error) {
       console.error('Failed to fetch data:', error);
       toast({
@@ -288,8 +279,6 @@ export default function ProposalsPage() {
         <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
           <DialogContent className="max-w-4xl h-[90vh]">
             <ProposalEditor
-              clients={clients}
-              projects={projects}
               onSave={handleSaveProposal}
               onClose={handleCloseEditor}
               proposal={editingProposal}

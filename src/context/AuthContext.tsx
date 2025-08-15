@@ -6,15 +6,19 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { onAuthStateChanged, signOut, type User as FirebaseUser, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
-import type { User } from '@/lib/types';
+import type { User, Organization, Project } from '@/lib/types';
 import { getUsers, updateUserProfile } from '@/lib/firebase/users';
-import { createOrganization } from '@/lib/firebase/organizations';
+import { createOrganization, getOrganization } from '@/lib/firebase/organizations';
+import { getProjects } from '@/lib/firebase/projects';
 import { useRouter } from 'next/navigation';
 
 
 interface AuthContextType {
   user: FirebaseUser | null;
   userData: User | null;
+  organization: Organization | null;
+  projects: Project[];
+  activeProjectIds: string[];
   loading: boolean;
   login: (email: string, pass: string) => Promise<User | null>;
   logout: () => Promise<void>;
@@ -29,6 +33,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [activeProjectIds, setActiveProjectIds] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [ticketReloadKey, setTicketReloadKey] = useState(0);
@@ -51,7 +58,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Existing user
       let userDataFromDb = userDocSnap.data() as User;
       
-      // Data migration for users without an organizationId, but not for super-admin
       if (!userDataFromDb.organizationId && userDataFromDb.role !== 'super-admin') {
         console.log(`User ${firebaseUser.uid} is missing an organization. Creating one now.`);
         const newOrg = await createOrganization({ name: `${userDataFromDb.name}'s Workspace`, ownerId: firebaseUser.uid });
@@ -63,7 +69,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return userDataFromDb;
     } else {
       // This is a new user signing up.
-      // The user has been created in Firebase Auth, but not yet in Firestore.
       console.log("New user detected, creating Firestore user document and organization...");
       const newOrg = await createOrganization({ name: `${firebaseUser.displayName || firebaseUser.email}'s Workspace`, ownerId: firebaseUser.uid });
       
@@ -71,7 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         id: firebaseUser.uid,
         name: firebaseUser.displayName || 'New User',
         email: firebaseUser.email!,
-        role: 'admin', // New sign-ups are always admins of their own org
+        role: 'admin',
         organizationId: newOrg.id,
         avatarUrl: firebaseUser.photoURL || `https://placehold.co/150x150.png`
       };
@@ -90,15 +95,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (firebaseUser) {
         setUser(firebaseUser);
         const currentUserData = await fetchAndSetUserData(firebaseUser);
-        // Do not fetch org-specific users if the user is a super-admin
-        if (currentUserData?.organizationId && currentUserData.role !== 'super-admin') {
-            const allUsers = await getUsers(currentUserData.organizationId);
+        
+        if (currentUserData?.organizationId) {
+            const [orgData, projectData, allUsers] = await Promise.all([
+                getOrganization(currentUserData.organizationId),
+                getProjects(currentUserData.organizationId),
+                getUsers(currentUserData.organizationId)
+            ]);
+
+            setOrganization(orgData);
             setUsers(allUsers);
+            
+            const sortedProjects = projectData.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+            setProjects(sortedProjects);
+
+            const plan = orgData?.subscriptionPlan || 'free';
+            const limits = { free: 3, startup: 10, pro: Infinity };
+            const limit = limits[plan];
+            
+            const activeIds = sortedProjects.slice(0, limit).map(p => p.id);
+            setActiveProjectIds(activeIds);
+
         }
       } else {
         setUser(null);
         setUserData(null);
+        setOrganization(null);
+        setProjects([]);
         setUsers([]);
+        setActiveProjectIds([]);
       }
       setLoading(false);
     });
@@ -111,8 +136,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!userCredential.user) {
         throw new Error("Login failed: no user returned");
     }
-    // The onAuthStateChanged listener will handle fetching data, but we need to wait
-    // for the user data to be available before returning, especially for redirects.
     return await fetchAndSetUserData(userCredential.user);
   };
 
@@ -124,7 +147,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading, login, logout, users, ticketReloadKey, reloadTickets, forceRefetch }}>
+    <AuthContext.Provider value={{ user, userData, loading, login, logout, users, ticketReloadKey, reloadTickets, forceRefetch, organization, projects, activeProjectIds }}>
       {children}
     </AuthContext.Provider>
   );

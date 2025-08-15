@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { User as UserIcon, LogOut, Settings, Shield, LogIn, Bell, Ticket, FolderKanban, FileText, PanelLeft, DollarSign, Calendar, ClipboardCheck, MessageSquare, CheckCheck, Crown } from 'lucide-react';
 import Image from 'next/image';
@@ -45,7 +45,6 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { createTicket } from '@/lib/firebase/tickets';
-import { getProjects } from '@/lib/firebase/projects';
 import { type User, type Notification, Project } from '@/lib/types';
 import { subscribeToNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/lib/firebase/notifications';
 import { cn } from '@/lib/utils';
@@ -56,14 +55,15 @@ import { SidebarTrigger, useSidebar } from '../ui/sidebar';
 import { ThemeToggle } from './theme-toggle';
 import logo from '../../../public/logos/logo.png'
 
-function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[], projects: Project[], onTicketCreated: () => void }) {
+function CreateTicketDialog({ onTicketCreated }: { onTicketCreated: () => void }) {
+    const { users, projects, activeProjectIds, userData } = useAuth();
+    const activeProjects = useMemo(() => projects.filter(p => activeProjectIds.includes(p.id)), [projects, activeProjectIds]);
+    const teamMembers = useMemo(() => users.filter(u => u.role !== 'client'), [users]);
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deadline, setDeadline] = useState<Date | undefined>();
     const { toast } = useToast();
-    const { userData } = useAuth();
-
-    const teamMembers = users.filter(u => u.role !== 'client');
 
     const handleCreateTicket = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -123,7 +123,7 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
     return (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm">Create Ticket</Button>
+                <Button variant="outline" size="sm" disabled={activeProjects.length === 0}>Create Ticket</Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -134,10 +134,10 @@ function CreateTicketDialog({ users, projects, onTicketCreated }: { users: User[
                         <Label htmlFor="projectId">Project</Label>
                         <Select name="projectId" required disabled={isSubmitting}>
                             <SelectTrigger id="projectId">
-                                <SelectValue placeholder="Select a project" />
+                                <SelectValue placeholder="Select an active project" />
                             </SelectTrigger>
                             <SelectContent>
-                                {projects.map(project => (
+                                {activeProjects.map(project => (
                                     <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -333,15 +333,8 @@ function NotificationBell() {
 }
 
 function HeaderContent() {
-  const { user, userData, logout, loading, users, reloadTickets } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const { user, userData, logout, loading, reloadTickets } = useAuth();
   const pathname = usePathname();
-
-  useEffect(() => {
-      if(user && userData?.organizationId) {
-          getProjects(userData.organizationId).then(setProjects).catch(console.error);
-      }
-  }, [user, userData?.organizationId]);
 
   const handleTicketCreated = () => {
     if (reloadTickets) {
@@ -379,7 +372,7 @@ function HeaderContent() {
             </div>
           ) : user ? (
             <>
-              {userData?.role !== 'client' && <CreateTicketDialog users={users} projects={projects} onTicketCreated={handleTicketCreated}/>}
+              {userData?.role !== 'client' && <CreateTicketDialog onTicketCreated={handleTicketCreated}/>}
               <NotificationBell />
               <ThemeToggle />
               <DropdownMenu>
@@ -446,12 +439,7 @@ function HeaderContent() {
 
 export default function AppHeader() {
     const { loading } = useAuth();
-    // We need to wrap the header in the SidebarProvider if we want to use the useSidebar hook
-    // But we only want to do that on the admin pages. A bit of a chicken-and-egg problem.
-    // Easiest solution is to just render the header content directly.
-    // A better solution would be to compose layouts differently.
     
-    // Skeleton check prevents flicker on initial load
     if (loading) {
         return (
             <header className="border-b border-border/60">

@@ -35,10 +35,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { type Project, type User, type ProjectStatus, type Organization } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { createProject, getProjects, updateProject, deleteProject } from '@/lib/firebase/projects';
-import { getUsers } from '@/lib/firebase/users';
+import { createProject, updateProject, deleteProject } from '@/lib/firebase/projects';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle, Calendar as CalendarIcon, Search, Zap } from 'lucide-react';
+import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle, Calendar as CalendarIcon, Search, Zap, Archive } from 'lucide-react';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -47,8 +46,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 import Link from 'next/link';
 
 const PROJECTS_PER_PAGE = 5;
@@ -109,15 +106,6 @@ function MultiSelectClients({ allClients, selectedClientIds, onSelectionChange }
 
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [clients, setClients] = useState<User[]>([]);
-  const [organization, setOrganization] = useState<Organization | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
-  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
-  
   // Form state
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
   const [deadline, setDeadline] = useState<Date | undefined>();
@@ -132,40 +120,15 @@ export default function ProjectsPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const { toast } = useToast();
-  const { userData } = useAuth();
-
-  const fetchData = async () => {
-    if (!userData?.organizationId) return;
-    try {
-      const [fetchedProjects, fetchedUsers, orgSnap] = await Promise.all([
-        getProjects(userData.organizationId),
-        getUsers(userData.organizationId),
-        getDoc(doc(db, 'organizations', userData.organizationId))
-      ]);
-      setProjects(fetchedProjects.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
-      setClients(fetchedUsers.filter(u => u.role === 'client'));
-      if (orgSnap.exists()) {
-          setOrganization(orgSnap.data() as Organization);
-      }
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-      toast({
-        title: "Error Fetching Data",
-        description: "Could not load project or client data.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (userData?.organizationId) {
-        setIsLoading(true);
-        fetchData();
-    }
-  }, [userData?.organizationId]);
+  const { userData, organization, projects, activeProjectIds, users: allUsers, loading, forceRefetch } = useAuth();
   
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  
+  const clients = useMemo(() => allUsers.filter(u => u.role === 'client'), [allUsers]);
+
   const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<any>>) => (value: string) => {
     setter(value);
     setCurrentPage(1);
@@ -209,7 +172,7 @@ export default function ProjectsPage() {
             description: `Project "${name}" has been created.`,
           });
         }
-        await fetchData();
+        forceRefetch();
         closeDialog();
       } catch (error: any) {
         console.error("Failed to save project:", error);
@@ -235,7 +198,7 @@ export default function ProjectsPage() {
         title: "Project Deleted",
         description: `Project "${projectToDelete.name}" has been successfully deleted.`,
       });
-      setProjects(projects.filter(p => p.id !== projectToDelete.id));
+      forceRefetch();
     } catch (error: any) {
       console.error("Failed to delete project:", error);
       toast({
@@ -299,7 +262,6 @@ export default function ProjectsPage() {
 
   const closeDialog = () => {
     setIsDialogOpen(false);
-    // Let the animation finish before resetting state
     setTimeout(resetFormState, 200);
   }
 
@@ -472,7 +434,7 @@ export default function ProjectsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-4 w-48" /></TableCell>
@@ -488,14 +450,20 @@ export default function ProjectsPage() {
                   </TableRow>
                 ))
               ) : paginatedProjects.length > 0 ? (
-                paginatedProjects.map((project) => (
-                  <TableRow key={project.id}>
+                paginatedProjects.map((project) => {
+                  const isActive = activeProjectIds.includes(project.id);
+                  return (
+                  <TableRow key={project.id} className={!isActive ? 'opacity-50' : ''}>
                     <TableCell>
                       <p className="font-medium">{project.name}</p>
                       <p className="text-sm text-muted-foreground truncate max-w-sm">{project.description}</p>
                     </TableCell>
                     <TableCell>
-                        <Badge variant={getStatusBadgeVariant(project.status)} className="capitalize">{project.status?.replace('-', ' ') || 'N/A'}</Badge>
+                        {!isActive ? (
+                             <Badge variant="outline"><Archive className="mr-1 h-3 w-3"/>Archived</Badge>
+                        ) : (
+                             <Badge variant={getStatusBadgeVariant(project.status)} className="capitalize">{project.status?.replace('-', ' ') || 'N/A'}</Badge>
+                        )}
                     </TableCell>
                     <TableCell>
                       {project.deadline ? format(project.deadline.toDate(), 'MMM d, yyyy') : 'N/A'}
@@ -512,25 +480,27 @@ export default function ProjectsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(project)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </Button>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setProjectToDelete(project)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
+                      {isActive && (
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(project)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
                           </Button>
-                        </AlertDialogTrigger>
-                      </div>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setProjectToDelete(project)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
-                ))
+                )})
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">

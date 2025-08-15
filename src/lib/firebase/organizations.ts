@@ -1,6 +1,6 @@
 
 import { db } from './config';
-import { collection, addDoc, doc, setDoc, serverTimestamp, Timestamp, updateDoc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, serverTimestamp, Timestamp, updateDoc, getDocs, getDoc } from 'firebase/firestore';
 import type { Organization } from '@/lib/types';
 
 type CreateOrganizationArgs = {
@@ -28,6 +28,15 @@ export async function getAllOrganizations(): Promise<Organization[]> {
     const orgsCol = collection(db, 'organizations');
     const orgSnapshot = await getDocs(orgsCol);
     return orgSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Organization));
+}
+
+export async function getOrganization(organizationId: string): Promise<Organization | null> {
+    const orgRef = doc(db, 'organizations', organizationId);
+    const orgSnap = await getDoc(orgRef);
+    if (orgSnap.exists()) {
+        return { id: orgSnap.id, ...orgSnap.data() } as Organization;
+    }
+    return null;
 }
 
 

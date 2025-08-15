@@ -16,8 +16,6 @@ import { Calendar as CalendarIcon, DollarSign, PlusCircle, Trash2, ArrowLeft } f
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { createInvoice } from '@/lib/firebase/invoices';
-import { getProjects } from '@/lib/firebase/projects';
-import { getUsers } from '@/lib/firebase/users';
 import { type Project, type User, type InvoiceItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -61,13 +59,13 @@ export default function CreateInvoicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { userData } = useAuth();
+  const { userData, users, projects: allProjects, activeProjectIds } = useAuth();
 
   // Component State
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [client, setClient] = useState<User | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsForClient, setProjectsForClient] = useState<Project[]>([]);
   
   // Form State
   const [title, setTitle] = useState('');
@@ -93,26 +91,21 @@ export default function CreateInvoicePage() {
     }
     if (!userData?.organizationId) return;
 
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const [allUsers, allProjects] = await Promise.all([getUsers(userData.organizationId!), getProjects(userData.organizationId!)]);
-        const currentClient = allUsers.find(u => u.id === clientId);
+    try {
+        const currentClient = users.find(u => u.id === clientId);
         if (!currentClient) throw new Error("Client not found");
 
         setClient(currentClient);
-        setProjects(allProjects.filter(p => p.clientIds?.includes(clientId)));
-      } catch (error: any) {
+        const clientProjects = allProjects.filter(p => p.clientIds?.includes(clientId) && activeProjectIds.includes(p.id));
+        setProjectsForClient(clientProjects);
+
+    } catch (error: any) {
         toast({ title: "Error fetching data", description: error.message, variant: "destructive" });
         router.push('/admin/clients');
-      } finally {
+    } finally {
         setIsLoading(false);
-      }
-    };
-    if (userData?.organizationId) {
-        fetchData();
     }
-  }, [clientId, router, toast, userData?.organizationId]);
+  }, [clientId, router, toast, userData?.organizationId, users, allProjects, activeProjectIds]);
 
   const handleAddItem = () => {
     setItems([...items, { description: '', amount: 0 }]);
@@ -139,7 +132,7 @@ export default function CreateInvoicePage() {
     }
     
     setIsSubmitting(true);
-    const selectedProject = projects.find(p => p.id === projectId);
+    const selectedProject = projectsForClient.find(p => p.id === projectId);
     if (!selectedProject) {
         toast({ title: "Project not found", variant: "destructive"});
         setIsSubmitting(false);
@@ -181,12 +174,12 @@ export default function CreateInvoicePage() {
     return <div>Client not found. Redirecting...</div>;
   }
   
-  if (projects.length === 0) {
+  if (projectsForClient.length === 0) {
       return (
           <div className="flex flex-col items-center justify-center h-full text-center p-4">
               <DollarSign className="h-16 w-16 text-muted-foreground mb-4" />
-              <h2 className="text-2xl font-semibold">No Projects Found for {client.name}</h2>
-              <p className="text-muted-foreground mt-2">You must assign this client to a project before you can create an invoice.</p>
+              <h2 className="text-2xl font-semibold">No Active Projects Found for {client.name}</h2>
+              <p className="text-muted-foreground mt-2">You must assign this client to an active project before you can create an invoice.</p>
               <Button asChild className="mt-4">
                 <Link href="/admin/projects">Go to Projects</Link>
               </Button>
@@ -224,7 +217,7 @@ export default function CreateInvoicePage() {
                             <SelectValue placeholder="Select a project" />
                         </SelectTrigger>
                         <SelectContent>
-                        {projects.map(project => (
+                        {projectsForClient.map(project => (
                             <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                         ))}
                         </SelectContent>
@@ -330,5 +323,3 @@ export default function CreateInvoicePage() {
     </div>
   );
 }
-
-    

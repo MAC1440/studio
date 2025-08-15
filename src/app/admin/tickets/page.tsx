@@ -35,8 +35,6 @@ import { Badge } from '@/components/ui/badge';
 import { type User, type Ticket, TicketPriority, Project } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { createTicket, getTickets } from '@/lib/firebase/tickets';
-import { getUsers } from '@/lib/firebase/users';
-import { getProjects } from '@/lib/firebase/projects';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Ticket as TicketIcon, PlusCircle, Calendar as CalendarIcon, Clock, Search, FolderKanban } from 'lucide-react';
 import TicketDetails from '@/components/kanban/ticket-details';
@@ -51,8 +49,6 @@ const TICKETS_PER_PAGE = 6;
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -60,33 +56,28 @@ export default function TicketsPage() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [deadline, setDeadline] = useState<Date | undefined>();
   const { toast } = useToast();
-  const { userData } = useAuth();
+  const { userData, users, projects, activeProjectIds, forceRefetch } = useAuth();
 
   // Filtering and Pagination State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-
+  
+  const activeProjects = useMemo(() => projects.filter(p => activeProjectIds.includes(p.id)), [projects, activeProjectIds]);
   const teamMembers = users.filter(u => u.role !== 'client');
 
   const fetchTicketsAndUsers = async () => {
     if (!userData?.organizationId) return;
 
-    // Don't set is loading to true on refetch
+    setIsLoading(true);
     try {
-      const [fetchedTickets, fetchedUsers, fetchedProjects] = await Promise.all([
-        getTickets({ organizationId: userData.organizationId }),
-        getUsers(userData.organizationId),
-        getProjects(userData.organizationId)
-      ]);
+      const fetchedTickets = await getTickets({ organizationId: userData.organizationId });
       setTickets(fetchedTickets.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
-      setUsers(fetchedUsers);
-      setProjects(fetchedProjects);
     } catch (error) {
       console.error("Failed to fetch data:", error);
       toast({
         title: "Error Fetching Data",
-        description: "Could not load tickets, users, or projects. Please try again later.",
+        description: "Could not load tickets. Please try again later.",
         variant: "destructive"
       });
     } finally {
@@ -96,7 +87,6 @@ export default function TicketsPage() {
 
   useEffect(() => {
     if (userData?.organizationId) {
-        setIsLoading(true);
         fetchTicketsAndUsers();
     }
   }, [userData?.organizationId]);
@@ -190,12 +180,15 @@ export default function TicketsPage() {
         if (selectedProjectId !== 'all' && ticket.projectId !== selectedProjectId) {
           return false;
         }
+        if (!activeProjectIds.includes(ticket.projectId)) {
+          return false;
+        }
         if (searchQuery && !ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) && !ticket.description.toLowerCase().includes(searchQuery.toLowerCase())) {
           return false;
         }
         return true;
       });
-  }, [tickets, searchQuery, selectedProjectId]);
+  }, [tickets, searchQuery, selectedProjectId, activeProjectIds]);
 
   const totalPages = Math.ceil(filteredTickets.length / TICKETS_PER_PAGE);
   const paginatedTickets = filteredTickets.slice(
@@ -220,7 +213,7 @@ export default function TicketsPage() {
         <h1 className="text-2xl md:text-3xl font-bold">Ticket Management</h1>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" disabled={projects.length === 0}>
+            <Button size="sm" disabled={activeProjects.length === 0}>
               <PlusCircle className="md:mr-2" />
               <span className="hidden md:inline">Create Ticket</span>
             </Button>
@@ -237,7 +230,7 @@ export default function TicketsPage() {
                     <SelectValue placeholder="Select a project" />
                   </SelectTrigger>
                   <SelectContent>
-                    {projects.map(project => (
+                    {activeProjects.map(project => (
                       <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                     ))}
                   </SelectContent>

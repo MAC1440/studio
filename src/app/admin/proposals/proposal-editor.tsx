@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,10 +33,9 @@ import RichTextEditor from "@/components/ui/rich-text-editor";
 import { Zap } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { generateProposal } from "@/ai/flows/proposal-flow";
+import { useAuth } from "@/context/AuthContext";
 
 type ProposalEditorProps = {
-  clients: User[];
-  projects: Project[];
   onSave: (data: {
     title: string;
     content: string;
@@ -120,13 +119,15 @@ function AiGeneratorDialog({ open, onOpenChange, onGenerate, isGenerating }: { o
 }
 
 export default function ProposalEditor({
-  clients,
-  projects,
   onSave,
   onClose,
   proposal,
   isSubmitting,
 }: ProposalEditorProps) {
+  const { users, projects, activeProjectIds } = useAuth();
+  const clients = useMemo(() => users.filter(u => u.role === 'client'), [users]);
+  const activeProjects = useMemo(() => projects.filter(p => activeProjectIds.includes(p.id)), [projects, activeProjectIds]);
+  
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [clientId, setClientId] = useState("");
@@ -232,7 +233,7 @@ export default function ProposalEditor({
                   <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects.map((project) => (
+                  {activeProjects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
                     </SelectItem>
@@ -275,9 +276,7 @@ export default function ProposalEditor({
             <RichTextEditor
               content={content}
               onChange={setContent}
-              editable={
-                // !isSubmitting && 
-                !isViewOnly}
+              editable={!isViewOnly}
             />
           </div>
         </div>
