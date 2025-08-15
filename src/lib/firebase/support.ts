@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './config';
-import { collection, addDoc, serverTimestamp, Timestamp, doc, setDoc, getDocs, query, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp, doc, setDoc, getDocs, query, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { SupportTicket, User } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
 import { getUsers } from './users';
@@ -78,4 +78,9 @@ export async function updateSupportTicketStatus(ticketId: string, status: Suppor
     } catch (e) {
         console.error(`Failed to send status update notification for ticket ${ticketId}:`, e);
     }
+}
+
+export async function deleteSupportTicket(ticketId: string): Promise<void> {
+    const ticketRef = doc(db, 'supportTickets', ticketId);
+    await deleteDoc(ticketRef);
 }

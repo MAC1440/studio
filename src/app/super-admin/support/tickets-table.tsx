@@ -11,6 +11,17 @@ import {
   DialogDescription,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,17 +32,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { type SupportTicket } from "@/lib/types";
-import { LifeBuoy, Search, Mail, Building, User, CircleDot } from "lucide-react";
+import { LifeBuoy, Search, Mail, Building, User, CircleDot, Trash2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { updateSupportTicketStatus } from "@/lib/firebase/support";
+import { updateSupportTicketStatus, deleteSupportTicket } from "@/lib/firebase/support";
 
 
-function TicketDetailModal({ ticket, onClose, onStatusChange }: { ticket: SupportTicket, onClose: () => void, onStatusChange: (ticketId: string, status: SupportTicket['status']) => Promise<void> }) {
+function TicketDetailModal({ 
+    ticket, 
+    onClose, 
+    onStatusChange, 
+    onDelete 
+}: { 
+    ticket: SupportTicket, 
+    onClose: () => void, 
+    onStatusChange: (ticketId: string, status: SupportTicket['status']) => Promise<void>,
+    onDelete: (ticketId: string) => Promise<void>
+}) {
     const [newStatus, setNewStatus] = useState(ticket.status);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleSave = async () => {
         setIsSubmitting(true);
@@ -39,6 +61,12 @@ function TicketDetailModal({ ticket, onClose, onStatusChange }: { ticket: Suppor
         setIsSubmitting(false);
     }
     
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        await onDelete(ticket.id);
+        setIsDeleting(false);
+    }
+
     const getStatusBadgeVariant = (status: SupportTicket["status"]) => {
         switch (status) {
         case "closed":
@@ -53,6 +81,7 @@ function TicketDetailModal({ ticket, onClose, onStatusChange }: { ticket: Suppor
     
   return (
     <DialogContent className="max-w-2xl">
+        <AlertDialog>
       <DialogHeader>
         <DialogTitle>Request: Plan change to {ticket.requestDetails.requestedPlan}</DialogTitle>
         <DialogDescription>
@@ -91,26 +120,53 @@ function TicketDetailModal({ ticket, onClose, onStatusChange }: { ticket: Suppor
             </div>
         </div>
       </div>
-      <DialogFooter className="gap-2 sm:gap-0">
-          <div className="flex-1">
-            <Select value={newStatus} onValueChange={(v) => setNewStatus(v as SupportTicket['status'])}>
-                <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Change status..." />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                </SelectContent>
-            </Select>
-          </div>
-        <DialogClose asChild>
-            <Button variant="outline">Close</Button>
-        </DialogClose>
-        <Button onClick={handleSave} disabled={isSubmitting || newStatus === ticket.status}>
-            {isSubmitting ? 'Saving...' : 'Save Changes'}
-        </Button>
+      <DialogFooter className="gap-2 sm:gap-0 sm:justify-between">
+            <div>
+                 {ticket.status === 'closed' && (
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" disabled={isDeleting}>
+                            <Trash2 className="mr-2 h-4 w-4"/>
+                            Delete Ticket
+                        </Button>
+                    </AlertDialogTrigger>
+                )}
+            </div>
+            <div className="flex gap-2 justify-end">
+                <div className="flex-1 sm:flex-none">
+                    <Select value={newStatus} onValueChange={(v) => setNewStatus(v as SupportTicket['status'])}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Change status..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="open">Open</SelectItem>
+                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            <SelectItem value="closed">Closed</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <DialogClose asChild>
+                    <Button variant="outline">Close</Button>
+                </DialogClose>
+                <Button onClick={handleSave} disabled={isSubmitting || newStatus === ticket.status}>
+                    {isSubmitting ? 'Saving...' : 'Save Changes'}
+                </Button>
+            </div>
       </DialogFooter>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete this support ticket.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+                   {isDeleting ? 'Deleting...' : 'Delete'}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DialogContent>
   );
 }
@@ -152,13 +208,30 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
             title: "Status Updated",
             description: `Ticket status changed to "${newStatus}".`
         });
-        // Optimistically update the UI
         setTickets(currentTickets => currentTickets.map(t => t.id === ticketId ? {...t, status: newStatus} : t));
-        setSelectedTicket(null);
+        setSelectedTicket(prev => prev ? {...prev, status: newStatus} : null);
     } catch (error) {
         toast({
             title: "Error",
             description: "Failed to update ticket status.",
+            variant: "destructive"
+        })
+    }
+  }
+
+  const handleDeleteTicket = async (ticketId: string) => {
+    try {
+        await deleteSupportTicket(ticketId);
+        toast({
+            title: "Ticket Deleted",
+            description: `The support ticket has been permanently deleted.`
+        });
+        setTickets(currentTickets => currentTickets.filter(t => t.id !== ticketId));
+        setSelectedTicket(null);
+    } catch (error) {
+         toast({
+            title: "Error",
+            description: "Failed to delete ticket.",
             variant: "destructive"
         })
     }
@@ -230,7 +303,12 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
       </div>
       
        <Dialog open={!!selectedTicket} onOpenChange={(isOpen) => !isOpen && setSelectedTicket(null)}>
-        {selectedTicket && <TicketDetailModal ticket={selectedTicket} onClose={() => setSelectedTicket(null)} onStatusChange={handleStatusChange} />}
+        {selectedTicket && <TicketDetailModal 
+            ticket={selectedTicket} 
+            onClose={() => setSelectedTicket(null)} 
+            onStatusChange={handleStatusChange}
+            onDelete={handleDeleteTicket}
+        />}
       </Dialog>
     </>
   );
