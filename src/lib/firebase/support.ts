@@ -5,7 +5,8 @@ import { db } from './config';
 import { collection, addDoc, serverTimestamp, Timestamp, doc, setDoc, getDocs, query, updateDoc } from 'firebase/firestore';
 import type { SupportTicket, User } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
-import { getSuperAdmins, getUsers } from './users';
+import { getUsers } from './users';
+import { getSuperAdmins } from './super-admin-actions';
 import { addNotification } from './notifications';
 
 
@@ -29,19 +30,15 @@ export async function createSupportTicket(args: CreateSupportTicketArgs): Promis
     await setDoc(docRef, newTicket);
 
     // Notify all super admins
-    try {
-        const superAdmins = await getSuperAdmins();
-        const notificationPromises = superAdmins.map(admin => 
-            addNotification({
-                userId: admin.id,
-                message: `New support request from ${args.organization.name} for plan change.`,
-                supportTicketId: docRef.id,
-            })
-        );
-        await Promise.all(notificationPromises);
-    } catch(e) {
-        console.error("Failed to send notification to super admins:", e);
-    }
+    const superAdmins = await getSuperAdmins();
+    const notificationPromises = superAdmins.map(admin => 
+        addNotification({
+            userId: admin.id,
+            message: `New support request from ${args.organization.name} for plan change.`,
+            supportTicketId: docRef.id,
+        })
+    );
+    await Promise.all(notificationPromises);
 }
 
 /**

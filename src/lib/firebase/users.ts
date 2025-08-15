@@ -88,17 +88,6 @@ export async function getUsers(organizationId?: string): Promise<User[]> {
     return userList;
 }
 
-export async function getSuperAdmins(): Promise<User[]> {
-    const usersCol = collection(db, 'users');
-    const q = query(usersCol, where('role', '==', 'super-admin'));
-    const userSnapshot = await getDocs(q);
-    const userList = userSnapshot.docs.map(doc => {
-        const data = doc.data() as Omit<User, 'id'>;
-        return { ...data, id: doc.id };
-    });
-    return userList;
-}
-
 export async function forgotPassword(email: string): Promise<void> {
     try {
         await sendPasswordResetEmail(auth, email);
