@@ -1,10 +1,11 @@
 
 
 import { auth, db } from './config';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, sendSignInLinkToEmail, signInWithEmailLink } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, sendSignInLinkToEmail } from 'firebase/auth';
 import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where, getDoc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
-import { createOrganization } from './organizations';
+import { createOrganization, getOrganization } from './organizations';
+import { sendInvitationEmail } from '@/lib/email';
 
 
 type CreateUserArgs = {
@@ -23,15 +24,14 @@ export async function createUser(args: CreateUserArgs): Promise<void> {
     const isInvite = args.role === 'client' || args.role === 'user';
 
     if (isInvite) {
-        // This flow is for inviting a user who will set their own password via an email link.
-        const actionCodeSettings = {
-            url: `https://boardr.vercel.app/login`,
-            handleCodeInApp: true,
-        };
-
-        // When a user is invited, we store their intended role and organization
-        // in a temporary 'invites' collection. When they click the link and
-        // sign in for the first time, we'll use this data to create their real user document.
+        // For invites, we now use our custom email sender (Resend)
+        // instead of Firebase's built-in email link auth.
+        
+        const org = await getOrganization(args.organizationId!);
+        if (!org) {
+            throw new Error("Cannot send invite: Organization not found.");
+        }
+        
         await setDoc(doc(db, "invites", args.email), {
             name: args.name,
             email: args.email,
@@ -39,11 +39,17 @@ export async function createUser(args: CreateUserArgs): Promise<void> {
             organizationId: args.organizationId,
         });
 
-        await sendSignInLinkToEmail(auth, args.email, actionCodeSettings);
-        
-        // We also store the email locally so the app can recognize the user
-        // when they return from the email link.
-        window.localStorage.setItem('emailForSignIn', args.email);
+        await sendInvitationEmail({ 
+            to: args.email, 
+            name: args.name,
+            organizationName: org.name
+        });
+
+        // We still store the email locally so the login page can pre-fill it.
+        // This part remains the same.
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem('emailForSignIn', args.email);
+        }
         return;
     }
 

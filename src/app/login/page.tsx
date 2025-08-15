@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,8 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import darkLogo from '../../../public/logos/brand-dark.png';
 import lightLogo from '../../../public/logos/brand_light.png';
-import { isSignInWithEmailLink } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config';
 
 function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
@@ -31,24 +29,22 @@ function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
    useEffect(() => {
     // This handles the case where a user is invited and clicks the email link.
-    // They will land on this page, and we can pre-fill their email.
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-      const storedEmail = window.localStorage.getItem('emailForSignIn');
-      if (storedEmail) {
-        setEmail(storedEmail);
-        setIsLogin(false); // Switch to sign-up view
-        setIsInviteFlow(true); // Enter the guided invite completion flow
-        toast({
-          title: "Welcome! Please set a password.",
-          description: "Create a password to complete your account setup.",
-        });
-      }
+    const inviteEmail = searchParams.get('email');
+    if (inviteEmail) {
+      setEmail(inviteEmail);
+      setIsLogin(false); // Switch to sign-up view
+      setIsInviteFlow(true); // Enter the guided invite completion flow
+      toast({
+        title: "Welcome! Please set a password.",
+        description: "Create a password to complete your account setup.",
+      });
     }
-  }, []);
+  }, [searchParams, toast]);
 
   const handleAuthAction = async (e: React.FormEvent) => {
     e.preventDefault();
