@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './config';
-import { collection, addDoc, serverTimestamp, Timestamp, doc, setDoc, getDocs, query } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp, doc, setDoc, getDocs, query, updateDoc } from 'firebase/firestore';
 import type { SupportTicket, User } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
 
@@ -77,4 +77,9 @@ export async function getSupportTickets(): Promise<SupportTicket[]> {
         return [];
     }
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SupportTicket));
+}
+
+export async function updateSupportTicketStatus(ticketId: string, status: SupportTicket['status']): Promise<void> {
+    const ticketRef = doc(db, 'supportTickets', ticketId);
+    await updateDoc(ticketRef, { status });
 }

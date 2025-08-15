@@ -3,13 +3,15 @@
 
 import { useState, useMemo } from "react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,21 +21,112 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { type SupportTicket } from "@/lib/types";
-import { LifeBuoy, Search } from "lucide-react";
-import { format } from "date-fns";
+import { LifeBuoy, Search, Mail, Building, User, Clock, CheckCircle, CircleDot } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { updateSupportTicketStatus } from "@/lib/firebase/support";
+import { useRouter } from "next/navigation";
+
+
+function TicketDetailModal({ ticket, onClose, onStatusChange }: { ticket: SupportTicket, onClose: () => void, onStatusChange: (status: SupportTicket['status']) => void }) {
+    const [newStatus, setNewStatus] = useState(ticket.status);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSave = async () => {
+        setIsSubmitting(true);
+        await onStatusChange(newStatus);
+        setIsSubmitting(false);
+    }
+    
+    const getStatusBadgeVariant = (status: SupportTicket["status"]) => {
+        switch (status) {
+        case "closed":
+            return "default";
+        case "in-progress":
+            return "secondary";
+        case "open":
+        default:
+            return "destructive";
+        }
+    };
+    
+  return (
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Request: Plan change to {ticket.requestDetails.requestedPlan}</DialogTitle>
+        <DialogDescription>
+            Submitted {format(new Date(ticket.createdAt as string), "MMM d, yyyy 'at' p")}
+        </DialogDescription>
+      </DialogHeader>
+      <div className="space-y-6 py-4">
+        <div className="flex items-start gap-4">
+            <Mail className="h-5 w-5 mt-1 text-muted-foreground" />
+            <div className="flex-1">
+                <h3 className="font-semibold">Requester</h3>
+                <p className="text-muted-foreground">{ticket.requester.name} ({ticket.requester.email})</p>
+            </div>
+        </div>
+         <div className="flex items-start gap-4">
+            <Building className="h-5 w-5 mt-1 text-muted-foreground" />
+            <div className="flex-1">
+                <h3 className="font-semibold">Organization</h3>
+                <p className="text-muted-foreground">{ticket.organization.name} (ID: {ticket.organization.id})</p>
+            </div>
+        </div>
+         <div className="flex items-start gap-4">
+            <User className="h-5 w-5 mt-1 text-muted-foreground" />
+            <div className="flex-1">
+                <h3 className="font-semibold">Request Details</h3>
+                <p className="text-muted-foreground">
+                    From <Badge variant="outline" className="capitalize">{ticket.requestDetails.currentPlan}</Badge> to <Badge variant="default" className="capitalize">{ticket.requestDetails.requestedPlan}</Badge> at {ticket.requestDetails.price}/month.
+                </p>
+            </div>
+        </div>
+        <div className="flex items-start gap-4">
+            <CircleDot className="h-5 w-5 mt-1 text-muted-foreground" />
+            <div className="flex-1">
+                <h3 className="font-semibold">Current Status</h3>
+                <Badge variant={getStatusBadgeVariant(ticket.status)} className="capitalize">{ticket.status}</Badge>
+            </div>
+        </div>
+      </div>
+      <DialogFooter className="gap-2 sm:gap-0">
+          <div className="flex-1">
+            <Select value={newStatus} onValueChange={(v) => setNewStatus(v as SupportTicket['status'])}>
+                <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Change status..." />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="in-progress">In Progress</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+            </Select>
+          </div>
+        <DialogClose asChild>
+            <Button variant="outline">Close</Button>
+        </DialogClose>
+        <Button onClick={handleSave} disabled={isSubmitting || newStatus === ticket.status}>
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
 
 export default function TicketsTable({ initialTickets }: { initialTickets: SupportTicket[] }) {
-  const [tickets] = useState<SupportTicket[]>(initialTickets);
+  const [tickets, setTickets] = useState<SupportTicket[]>(initialTickets);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | SupportTicket["status"]
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | SupportTicket["status"]>("all");
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
 
   const filteredTickets = useMemo(() => {
-    // Ensure tickets are sorted by date before filtering and displaying
     const sortedTickets = [...tickets].sort((a, b) => {
-        // Since createdAt is now a string, we need to parse it back to a Date for sorting
         const dateA = new Date(a.createdAt as string).getTime();
         const dateB = new Date(b.createdAt as string).getTime();
         return dateB - dateA;
@@ -53,18 +146,26 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
       return matchesSearch && matchesStatus;
     });
   }, [tickets, searchQuery, statusFilter]);
-
-  const getStatusBadgeVariant = (status: SupportTicket["status"]) => {
-    switch (status) {
-      case "closed":
-        return "default";
-      case "in-progress":
-        return "secondary";
-      case "open":
-      default:
-        return "destructive";
+  
+  const handleStatusChange = async (newStatus: SupportTicket['status']) => {
+    if (!selectedTicket) return;
+    try {
+        await updateSupportTicketStatus(selectedTicket.id, newStatus);
+        toast({
+            title: "Status Updated",
+            description: `Ticket status changed to "${newStatus}".`
+        });
+        // Optimistically update the UI
+        setTickets(currentTickets => currentTickets.map(t => t.id === selectedTicket.id ? {...t, status: newStatus} : t));
+        setSelectedTicket(null);
+    } catch (error) {
+        toast({
+            title: "Error",
+            description: "Failed to update ticket status.",
+            variant: "destructive"
+        })
     }
-  };
+  }
 
   return (
     <>
@@ -94,75 +195,46 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
         </Select>
       </div>
 
-      <div className="border rounded-lg overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Request Details</TableHead>
-              <TableHead>User</TableHead>
-              <TableHead>Organization</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Received</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <div className="border rounded-lg">
+        <div className="flex flex-col">
             {filteredTickets.length > 0 ? (
               filteredTickets.map((ticket) => (
-                <TableRow key={ticket.id}>
-                  <TableCell>
-                    <p className="font-medium">
-                      Plan change to{" "}
-                      <span className="capitalize">
-                        {ticket.requestDetails.requestedPlan}
-                      </span>
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      From:{" "}
-                      <span className="capitalize">
-                        {ticket.requestDetails.currentPlan}
-                      </span>{" "}
-                      | Price: {ticket.requestDetails.price}
-                    </p>
-                  </TableCell>
-                  <TableCell>
-                    <p className="font-medium">{ticket.requester.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {ticket.requester.email}
-                    </p>
-                  </TableCell>
-                  <TableCell>
-                    <p className="font-medium">{ticket.organization.name}</p>
-                    <p className="text-sm text-muted-foreground font-mono">
-                      {ticket.organization.id}
-                    </p>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={getStatusBadgeVariant(ticket.status)}
-                      className="capitalize"
-                    >
-                      {ticket.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {ticket.createdAt ? format(new Date(ticket.createdAt as string), "MMM d, yyyy - p") : 'N/A'}
-                  </TableCell>
-                </TableRow>
+                <div 
+                    key={ticket.id}
+                    className={cn(
+                        "flex items-center gap-4 p-4 border-b cursor-pointer hover:bg-muted/50",
+                        ticket.status === 'open' && "bg-blue-500/10 hover:bg-blue-500/20"
+                    )}
+                    onClick={() => setSelectedTicket(ticket)}
+                >
+                    <div className="flex items-center gap-2 w-1/6 font-semibold truncate">
+                        {ticket.status === 'open' && <span className="h-2.5 w-2.5 rounded-full bg-blue-500 shrink-0" />}
+                        <span className={cn("truncate", ticket.status === 'open' && "font-bold")}>{ticket.requester.name}</span>
+                    </div>
+                    <div className="flex-1 truncate">
+                        <span className={cn(ticket.status === 'open' && "font-bold")}>Plan Change Request</span>
+                        <span className="text-muted-foreground ml-2 truncate">
+                           - {ticket.organization.name} requests to switch to the {ticket.requestDetails.requestedPlan} plan.
+                        </span>
+                    </div>
+                    <div className="w-1/6 text-right text-sm text-muted-foreground">
+                        {formatDistanceToNow(new Date(ticket.createdAt as string), { addSuffix: true })}
+                    </div>
+                </div>
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="h-48 text-center">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <LifeBuoy className="h-12 w-12" />
-                    <h2 className="text-lg font-semibold">Inbox Zero</h2>
-                    <p>No support tickets found.</p>
-                  </div>
-                </TableCell>
-              </TableRow>
+                <div className="h-48 text-center flex flex-col items-center justify-center">
+                    <LifeBuoy className="h-12 w-12 text-muted-foreground" />
+                    <h2 className="text-lg font-semibold mt-4">Inbox Zero</h2>
+                    <p className="text-muted-foreground">No support tickets match your filters.</p>
+                </div>
             )}
-          </TableBody>
-        </Table>
+        </div>
       </div>
+      
+       <Dialog open={!!selectedTicket} onOpenChange={(isOpen) => !isOpen && setSelectedTicket(null)}>
+        {selectedTicket && <TicketDetailModal ticket={selectedTicket} onClose={() => setSelectedTicket(null)} onStatusChange={handleStatusChange} />}
+      </Dialog>
     </>
   );
 }
