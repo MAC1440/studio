@@ -17,15 +17,17 @@ export async function getSupportTickets(): Promise<SupportTicket[]> {
         
         const tickets = snapshot.docs.map(doc => {
             const data = doc.data();
+            // Add a defensive check to ensure createdAt is a valid timestamp
             const firestoreTimestamp = data.createdAt as adminFirestore.Timestamp;
+            const createdAt = firestoreTimestamp?.seconds 
+                ? { seconds: firestoreTimestamp.seconds, nanoseconds: firestoreTimestamp.nanoseconds }
+                : { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 }; // Default to now if invalid
+
             return {
                 ...data,
                 id: doc.id,
                 // Manually convert to a serializable format for the client component
-                createdAt: {
-                    seconds: firestoreTimestamp.seconds,
-                    nanoseconds: firestoreTimestamp.nanoseconds,
-                }
+                createdAt,
             } as SupportTicket;
         });
         
