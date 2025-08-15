@@ -12,27 +12,19 @@ export async function GET() {
     
     try {
         const supportTicketsCol = adminDb.collection('supportTickets');
-        // Removed orderBy to prevent query failure without a composite index
         const snapshot = await supportTicketsCol.get();
 
         if (snapshot.empty) {
             return NextResponse.json([]);
         }
         
+        // Return the raw data as requested for debugging.
+        // The client will be responsible for processing the timestamp.
         const tickets = snapshot.docs.map(doc => {
-            const data = doc.data();
-            const createdAt = data.createdAt as adminFirestore.Timestamp;
-            // Check if createdAt is a valid Timestamp object before calling toDate()
-            const createdAtISO = (createdAt && typeof createdAt.toDate === 'function')
-                ? createdAt.toDate().toISOString() 
-                : new Date().toISOString();
-
             return {
-                ...data,
+                ...doc.data(),
                 id: doc.id,
-                // Convert Timestamp to a serializable format (ISO string)
-                createdAt: createdAtISO,
-            } as unknown as SupportTicket;
+            }
         });
         
         return NextResponse.json(tickets);
@@ -41,4 +33,3 @@ export async function GET() {
         return NextResponse.json({ error: 'Failed to fetch support tickets' }, { status: 500 });
     }
 }
-

@@ -22,7 +22,7 @@ import { type SupportTicket } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LifeBuoy, Search } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
 export default function SupportPage() {
@@ -45,13 +45,20 @@ export default function SupportPage() {
             }
             const fetchedTickets = await response.json();
             
-            // The server function now returns dates as ISO strings, so we need to parse them back to Date objects
-            const processedTickets = fetchedTickets.map((ticket: any) => ({
-                ...ticket,
-                createdAt: typeof ticket.createdAt === 'string' ? parseISO(ticket.createdAt) : ticket.createdAt,
-            })) as unknown as SupportTicket[];
+            // The API now returns raw data, so we process the timestamp on the client.
+            const processedTickets = fetchedTickets.map((ticket: any) => {
+                // Firestore timestamp objects arrive as { _seconds, _nanoseconds }
+                const createdAtDate = ticket.createdAt && typeof ticket.createdAt === 'object' && ticket.createdAt._seconds
+                    ? new Date(ticket.createdAt._seconds * 1000)
+                    : new Date();
+
+                return {
+                    ...ticket,
+                    createdAt: createdAtDate,
+                } as SupportTicket;
+            });
             
-            // Sort on the client side after fetching
+            // Sort on the client side
             processedTickets.sort((a, b) => {
                 const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
                 const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
