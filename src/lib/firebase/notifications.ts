@@ -57,8 +57,9 @@ export async function addNotification(args: AddNotificationArgs): Promise<string
     read: false,
     createdAt: serverTimestamp() as Timestamp,
     expiresAt: Timestamp.fromDate(expiresAt),
-    projectId: args.projectId,
-    projectName: finalProjectName,
+    // Conditionally add fields to avoid undefined values
+    ...(args.projectId && { projectId: args.projectId }),
+    ...(finalProjectName && { projectName: finalProjectName }),
     ...(args.ticketId && { ticketId: args.ticketId }),
     ...(args.proposalId && { proposalId: args.proposalId }),
     ...(args.invoiceId && { invoiceId: args.invoiceId }),
