@@ -10,14 +10,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff } from 'lucide-react';
-import { forgotPassword, createUser } from '@/lib/firebase/users';
+import { forgotPassword, completeInvitation } from '@/lib/firebase/users';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import darkLogo from '../../../public/logos/brand-dark.png';
 import lightLogo from '../../../public/logos/brand_light.png';
+import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
+import { auth } from '@/lib/firebase/config';
 
 function AuthForm() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<'login' | 'signup' | 'completeInvite'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,14 +28,34 @@ function AuthForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, forceRefetch } = useAuth();
   const { toast } = useToast();
+
+   useEffect(() => {
+    // Check if the page is being loaded from an email link
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+      let storedEmail = window.localStorage.getItem('emailForSignIn');
+      if (storedEmail) {
+        setEmail(storedEmail);
+        setMode('completeInvite');
+      } else {
+        // If the email is not in local storage, prompt the user for it.
+        const promptedEmail = window.prompt('Please provide your email for confirmation');
+        if (promptedEmail) {
+          setEmail(promptedEmail);
+          setMode('completeInvite');
+        } else {
+            setError("Could not complete sign-in. Email is required.");
+        }
+      }
+    }
+  }, []);
 
   const handleAuthAction = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!isLogin) {
+    if (mode !== 'login') { // Signup or Invite Completion
       if (password !== confirmPassword) {
         setError("Passwords do not match.");
         return;
@@ -47,21 +69,19 @@ function AuthForm() {
     setIsLoading(true);
 
     try {
-      if (isLogin) {
+      if (mode === 'login') {
         await login(email, password);
-      } else {
-        if (!name) {
-            setError("Name is required for sign up.");
-            setIsLoading(false);
-            return;
-        }
-        await createUser({ name, email, password, role: 'admin' });
-        await login(email, password);
-        
-        toast({
+      } else if (mode === 'completeInvite') {
+        // The user came from an email link.
+        await signInWithEmailLink(auth, email, window.location.href);
+        // Now that they're authenticated, we can complete the process
+        // This is a simplified flow. A better UX would guide them to set a password now.
+         await completeInvitation(email, password);
+         toast({
           title: "Account Setup Complete",
           description: "Welcome! Your workspace is ready.",
-        });
+         });
+         forceRefetch(); // Trigger a full data reload
       }
     } catch (err: any) {
       let friendlyMessage = 'An unexpected error occurred. Please try again later.';
@@ -107,7 +127,7 @@ function AuthForm() {
         title: "Password Reset Email Sent",
         description: "Please check your inbox for instructions to reset your password.",
       });
-    } catch (error: any) => {
+    } catch (error: any) {
       setError(error.message);
       toast({
         title: "Error",
@@ -117,28 +137,23 @@ function AuthForm() {
     }
   };
   
-  const toggleForm = () => {
-      setIsLogin(!isLogin);
-      setError(null);
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setName('');
-  }
-  
   const getTitle = () => {
-    return isLogin ? 'Login' : 'Create an Account';
+    if (mode === 'completeInvite') return 'Complete Your Account';
+    return mode === 'login' ? 'Login' : 'Create an Account';
   }
 
   const getDescription = () => {
-    return isLogin ? 'Enter your email below to login to your account.' : 'Enter your details to create a new workspace.';
+    if (mode === 'completeInvite') return 'Welcome! Please set a password to secure your account.';
+    return mode === 'login' ? 'Enter your email below to login to your account.' : 'Enter your details to create a new workspace.';
   }
 
   const getButtonText = () => {
       if (isLoading) {
-          return isLogin ? 'Signing In...' : 'Creating Account...';
+          if (mode === 'completeInvite') return 'Setting Up...';
+          return mode === 'login' ? 'Signing In...' : 'Creating Account...';
       }
-      return isLogin ? 'Sign in' : 'Sign up';
+       if (mode === 'completeInvite') return 'Set Password & Login';
+      return mode === 'login' ? 'Sign in' : 'Sign up';
   }
 
   return (
@@ -154,7 +169,7 @@ function AuthForm() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          {!isLogin && (
+          {mode === 'signup' && (
                <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input
@@ -177,13 +192,13 @@ function AuthForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
+              disabled={isLoading || mode === 'completeInvite'}
             />
           </div>
           <div className="grid gap-2">
               <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  {isLogin && <Button type="button" variant="link" className="ml-auto p-0 h-auto" onClick={handleForgotPassword}>
+                  {mode === 'login' && <Button type="button" variant="link" className="ml-auto p-0 h-auto" onClick={handleForgotPassword}>
                       Forgot password?
                   </Button>}
               </div>
@@ -208,7 +223,7 @@ function AuthForm() {
                </Button>
             </div>
           </div>
-           {!isLogin && (
+           {mode !== 'login' && (
                <div className="grid gap-2">
                   <Label htmlFor="confirm-password">Confirm Password</Label>
                    <div className="relative">
@@ -238,12 +253,14 @@ function AuthForm() {
           <Button type="submit" className="w-full" disabled={isLoading}>
             {getButtonText()}
           </Button>
-           <p className="text-sm text-center text-muted-foreground">
-              {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
-              <Button type="button" variant="link" className="p-0 h-auto" onClick={toggleForm}>
-                   {isLogin ? 'Sign up' : 'Login'}
-              </Button>
-          </p>
+           {mode !== 'completeInvite' && (
+             <p className="text-sm text-center text-muted-foreground">
+                {mode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
+                <Button type="button" variant="link" className="p-0 h-auto" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>
+                     {mode === 'login' ? 'Sign up' : 'Login'}
+                </Button>
+            </p>
+           )}
         </CardFooter>
       </form>
     </Card>
