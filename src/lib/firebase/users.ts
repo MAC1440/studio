@@ -1,8 +1,8 @@
 
 
 import { auth, db } from './config';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, sendSignInLinkToEmail } from 'firebase/auth';
-import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, sendSignInLinkToEmail, signInWithEmailLink } from 'firebase/auth';
+import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where, getDoc } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { createOrganization } from './organizations';
 
@@ -16,19 +16,17 @@ type CreateUserArgs = {
 };
 
 
-// This function is now client-safe and uses the client SDK.
-// It's intended to be called from client components.
+// This function is for creating users from the admin panel.
+// If it's a team member or client, it sends an invite link.
+// If it's an admin signing up for the first time, it creates them directly with a password.
 export async function createUser(args: CreateUserArgs): Promise<void> {
     const isInvite = args.role === 'client' || args.role === 'user';
-    let password = args.password;
 
-    if (!password && isInvite) {
+    if (isInvite) {
         // This flow is for inviting a user who will set their own password via an email link.
         const actionCodeSettings = {
-            // URL you want to redirect back to. The domain (www.example.com) for this
-            // URL must be in the authorized domains list in the Firebase Console.
             url: `https://boardr.vercel.app/login`,
-            handleCodeInApp: true, // This must be true.
+            handleCodeInApp: true,
         };
 
         // When a user is invited, we store their intended role and organization
@@ -49,19 +47,18 @@ export async function createUser(args: CreateUserArgs): Promise<void> {
         return;
     }
 
-    if (!password) {
-        throw new Error("Password is required for self-signup.");
+    // This flow is for a new admin user signing themselves up directly.
+    if (!args.password) {
+        throw new Error("Password is required for admin self-signup.");
     }
     
-    // This flow is for a user signing themselves up directly.
-    const userCredential = await createUserWithEmailAndPassword(auth, args.email, password);
+    const userCredential = await createUserWithEmailAndPassword(auth, args.email, args.password);
     const firebaseUser = userCredential.user;
 
     if (firebaseUser) {
         await updateProfile(firebaseUser, { displayName: args.name });
 
         let orgId = args.organizationId;
-        // If it's a new admin signing up, create an organization for them.
         if (args.role === 'admin' && !orgId) {
             const newOrg = await createOrganization({ name: `${args.name}'s Workspace`, ownerId: firebaseUser.uid });
             orgId = newOrg.id;
@@ -75,10 +72,41 @@ export async function createUser(args: CreateUserArgs): Promise<void> {
             organizationId: orgId!,
             avatarUrl: firebaseUser.photoURL,
         };
-
-        // Create the user document in Firestore.
         await setDoc(doc(db, "users", firebaseUser.uid), newUser);
     }
+}
+
+
+/**
+ * This function completes the sign-up process for an invited user.
+ * It's called from the login page when a user arrives from an email link.
+ */
+export async function completeInvitation(email: string, password?: string): Promise<void> {
+    const inviteRef = doc(db, 'invites', email);
+    const inviteSnap = await getDoc(inviteRef);
+
+    if (!inviteSnap.exists()) {
+        throw new Error("Invitation not found or already used. Please contact your administrator.");
+    }
+    const inviteData = inviteSnap.data();
+
+    // Create the user in Firebase Auth with the email and new password
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password!);
+    const firebaseUser = userCredential.user;
+
+    // Create the user document in Firestore with the data from the invite
+    const newUser: User = {
+        id: firebaseUser.uid,
+        name: inviteData.name,
+        email: email,
+        role: inviteData.role,
+        organizationId: inviteData.organizationId,
+        avatarUrl: firebaseUser.photoURL
+    };
+    await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+
+    // Clean up the invite document
+    await deleteDoc(inviteRef);
 }
 
 

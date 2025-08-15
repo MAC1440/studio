@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff } from 'lucide-react';
-import { forgotPassword, createUser } from '@/lib/firebase/users';
+import { forgotPassword, createUser, completeInvitation } from '@/lib/firebase/users';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import darkLogo from '../../../public/logos/brand-dark.png';
@@ -21,6 +20,7 @@ import { auth } from '@/lib/firebase/config';
 
 function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isInviteFlow, setIsInviteFlow] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -41,6 +41,7 @@ function AuthForm() {
       if (storedEmail) {
         setEmail(storedEmail);
         setIsLogin(false); // Switch to sign-up view
+        setIsInviteFlow(true); // Enter the guided invite completion flow
         toast({
           title: "Welcome! Please set a password.",
           description: "Create a password to complete your account setup.",
@@ -53,7 +54,7 @@ function AuthForm() {
     e.preventDefault();
     setError(null);
 
-    if (!isLogin) {
+    if (!isLogin) { // Covers both Sign Up and Invite Completion
       if (password !== confirmPassword) {
         setError("Passwords do not match.");
         return;
@@ -71,22 +72,25 @@ function AuthForm() {
         await login(email, password);
         // Redirect logic is now handled in the main Home component's useEffect
       } else {
-        // Sign up
-        if (!name) {
-            setError("Name is required for sign up.");
-            setIsLoading(false);
-            return;
+        if (isInviteFlow) {
+          // Complete the invitation process for a user who clicked the email link.
+          await completeInvitation(email, password);
+        } else {
+          // Standard sign up for a new admin user creating their own workspace.
+          if (!name) {
+              setError("Name is required for sign up.");
+              setIsLoading(false);
+              return;
+          }
+          await createUser({ name, email, password, role: 'admin' });
         }
-        // Step 1: Create the user in Firebase Auth system only
-        await createUser({ name, email, password, role: 'admin' });
-
-        // Step 2: Log the new user in. The AuthContext will then handle
-        // creating the user document in Firestore and their new organization.
+        
+        // After either sign-up flow, log the user in.
         await login(email, password);
         
         toast({
-          title: "Account Created",
-          description: "Welcome! Your new workspace is ready.",
+          title: "Account Setup Complete",
+          description: "Welcome! Your workspace is ready.",
         });
       }
     } catch (err: any) {
@@ -151,14 +155,31 @@ function AuthForm() {
       setConfirmPassword('');
       setName('');
   }
+  
+  const getTitle = () => {
+    if (isInviteFlow) return 'Complete Your Account Setup';
+    return isLogin ? 'Login' : 'Create an Account';
+  }
+
+  const getDescription = () => {
+    if (isInviteFlow) return 'Create a password to securely access your workspace.';
+    return isLogin ? 'Enter your email below to login to your account.' : 'Enter your details to create a new workspace.';
+  }
+
+  const getButtonText = () => {
+      if (isLoading) {
+          if (isInviteFlow) return 'Setting up...';
+          return isLogin ? 'Signing In...' : 'Creating Account...';
+      }
+      if (isInviteFlow) return 'Set Password & Login';
+      return isLogin ? 'Sign in' : 'Sign up';
+  }
 
   return (
     <Card className="w-full max-w-sm border-0 shadow-none sm:border sm:shadow-sm">
       <CardHeader>
-        <CardTitle className="text-2xl">{isLogin ? 'Login' : 'Create an Account'}</CardTitle>
-        <CardDescription>
-          {isLogin ? 'Enter your email below to login to your account.' : 'Enter your details to create a new workspace.'}
-        </CardDescription>
+        <CardTitle className="text-2xl">{getTitle()}</CardTitle>
+        <CardDescription>{getDescription()}</CardDescription>
       </CardHeader>
       <form onSubmit={handleAuthAction}>
         <CardContent className="grid gap-4">
@@ -167,7 +188,7 @@ function AuthForm() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          {!isLogin && (
+          {!isLogin && !isInviteFlow && (
                <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input
@@ -190,7 +211,7 @@ function AuthForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
+              disabled={isLoading || isInviteFlow}
             />
           </div>
           <div className="grid gap-2">
@@ -249,14 +270,14 @@ function AuthForm() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? (isLogin ? 'Signing In...' : 'Creating Account...') : (isLogin ? 'Sign in' : 'Sign up')}
+            {getButtonText()}
           </Button>
-           <p className="text-sm text-center text-muted-foreground">
+           {!isInviteFlow && <p className="text-sm text-center text-muted-foreground">
               {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
               <Button type="button" variant="link" className="p-0 h-auto" onClick={toggleForm}>
                    {isLogin ? 'Sign up' : 'Login'}
               </Button>
-          </p>
+          </p>}
         </CardFooter>
       </form>
     </Card>

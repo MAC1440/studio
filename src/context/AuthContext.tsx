@@ -59,6 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Existing user
       let userDataFromDb = userDocSnap.data() as User;
       
+      // This is a failsafe for older users who might not have an org.
       if (!userDataFromDb.organizationId && userDataFromDb.role !== 'super-admin') {
         console.log(`User ${firebaseUser.uid} is missing an organization. Creating one now.`);
         const newOrg = await createOrganization({ name: `${userDataFromDb.name}'s Workspace`, ownerId: firebaseUser.uid });
@@ -69,73 +70,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserData(userDataFromDb);
       return userDataFromDb;
     } else {
-        // This is a new user who just signed in via an email link.
-        // Their temporary invite data should be in the 'invites' collection.
-        const inviteRef = doc(db, 'invites', firebaseUser.email!);
-        const inviteSnap = await getDoc(inviteRef);
-        
-        if (!inviteSnap.exists()) {
-            // This could be a new user signing up directly, not from an invite.
-            console.log("No existing user or invite found. Creating new admin user and organization...");
-             const newOrg = await createOrganization({ name: `${firebaseUser.displayName || firebaseUser.email}'s Workspace`, ownerId: firebaseUser.uid });
-              const newUser: User = {
-                id: firebaseUser.uid,
-                name: firebaseUser.displayName || 'New User',
-                email: firebaseUser.email!,
-                role: 'admin',
-                organizationId: newOrg.id,
-                avatarUrl: firebaseUser.photoURL,
-            };
-            await setDoc(userDocRef, newUser);
-            setUserData(newUser);
-            return newUser;
-        }
-
-        const inviteData = inviteSnap.data();
-        
-        const newUser: User = {
-            id: firebaseUser.uid,
-            name: inviteData.name,
-            email: firebaseUser.email!,
-            role: inviteData.role,
-            organizationId: inviteData.organizationId,
-            avatarUrl: firebaseUser.photoURL,
-        };
-
-        await setDoc(userDocRef, newUser);
-        // Clean up the invite document
-        await deleteDoc(inviteRef);
-      
-        setUserData(newUser);
-        return newUser;
+        // This case should ideally not be hit if the invite/signup flow is correct,
+        // as the user document should be created upon signup or invite completion.
+        // However, as a failsafe, we can try to create a user document.
+        console.warn(`No user document found for uid: ${firebaseUser.uid}. This might happen during the email link sign-in process if the user document hasn't been created yet. The login page should handle creation.`);
+        // We return null here, and let the login/invite completion logic handle creating the doc.
+        return null;
     }
   }, []);
 
 
   useEffect(() => {
-    // Handle the sign-in with email link flow.
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-        let email = window.localStorage.getItem('emailForSignIn');
-        if (!email) {
-            // User opened the link on a different device. To prevent session fixation
-            // attacks, ask the user to provide their email again.
-            email = window.prompt('Please provide your email for confirmation');
-        }
-        if (email) {
-            signInWithEmailLink(auth, email, window.location.href)
-                .then(() => {
-                    window.localStorage.removeItem('emailForSignIn');
-                    // The onAuthStateChanged listener will handle the rest.
-                })
-                .catch((error) => {
-                    // Some error occurred, you can inspect the code: error.code
-                    console.error("Error signing in with email link", error);
-                    setLoading(false);
-                });
-        }
-    }
-
-
+    // This effect only handles the silent authentication state changes.
+    // The explicit sign-in with link action is handled on the login page.
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
       if (firebaseUser) {
@@ -182,6 +129,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!userCredential.user) {
         throw new Error("Login failed: no user returned");
     }
+    // After login, force a refetch of all data.
+    forceRefetch();
     return await fetchAndSetUserData(userCredential.user);
   };
 
