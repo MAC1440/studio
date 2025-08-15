@@ -111,7 +111,7 @@ export type SupportTicket = {
         price: string;
     };
     status: 'open' | 'in-progress' | 'closed';
-    createdAt: Timestamp | string;
+    createdAt: string; // Should be a string after serialization
 };
 
 

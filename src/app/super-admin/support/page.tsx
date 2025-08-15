@@ -7,27 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
 import { SupportTicket } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Timestamp } from 'firebase/firestore';
 
 export default function SupportPage() {
   const [initialTickets, setInitialTickets] = useState<SupportTicket[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    getSupportTickets().then((rawTickets) => {
-      const tickets = rawTickets.map(ticket => {
-        let createdAtString: string;
-        // Safely handle both Timestamp objects and strings
-        if (ticket.createdAt instanceof Timestamp) {
-            createdAtString = ticket.createdAt.toDate().toISOString();
-        } else {
-            createdAtString = ticket.createdAt as string;
-        }
-        return {
-          ...ticket,
-          createdAt: createdAtString,
-        };
-      });
+    getSupportTickets().then((tickets) => {
       setInitialTickets(tickets)
     }).finally(() => {
       setIsLoading(false)

@@ -20,7 +20,7 @@ export async function createSupportTicket(args: CreateSupportTicketArgs): Promis
     const supportTicketsCol = collection(db, 'supportTickets');
     const docRef = doc(supportTicketsCol); // Create a reference to get an ID first
     
-    const newTicket: SupportTicket = {
+    const newTicket: Omit<SupportTicket, 'id' | 'createdAt'> & { createdAt: Timestamp } = {
         id: docRef.id, // Include the ID in the document data
         ...args,
         status: 'open',
@@ -51,7 +51,16 @@ export async function getSupportTickets(): Promise<SupportTicket[]> {
     if (snapshot.empty) {
         return [];
     }
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SupportTicket));
+    // Convert Timestamps to strings on the server before sending to the client
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        const createdAt = data.createdAt as Timestamp;
+        return {
+            ...data,
+            id: doc.id,
+            createdAt: createdAt.toDate().toISOString(),
+        } as SupportTicket;
+    });
 }
 
 export async function updateSupportTicketStatus(ticketId: string, status: SupportTicket['status']): Promise<void> {
