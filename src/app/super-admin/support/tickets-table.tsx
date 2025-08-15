@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +37,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { updateSupportTicketStatus, deleteSupportTicket } from "@/lib/firebase/support";
+import { updateSupportTicketStatus, deleteSupportTicket, deleteClosedSupportTickets } from "@/lib/firebase/support";
 
 
 function TicketDetailModal({ 
@@ -177,7 +177,13 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | SupportTicket["status"]>("all");
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const { toast } = useToast();
+  
+  useEffect(() => {
+    setTickets(initialTickets);
+  }, [initialTickets]);
+
 
   const filteredTickets = useMemo(() => {
     const sortedTickets = [...tickets].sort((a, b) => {
@@ -237,8 +243,31 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
     }
   }
 
+  const handleDeleteAllClosed = async () => {
+    setIsBulkDeleting(true);
+    try {
+      await deleteClosedSupportTickets();
+      toast({
+        title: "Closed Tickets Deleted",
+        description: "All closed support tickets have been removed.",
+      });
+      // Refresh the list by removing closed tickets from local state
+      setTickets(currentTickets => currentTickets.filter(t => t.status !== 'closed'));
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not delete closed tickets.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const hasClosedTickets = useMemo(() => tickets.some(t => t.status === 'closed'), [tickets]);
+
   return (
-    <>
+    <AlertDialog>
       <div className="flex items-center gap-4 mb-4">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -263,6 +292,16 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
             <SelectItem value="closed">Closed</SelectItem>
           </SelectContent>
         </Select>
+        <AlertDialogTrigger asChild>
+            <Button 
+                variant="outline" 
+                className="ml-auto" 
+                disabled={!hasClosedTickets || isBulkDeleting}
+            >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {isBulkDeleting ? 'Deleting...' : 'Delete All Closed'}
+            </Button>
+        </AlertDialogTrigger>
       </div>
 
       <div className="border rounded-lg">
@@ -310,6 +349,21 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
             onDelete={handleDeleteTicket}
         />}
       </Dialog>
-    </>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Closed Tickets?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete all support tickets with the "closed" status.
+            </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAllClosed}>
+                Continue
+            </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
+

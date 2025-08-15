@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './config';
-import { collection, addDoc, serverTimestamp, Timestamp, doc, setDoc, getDocs, query, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp, doc, setDoc, getDocs, query, updateDoc, deleteDoc, where, writeBatch } from 'firebase/firestore';
 import type { SupportTicket, User } from '@/lib/types';
 import { getDoc } from 'firebase/firestore';
 import { getUsers } from './users';
@@ -83,4 +83,21 @@ export async function updateSupportTicketStatus(ticketId: string, status: Suppor
 export async function deleteSupportTicket(ticketId: string): Promise<void> {
     const ticketRef = doc(db, 'supportTickets', ticketId);
     await deleteDoc(ticketRef);
+}
+
+export async function deleteClosedSupportTickets(): Promise<void> {
+    const ticketsCol = collection(db, 'supportTickets');
+    const q = query(ticketsCol, where('status', '==', 'closed'));
+    
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return;
+    }
+
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+
+    await batch.commit();
 }
