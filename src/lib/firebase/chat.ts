@@ -54,8 +54,14 @@ export async function getOrCreateChatForProject(projectId: string, organizationI
 
 export async function sendMessage(chatId: string, sender: Pick<User, 'id' | 'name' | 'avatarUrl' | 'role'>, text: string): Promise<void> {
     const messagesCol = collection(db, 'chats', chatId, 'messages');
+    
+    const messageSender = {
+        ...sender,
+        avatarUrl: sender.avatarUrl || '',
+    };
+
     const newMessage: Omit<ChatMessage, 'id'> = {
-        sender,
+        sender: messageSender,
         text,
         timestamp: serverTimestamp() as Timestamp
     };

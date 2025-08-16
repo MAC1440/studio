@@ -206,7 +206,7 @@ export default function CreateInvoicePage() {
           <p className="text-muted-foreground">For client: {client.name}</p>
         </div>
       </div>
-      <Card>
+      <Card className="max-h-[calc(100vh-10rem)] overflow-y-auto pb-10">
         <CardHeader>
           <CardTitle>Invoice Details</CardTitle>
           <CardDescription>Fill out the form below to generate a new invoice.</CardDescription>

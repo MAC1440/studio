@@ -49,7 +49,9 @@ export default function ClientsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const { toast } = useToast();
-  const { user: currentUser, userData } = useAuth();
+  const { user: currentUser, userData, organization } = useAuth();
+  
+  const isPaidPlan = organization?.subscriptionPlan === 'startup' || organization?.subscriptionPlan === 'pro';
 
   const fetchClients = async () => {
     if (!userData?.organizationId) return;

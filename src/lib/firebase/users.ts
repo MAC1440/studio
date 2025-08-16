@@ -105,4 +105,12 @@ export async function updateUserProfile(userId: string, updates: Partial<User>):
     await updateDoc(userRef, updates);
 }
 
-    
+export async function getAllUsers(): Promise<User[]> {
+    const usersCol = collection(db, 'users');
+    const userSnapshot = await getDocs(usersCol);
+    const userList = userSnapshot.docs.map(doc => {
+      const data = doc.data() as Omit<User, 'id'>;
+      return { ...data, id: doc.id };
+    });
+    return userList;
+}
