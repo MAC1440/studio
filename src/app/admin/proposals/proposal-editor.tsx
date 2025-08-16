@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   type User,
@@ -26,10 +30,12 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import RichTextEditor from "@/components/ui/rich-text-editor";
+import { Zap } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { generateProposal } from "@/ai/flows/proposal-flow";
+import { useAuth } from "@/context/AuthContext";
 
 type ProposalEditorProps = {
-  clients: User[];
-  projects: Project[];
   onSave: (data: {
     title: string;
     content: string;
@@ -71,18 +77,63 @@ function FeedbackComment({ comment }: { comment: Comment }) {
   );
 }
 
+function AiGeneratorDialog({ open, onOpenChange, onGenerate, isGenerating }: { open: boolean, onOpenChange: (open: boolean) => void, onGenerate: (prompt: string) => void, isGenerating: boolean}) {
+    const [prompt, setPrompt] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onGenerate(prompt);
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-primary" /> AI Proposal Generator</DialogTitle>
+                    <DialogDescription>
+                        Describe the proposal you want to create, and the AI will generate a structured draft for you.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="ai-prompt">Proposal Topic</Label>
+                        <Textarea 
+                            id="ai-prompt"
+                            placeholder="e.g., 'A full website redesign for a local coffee shop' or 'A social media marketing campaign for a new clothing brand'"
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            disabled={isGenerating}
+                            rows={3}
+                        />
+                    </div>
+                     <DialogFooter>
+                        <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isGenerating}>Cancel</Button>
+                        <Button type="submit" disabled={isGenerating || !prompt.trim()}>
+                            {isGenerating ? 'Generating...' : 'Generate Content'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 export default function ProposalEditor({
-  clients,
-  projects,
   onSave,
   onClose,
   proposal,
   isSubmitting,
 }: ProposalEditorProps) {
+  const { users, projects, activeProjectIds } = useAuth();
+  const clients = useMemo(() => users.filter(u => u.role === 'client'), [users]);
+  const activeProjects = useMemo(() => projects.filter(p => activeProjectIds.includes(p.id)), [projects, activeProjectIds]);
+  
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [clientId, setClientId] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -108,6 +159,24 @@ export default function ProposalEditor({
     }
   };
 
+  const handleAiGenerate = async (prompt: string) => {
+    setIsGenerating(true);
+    try {
+      const result = await generateProposal({ prompt });
+      if (result.content) {
+        setContent(result.content);
+        setTitle(prompt); // Use the prompt as a starting title
+        toast({ title: 'AI content generated!', description: 'The editor has been updated with the generated proposal.' });
+        setIsAiDialogOpen(false);
+      }
+    } catch (error) {
+      console.error("Failed to generate AI content:", error);
+      toast({ title: "AI Generation Failed", description: "Could not generate content. Please try again.", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
   const isFormValid = title && clientId && projectId && content;
   const isViewOnly =
     proposal && !["draft", "changes-requested"].includes(proposal.status);
@@ -115,6 +184,7 @@ export default function ProposalEditor({
     proposal && proposal.feedback && proposal.feedback.length > 0;
 
   return (
+    <>
     <div className="flex flex-col h-full overflow-y-auto">
       <DialogHeader>
         <DialogTitle>
@@ -163,7 +233,7 @@ export default function ProposalEditor({
                   <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects.map((project) => (
+                  {activeProjects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
                     </SelectItem>
@@ -194,13 +264,19 @@ export default function ProposalEditor({
           </div>
 
           <div className="space-y-2 flex-1 flex flex-col min-h-0">
-            <Label>Content</Label>
+            <div className="flex items-center justify-between">
+                 <Label>Content</Label>
+                 {!isViewOnly && (
+                    <Button variant="outline" size="sm" onClick={() => setIsAiDialogOpen(true)}>
+                        <Zap className="mr-2 h-4 w-4 text-primary" />
+                        Generate with AI
+                    </Button>
+                 )}
+            </div>
             <RichTextEditor
               content={content}
               onChange={setContent}
-              editable={
-                // !isSubmitting && 
-                !isViewOnly}
+              editable={!isViewOnly}
             />
           </div>
         </div>
@@ -243,5 +319,12 @@ export default function ProposalEditor({
         )}
       </DialogFooter>
     </div>
+    <AiGeneratorDialog 
+        open={isAiDialogOpen}
+        onOpenChange={setIsAiDialogOpen}
+        onGenerate={handleAiGenerate}
+        isGenerating={isGenerating}
+    />
+    </>
   );
 }
