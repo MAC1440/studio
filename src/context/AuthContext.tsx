@@ -4,7 +4,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { onAuthStateChanged, signOut, type User as FirebaseUser, isSignInWithEmailLink, signInWithEmailLink, signInWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, signOut, type User as FirebaseUser, isSignInWithEmailLink, signInWithEmailLink, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import type { User, Organization, Project } from '@/lib/types';
@@ -22,6 +22,7 @@ interface AuthContextType {
   activeProjectIds: string[];
   loading: boolean;
   login: (email: string, pass: string) => Promise<User | null>;
+  signup: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   users: User[];
   ticketReloadKey: number;
@@ -133,6 +134,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     forceRefetch();
     return await fetchAndSetUserData(userCredential.user);
   };
+  
+  const signup = async (email: string, pass: string, name: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+    const firebaseUser = userCredential.user;
+    if (!firebaseUser) {
+      throw new Error("Signup failed: no user returned from Firebase");
+    }
+    
+    // Create new organization for this user
+    const newOrg = await createOrganization({
+      name: `${name}'s Workspace`,
+      ownerId: firebaseUser.uid,
+    });
+    
+    // Create the user document in Firestore
+    const newUserDoc: User = {
+      id: firebaseUser.uid,
+      name,
+      email,
+      role: 'admin',
+      organizationId: newOrg.id,
+      avatarUrl: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(name)}`
+    };
+    
+    await setDoc(doc(db, 'users', firebaseUser.uid), newUserDoc);
+    
+    // After signup, force a refetch of all data.
+    forceRefetch();
+  };
 
 
   const logout = async () => {
@@ -142,7 +172,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading, login, logout, users, ticketReloadKey, reloadTickets, forceRefetch, organization, projects, activeProjectIds }}>
+    <AuthContext.Provider value={{ user, userData, loading, login, signup, logout, users, ticketReloadKey, reloadTickets, forceRefetch, organization, projects, activeProjectIds }}>
       {children}
     </AuthContext.Provider>
   );
