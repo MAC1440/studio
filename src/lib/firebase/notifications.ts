@@ -1,4 +1,5 @@
 
+
 import { db } from './config';
 import {
   collection,
@@ -12,6 +13,8 @@ import {
   orderBy,
   limit,
   Timestamp,
+  getDocs,
+  writeBatch,
 } from 'firebase/firestore';
 import type { Notification } from '@/lib/types';
 import { getProject } from './projects';
@@ -19,26 +22,27 @@ import { getProject } from './projects';
 type AddNotificationArgs = {
   userId: string;
   message: string;
-  ticketId?: string;
-  proposalId?: string;
-  invoiceId?: string;
-  reportId?: string;
-  chatId?: string;
-  projectId: string;
+  ticketId?: string; // Optional
+  proposalId?: string; // Optional
+  invoiceId?: string; // Optional
+  reportId?: string; // Optional
+  chatId?: string; //Optional
+  supportTicketId?: string; // Optional
+  projectId?: string;
   projectName?: string;
 };
 
-export async function addNotification({ userId, message, ticketId, proposalId, invoiceId, reportId, chatId, projectId, projectName }: AddNotificationArgs): Promise<string> {
+export async function addNotification(args: AddNotificationArgs): Promise<string> {
   const notificationsCol = collection(db, 'notifications');
   
   // Set an expiration date 7 days from now for TTL policy
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  let finalProjectName = projectName;
-  if (!finalProjectName) {
+  let finalProjectName = args.projectName;
+  if (!finalProjectName && args.projectId) {
       try {
-          const project = await getProject(projectId);
+          const project = await getProject(args.projectId);
           if (project) {
               finalProjectName = project.name;
           }
@@ -48,18 +52,20 @@ export async function addNotification({ userId, message, ticketId, proposalId, i
   }
 
   const newNotification: Omit<Notification, 'id'> = {
-    userId,
-    message,
+    userId: args.userId,
+    message: args.message,
     read: false,
     createdAt: serverTimestamp() as Timestamp,
     expiresAt: Timestamp.fromDate(expiresAt),
-    projectId,
-    projectName: finalProjectName || 'Unknown Project',
-    ...(ticketId && { ticketId }),
-    ...(proposalId && { proposalId }),
-    ...(invoiceId && { invoiceId }),
-    ...(reportId && { reportId }),
-    ...(chatId && { chatId }),
+    // Conditionally add fields to avoid undefined values
+    ...(args.projectId && { projectId: args.projectId }),
+    ...(finalProjectName && { projectName: finalProjectName }),
+    ...(args.ticketId && { ticketId: args.ticketId }),
+    ...(args.proposalId && { proposalId: args.proposalId }),
+    ...(args.invoiceId && { invoiceId: args.invoiceId }),
+    ...(args.reportId && { reportId: args.reportId }),
+    ...(args.chatId && { chatId: args.chatId }),
+    ...(args.supportTicketId && { supportTicketId: args.supportTicketId }),
   };
   const docRef = await addDoc(notificationsCol, newNotification);
   return docRef.id;
@@ -90,4 +96,25 @@ export async function markNotificationAsRead(notificationId: string): Promise<vo
   await updateDoc(notificationRef, {
     read: true,
   });
+}
+
+export async function markAllNotificationsAsRead(userId: string): Promise<void> {
+    const notificationsCol = collection(db, 'notifications');
+    const q = query(
+        notificationsCol,
+        where('userId', '==', userId),
+        where('read', '==', false)
+    );
+
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return;
+    }
+
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(doc => {
+        batch.update(doc.ref, { read: true });
+    });
+
+    await batch.commit();
 }

@@ -1,12 +1,14 @@
 
 import type { Timestamp } from 'firebase/firestore';
 
+export type OrganizationPlan = 'free' | 'startup' | 'pro';
+
 export type Organization = {
   id: string;
   name: string;
   ownerId: string;
   createdAt: Timestamp;
-  subscriptionPlan: 'free' | 'pro' | 'enterprise';
+  subscriptionPlan: OrganizationPlan;
   stripeCustomerId?: string;
 };
 
@@ -16,7 +18,7 @@ export type User = {
   email: string;
   avatarUrl?: string;
   role: 'admin' | 'user' | 'client' | 'super-admin';
-  organizationId: string;
+  organizationId?: string; // Optional for super-admin
 };
 
 // Renamed from User to avoid conflict with Firebase's User type
@@ -91,6 +93,28 @@ export type ClientReport = {
     updatedAt: Timestamp;
 }
 
+export type SupportTicket = {
+    id: string;
+    requester: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    organization: {
+        id: string;
+        name: string;
+        ownerId: string;
+    };
+    requestDetails: {
+        currentPlan: string;
+        requestedPlan: string;
+        price: string;
+    };
+    status: 'open' | 'in-progress' | 'closed';
+    createdAt: string; // Should be a string after serialization
+};
+
+
 export type ChatMessage = {
     id: string;
     sender: Pick<User, 'id' | 'name' | 'avatarUrl' | 'role'>;
@@ -161,11 +185,12 @@ export type Notification = {
     id: string;
     userId: string;
     message: string;
-    ticketId?: string; // Optional
-    proposalId?: string; // Optional
-    invoiceId?: string; // Optional
-    reportId?: string; // Optional
-    chatId?: string; //Optional
+    ticketId?: string;
+    proposalId?: string;
+    invoiceId?: string;
+    reportId?: string;
+    chatId?: string;
+    supportTicketId?: string;
     read: boolean;
     createdAt: Timestamp;
     expiresAt: Timestamp;

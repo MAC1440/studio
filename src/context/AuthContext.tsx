@@ -3,10 +3,10 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { onAuthStateChanged, signOut, type User as FirebaseUser, signInWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, signOut, type User as FirebaseUser, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
-import type { User } from '@/lib/types';
+import type { Organization, Project, User } from '@/lib/types';
 import { getUsers, updateUserProfile } from '@/lib/firebase/users';
 import { createOrganization } from '@/lib/firebase/organizations';
 import { useRouter } from 'next/navigation';
@@ -15,8 +15,12 @@ import { useRouter } from 'next/navigation';
 interface AuthContextType {
   user: FirebaseUser | null;
   userData: User | null;
+  organization: Organization | null;
+  projects: Project[];
+  activeProjectIds: string[];
   loading: boolean;
   login: (email: string, pass: string) => Promise<User | null>;
+  signup: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   users: User[];
   ticketReloadKey: number;
@@ -29,6 +33,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [activeProjectIds, setActiveProjectIds] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [ticketReloadKey, setTicketReloadKey] = useState(0);
@@ -115,7 +122,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return await fetchAndSetUserData(userCredential.user);
   };
 
-
+  const signup = async (email: string, pass: string, name: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+    const firebaseUser = userCredential.user;
+    if (!firebaseUser) {
+      throw new Error("Signup failed: no user returned from Firebase");
+    }
+    
+    // Create new organization for this user
+    const newOrg = await createOrganization({
+      name: `${name}'s Workspace`,
+      ownerId: firebaseUser.uid,
+    });
+    
+    // Create the user document in Firestore
+    const newUserDoc: User = {
+      id: firebaseUser.uid,
+      name,
+      email,
+      role: 'admin',
+      organizationId: newOrg.id,
+      avatarUrl: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(name)}`
+    };
+    
+    await setDoc(doc(db, 'users', firebaseUser.uid), newUserDoc);
+    
+    // After signup, force a refetch of all data.
+    forceRefetch();
+  };
   const logout = async () => {
     await signOut(auth);
     setUserData(null);
@@ -123,7 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading, login, logout, users, ticketReloadKey, reloadTickets, forceRefetch }}>
+    <AuthContext.Provider value={{ user, userData, loading, login, signup, logout, users, ticketReloadKey, reloadTickets, forceRefetch, organization, projects, activeProjectIds }}>
       {children}
     </AuthContext.Provider>
   );
