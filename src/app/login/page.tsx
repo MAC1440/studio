@@ -10,15 +10,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff } from 'lucide-react';
-import { forgotPassword } from '@/lib/firebase/users';
+import { forgotPassword, createUser } from '@/lib/firebase/users';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import darkLogo from '../../../public/logos/brand-dark.png';
 import lightLogo from '../../../public/logos/brand_light.png';
+import { createOrganization } from '@/lib/firebase/organizations';
 
 function AuthForm() {
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +61,53 @@ function AuthForm() {
     }
   };
 
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) {
+        setError("Password must be at least 6 characters long.");
+        return;
+    }
+    setError(null);
+    setIsLoading(true);
+    try {
+        const newOrg = await createOrganization({ name: `${name}'s Workspace`, ownerId: 'temp' });
+        await createUser({
+            name,
+            email,
+            password,
+            role: 'admin',
+            organizationId: newOrg.id,
+        });
+        // After successful signup, log the user in
+        await login(email, password);
+
+        toast({
+            title: "Account Created!",
+            description: "Welcome to BoardR! We're setting up your workspace.",
+        });
+
+    } catch (err: any) {
+         let friendlyMessage = 'An unexpected error occurred during sign up.';
+         if (err.code) {
+             switch (err.code) {
+                 case 'auth/email-already-in-use':
+                     friendlyMessage = 'An account with this email already exists. Please log in instead.';
+                     break;
+                 case 'auth/weak-password':
+                     friendlyMessage = 'The password is too weak. Please choose a stronger password.';
+                     break;
+                 default:
+                    console.error("Signup error:", err.code, err.message);
+             }
+         } else {
+            console.error(err);
+         }
+        setError(friendlyMessage);
+    } finally {
+        setIsLoading(false);
+    }
+  }
+
   const handleForgotPassword = async () => {
     if (!email) {
       setError("Please enter your email address to reset your password.");
@@ -80,18 +130,38 @@ function AuthForm() {
     }
   };
 
+  const toggleMode = () => {
+    setAuthMode(authMode === 'login' ? 'signup' : 'login');
+    setError(null);
+  };
+
   return (
     <Card className="w-full max-w-sm border-0 shadow-none sm:border sm:shadow-sm">
       <CardHeader>
-        <CardTitle className="text-2xl">Login</CardTitle>
-        <CardDescription>Enter your email below to login to your account.</CardDescription>
+        <CardTitle className="text-2xl">{authMode === 'login' ? 'Login' : 'Create an Account'}</CardTitle>
+        <CardDescription>
+          {authMode === 'login' ? 'Enter your email below to login to your account.' : 'Enter your details to create a new account.'}
+        </CardDescription>
       </CardHeader>
-      <form onSubmit={handleLogin}>
+      <form onSubmit={authMode === 'login' ? handleLogin : handleSignUp}>
         <CardContent className="grid gap-4">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
+          )}
+          {authMode === 'signup' && (
+             <div className="grid gap-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                id="name"
+                placeholder="John Doe"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isLoading}
+                />
+            </div>
           )}
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
@@ -108,9 +178,11 @@ function AuthForm() {
           <div className="grid gap-2">
               <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <Button type="button" variant="link" className="ml-auto p-0 h-auto" onClick={handleForgotPassword}>
-                      Forgot password?
-                  </Button>
+                  {authMode === 'login' && (
+                    <Button type="button" variant="link" className="ml-auto p-0 h-auto" onClick={handleForgotPassword}>
+                        Forgot password?
+                    </Button>
+                  )}
               </div>
             <div className="relative">
               <Input 
@@ -134,10 +206,16 @@ function AuthForm() {
             </div>
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex flex-col gap-4">
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Signing In...' : 'Sign in'}
+            {isLoading ? (authMode === 'login' ? 'Signing In...' : 'Creating Account...') : (authMode === 'login' ? 'Sign in' : 'Create Account')}
           </Button>
+           <p className="text-sm text-muted-foreground">
+             {authMode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
+            <Button variant="link" type="button" onClick={toggleMode} className="p-0 h-auto">
+                {authMode === 'login' ? "Sign up" : "Log in"}
+            </Button>
+          </p>
         </CardFooter>
       </form>
     </Card>
