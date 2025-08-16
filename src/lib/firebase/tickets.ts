@@ -139,7 +139,7 @@ export async function addCommentToTicket(ticketId: string, {userId, message}: Ad
         user: {
             id: userData.id,
             name: userData.name,
-            avatarUrl: userData.avatarUrl
+            avatarUrl: userData.avatarUrl || ''
         },
         message: message,
         timestamp: Timestamp.fromDate(new Date())

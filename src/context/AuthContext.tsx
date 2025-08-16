@@ -8,8 +8,9 @@ import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import type { Organization, Project, User } from '@/lib/types';
 import { getUsers, updateUserProfile } from '@/lib/firebase/users';
-import { createOrganization } from '@/lib/firebase/organizations';
+import { createOrganization, getOrganization } from '@/lib/firebase/organizations';
 import { useRouter } from 'next/navigation';
+import { getProjects } from '@/lib/firebase/projects';
 
 
 interface AuthContextType {
@@ -90,28 +91,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
-
   useEffect(() => {
+    // This effect only handles the silent authentication state changes.
+    // The explicit sign-in with link action is handled on the login page.
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
       if (firebaseUser) {
         setUser(firebaseUser);
         const currentUserData = await fetchAndSetUserData(firebaseUser);
+        
         if (currentUserData?.organizationId) {
-            const allUsers = await getUsers(currentUserData.organizationId);
+            const [orgData, projectData, allUsers] = await Promise.all([
+                getOrganization(currentUserData.organizationId),
+                getProjects(currentUserData.organizationId),
+                getUsers(currentUserData.organizationId)
+            ]);
+
+            setOrganization(orgData);
             setUsers(allUsers);
+            
+            const sortedProjects = projectData.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+            setProjects(sortedProjects);
+
+            const plan = orgData?.subscriptionPlan || 'free';
+            const limits = { free: 3, startup: 10, pro: Infinity };
+            const limit = limits[plan];
+            
+            const activeIds = sortedProjects.slice(0, limit).map(p => p.id);
+            setActiveProjectIds(activeIds);
+
         }
       } else {
         setUser(null);
         setUserData(null);
+        setOrganization(null);
+        setProjects([]);
         setUsers([]);
+        setActiveProjectIds([]);
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, [fetchAndSetUserData, refetchKey]);
-
   const login = async (email: string, pass: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
     if (!userCredential.user) {
