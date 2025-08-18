@@ -5,14 +5,17 @@ import * as admin from 'firebase-admin';
 import { db } from './config';
 import { doc, deleteDoc } from 'firebase/firestore';
 
+const ADMIN_SDK_INITIALIZED = admin.apps.length > 0;
 
-// Check if the required environment variables are set
-const hasRequiredEnvVars =
-  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
-  process.env.FIREBASE_ADMIN_CLIENT_EMAIL &&
-  process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+// Initialize Firebase Admin SDK if not already initialized
+if (!ADMIN_SDK_INITIALIZED) {
+  // These variables are required for the Admin SDK to work.
+  // They are configured in the deployment environment (e.g., Vercel), not in the browser.
+  const hasRequiredEnvVars =
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
+    process.env.FIREBASE_ADMIN_CLIENT_EMAIL &&
+    process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
-if (!admin.apps.length) {
   if (hasRequiredEnvVars) {
     try {
       admin.initializeApp({
@@ -20,33 +23,38 @@ if (!admin.apps.length) {
           projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
           // The private key must be formatted correctly.
-          // In your .env file, it should be a single line string with newlines represented as \\n
-          privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY
-            ? process.env.FIREBASE_ADMIN_PRIVATE_KEY.replace(/\\n/g, '\n')
-            : undefined,
+          // In your .env or Vercel environment variables, it should be a single line string
+          // with newlines represented as \\n
+          privateKey: (
+            process.env.FIREBASE_ADMIN_PRIVATE_KEY as string
+          ).replace(/\\n/g, '\n'),
         }),
       });
     } catch (error: any) {
-      console.error('Firebase admin initialization error', error.stack);
+      console.error('Firebase admin initialization error:', error.stack);
     }
   } else {
     console.warn(
-      'Firebase admin initialization skipped. Missing one or more required environment variables: NEXT_PUBLIC_FIREBASE_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY.'
+      'Firebase Admin SDK is not initialized. Required environment variables (FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY) are missing. Admin actions will fail.'
     );
   }
 }
 
-// Export auth only if the app was initialized
 const adminAuth = admin.apps.length ? admin.auth() : null;
+
+function ensureAdminInitialized() {
+    if (!adminAuth) {
+        throw new Error("Firebase Admin SDK is not initialized. Please check server-side environment variables as described in the README.");
+    }
+}
+
 
 /**
  * Deletes a user from both Firebase Authentication and Firestore.
  * This is a destructive action that should only be available to super-admins.
  */
 export async function deleteUserByAdmin(uid: string): Promise<void> {
-    if (!adminAuth) {
-        throw new Error("Admin SDK not initialized.");
-    }
+    ensureAdminInitialized();
     try {
         // Delete from Firebase Authentication
         await adminAuth.deleteUser(uid);
@@ -62,9 +70,7 @@ export async function deleteUserByAdmin(uid: string): Promise<void> {
 }
 
 export async function resetPasswordByAdmin(email: string): Promise<void> {
-    if (!adminAuth) {
-        throw new Error("Admin SDK not initialized.");
-    }
+    ensureAdminInitialized();
      try {
         const link = await adminAuth.generatePasswordResetLink(email);
         // Note: This only generates the link. We're not sending an email here,
@@ -83,3 +89,4 @@ export async function resetPasswordByAdmin(email: string): Promise<void> {
         throw new Error(`Failed to send password reset: ${error.message}`);
     }
 }
+
