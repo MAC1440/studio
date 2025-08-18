@@ -51,7 +51,8 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
             name: args.name,
             email: args.email,
             role: args.role,
-            organizationId: args.organizationId || '', 
+            organizationId: args.organizationId || '',
+            avatarUrl: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(args.name)}`
         };
         
         // Pre-create the user document for all invited users so they exist in the system before first login.

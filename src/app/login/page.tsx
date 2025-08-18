@@ -26,7 +26,7 @@ function AuthForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, signup } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -58,12 +58,7 @@ function AuthForm() {
             setIsLoading(false);
             return;
         }
-        // Step 1: Create the user in Firebase Auth system only
-        await createUser({ name, email, password, role: 'admin' });
-
-        // Step 2: Log the new user in. The AuthContext will then handle
-        // creating the user document in Firestore and their new organization.
-        await login(email, password);
+        await signup(email, password, name);
         
         toast({
           title: "Account Created",
@@ -303,5 +298,4 @@ function AuthPage() {
 }
 
 export default AuthPage;
-
     
