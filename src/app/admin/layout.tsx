@@ -14,10 +14,9 @@ import {
   SidebarHeader,
   SidebarTrigger,
   SidebarMenuSkeleton,
-  SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenuSub,
   SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import {
   Home,
