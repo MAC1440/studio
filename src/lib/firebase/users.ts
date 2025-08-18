@@ -9,7 +9,7 @@ type CreateUserArgs = {
     email: string;
     password?: string;
     name: string;
-    role: 'admin' | 'user' | 'client';
+    role: "user" | "admin" | "client" | "super-admin";
     organizationId?: string;
 };
 

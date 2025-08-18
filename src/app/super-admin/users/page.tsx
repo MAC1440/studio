@@ -29,6 +29,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,7 +56,7 @@ function EditUserDialog({ user, onUserUpdated, children }: { user: User | null, 
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'admin' | 'user' | 'client'>('user');
+  const [role, setRole] = useState<"user" | "admin" | "client" | "super-admin">('user');
   const { toast } = useToast();
 
   useEffect(() => {
