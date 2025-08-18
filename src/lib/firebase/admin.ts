@@ -10,10 +10,6 @@ const ADMIN_SDK_INITIALIZED = admin.apps.length > 0;
 // Initialize Firebase Admin SDK if not already initialized
 if (!ADMIN_SDK_INITIALIZED) {
   try {
-    console.log("Attempting to initialize Firebase Admin SDK...");
-    console.log("FIREBASE_ADMIN_CLIENT_EMAIL loaded:", !!process.env.FIREBASE_ADMIN_CLIENT_EMAIL);
-    console.log("FIREBASE_ADMIN_PRIVATE_KEY loaded:", !!process.env.FIREBASE_ADMIN_PRIVATE_KEY);
-    
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -26,7 +22,6 @@ if (!ADMIN_SDK_INITIALIZED) {
         ).replace(/\\n/g, '\n'),
       }),
     });
-    console.log("Firebase Admin SDK initialized successfully.");
   } catch (error: any) {
      console.error('Firebase admin initialization error. Make sure server-side environment variables (FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY) are set correctly.', error.stack);
   }
@@ -35,6 +30,10 @@ if (!ADMIN_SDK_INITIALIZED) {
 const adminAuth = admin.apps.length ? admin.auth() : null;
 
 function ensureAdminInitialized() {
+    console.log("Checking for Firebase Admin environment variables on server...");
+    console.log("FIREBASE_ADMIN_CLIENT_EMAIL loaded:", !!process.env.FIREBASE_ADMIN_CLIENT_EMAIL);
+    console.log("FIREBASE_ADMIN_PRIVATE_KEY loaded:", !!process.env.FIREBASE_ADMIN_PRIVATE_KEY);
+    
     if (!adminAuth) {
         throw new Error("Firebase Admin SDK is not initialized. Please check server-side environment variables as described in the README.");
     }
