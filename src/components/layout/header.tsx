@@ -372,7 +372,7 @@ function HeaderContent() {
             </div>
           ) : user ? (
             <>
-              {userData?.role !== 'client' && <CreateTicketDialog onTicketCreated={handleTicketCreated}/>}
+              {userData?.role !== 'client' && userData?.role !== 'super-admin' && <CreateTicketDialog onTicketCreated={handleTicketCreated}/>}
               <NotificationBell />
               <ThemeToggle />
               <DropdownMenu>

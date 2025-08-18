@@ -195,7 +195,9 @@ export default function UsersPage() {
     const formData = new FormData(form);
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
-    const role = formData.get('role') as 'admin' | 'user';
+    
+    // Defaulting to 'user' role as dropdown is removed
+    const role = 'user';
 
     if (name && email && role) {
       try {
@@ -288,18 +290,6 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input id="email" name="email" type="email" required disabled={isSubmitting}/>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select name="role" defaultValue="user" disabled={isSubmitting}>
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
                <p className="text-sm text-muted-foreground">An email will be sent to the user with a link to set their password.</p>
               <DialogFooter>
@@ -477,5 +467,4 @@ export default function UsersPage() {
     </AlertDialog>
   );
 }
-
     

@@ -85,12 +85,16 @@ export default function SuperAdminDashboard() {
                 <CardDescription>An overview of platform growth and activity.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="h-80 flex items-center justify-center bg-muted rounded-lg">
-                    <div className="text-center">
-                        <AreaChart className="h-12 w-12 mx-auto text-muted-foreground" />
-                        <p className="mt-4 text-muted-foreground">Analytics charts coming soon!</p>
+                 {isLoading ? (
+                    <Skeleton className="h-80 w-full" />
+                ) : (
+                    <div className="h-80 flex items-center justify-center bg-muted rounded-lg">
+                        <div className="text-center">
+                            <AreaChart className="h-12 w-12 mx-auto text-muted-foreground" />
+                            <p className="mt-4 text-muted-foreground">Analytics charts coming soon!</p>
+                        </div>
                     </div>
-                </div>
+                )}
             </CardContent>
         </Card>
       </div>
