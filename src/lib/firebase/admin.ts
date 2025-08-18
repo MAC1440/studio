@@ -9,34 +9,21 @@ const ADMIN_SDK_INITIALIZED = admin.apps.length > 0;
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!ADMIN_SDK_INITIALIZED) {
-  // These variables are required for the Admin SDK to work.
-  // They are configured in the deployment environment (e.g., Vercel), not in the browser.
-  const hasRequiredEnvVars =
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
-    process.env.FIREBASE_ADMIN_CLIENT_EMAIL &&
-    process.env.FIREBASE_ADMIN_PRIVATE_KEY;
-
-  if (hasRequiredEnvVars) {
-    try {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-          // The private key must be formatted correctly.
-          // In your .env or Vercel environment variables, it should be a single line string
-          // with newlines represented as \\n
-          privateKey: (
-            process.env.FIREBASE_ADMIN_PRIVATE_KEY as string
-          ).replace(/\\n/g, '\n'),
-        }),
-      });
-    } catch (error: any) {
-      console.error('Firebase admin initialization error:', error.stack);
-    }
-  } else {
-    console.warn(
-      'Firebase Admin SDK is not initialized. Required environment variables (FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY) are missing. Admin actions will fail.'
-    );
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+        // The private key must be formatted correctly.
+        // In your .env or Vercel environment variables, it should be a single line string
+        // with newlines represented as \\n
+        privateKey: (
+          process.env.FIREBASE_ADMIN_PRIVATE_KEY as string
+        ).replace(/\\n/g, '\n'),
+      }),
+    });
+  } catch (error: any) {
+     console.error('Firebase admin initialization error. Make sure server-side environment variables (FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY) are set correctly.', error.stack);
   }
 }
 
@@ -75,7 +62,6 @@ export async function resetPasswordByAdmin(email: string): Promise<void> {
         const link = await adminAuth.generatePasswordResetLink(email);
         // Note: This only generates the link. We're not sending an email here,
         // we're relying on Firebase's default email template for this.
-        // A more advanced implementation would use this link with a custom email service.
         // For now, we need to re-import the client-side auth to send the email.
         const { auth } = await import('./config');
         const { sendPasswordResetEmail } = await import('firebase/auth');
@@ -89,4 +75,3 @@ export async function resetPasswordByAdmin(email: string): Promise<void> {
         throw new Error(`Failed to send password reset: ${error.message}`);
     }
 }
-
