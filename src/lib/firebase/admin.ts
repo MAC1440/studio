@@ -2,6 +2,9 @@
 'use server';
 
 import * as admin from 'firebase-admin';
+import { db } from './config';
+import { doc, deleteDoc } from 'firebase/firestore';
+
 
 // Check if the required environment variables are set
 const hasRequiredEnvVars =
@@ -36,18 +39,25 @@ if (!admin.apps.length) {
 // Export auth only if the app was initialized
 const adminAuth = admin.apps.length ? admin.auth() : null;
 
-// New server actions for super-admin
+/**
+ * Deletes a user from both Firebase Authentication and Firestore.
+ * This is a destructive action that should only be available to super-admins.
+ */
 export async function deleteUserByAdmin(uid: string): Promise<void> {
     if (!adminAuth) {
         throw new Error("Admin SDK not initialized.");
     }
     try {
+        // Delete from Firebase Authentication
         await adminAuth.deleteUser(uid);
-        // Deleting from Firestore is handled by the client-side `deleteUser` function
-        // which will still be called to remove the profile document.
+        
+        // Delete from Firestore
+        const userDocRef = doc(db, 'users', uid);
+        await deleteDoc(userDocRef);
+
     } catch (error: any) {
         console.error("Error deleting user with admin SDK:", error);
-        throw new Error(`Failed to delete user from authentication: ${error.message}`);
+        throw new Error(`Failed to delete user: ${error.message}`);
     }
 }
 
