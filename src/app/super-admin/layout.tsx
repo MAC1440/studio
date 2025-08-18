@@ -14,7 +14,7 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { AreaChart, Building, LifeBuoy } from "lucide-react";
+import { AreaChart, Building, LifeBuoy, Users, Briefcase } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -66,6 +66,22 @@ export default function SuperAdminLayout({
                         <Link href="/super-admin/organizations">
                           <Building />
                           Organizations
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/super-admin/users')}>
+                        <Link href="/super-admin/users">
+                          <Users />
+                          Users
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname.startsWith('/super-admin/clients')}>
+                        <Link href="/super-admin/clients">
+                          <Briefcase />
+                          Clients
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
