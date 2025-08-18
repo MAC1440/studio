@@ -12,11 +12,9 @@ if (!ADMIN_SDK_INITIALIZED) {
   try {
     admin.initializeApp({
       credential: admin.credential.cert({
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        // The projectId is often inferred from the service account credentials,
+        // so we can often omit it for simplicity.
         clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-        // The private key must be formatted correctly.
-        // In your .env or Vercel environment variables, it should be a single line string
-        // with newlines represented as \\n
         privateKey: (
           process.env.FIREBASE_ADMIN_PRIVATE_KEY as string
         ).replace(/\\n/g, '\n'),
