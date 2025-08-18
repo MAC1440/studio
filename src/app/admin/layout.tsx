@@ -1,3 +1,4 @@
+
 "use client";
 
 import AuthGuard from "@/components/auth/AuthGuard";
@@ -15,15 +16,20 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Home,
   Users,
   Ticket,
   FolderKanban,
   Briefcase,
-  FileText,
-  LayoutGrid,
-  DollarSign,
   CreditCard,
+  ChevronDown,
+  FileText,
+  DollarSign,
   ClipboardCheck,
   MessageSquare,
   Zap,
@@ -38,6 +44,7 @@ import { type Organization } from "@/lib/types";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function AdminLayout({
   children,
@@ -48,6 +55,13 @@ export default function AdminLayout({
   const { userData } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isOrgLoading, setIsOrgLoading] = useState(true);
+
+  const isClientManagementActive =
+    pathname.startsWith("/admin/clients") ||
+    pathname.startsWith("/admin/proposals") ||
+    pathname.startsWith("/admin/invoices") ||
+    pathname.startsWith("/admin/reports") ||
+    pathname.startsWith("/admin/chat");
 
   useEffect(() => {
     if (userData?.organizationId) {
@@ -113,60 +127,108 @@ export default function AdminLayout({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  {isOrgLoading ? (
-                    <>
-                      <SidebarMenuSkeleton showIcon />
-                      <SidebarMenuSkeleton showIcon />
-                      <SidebarMenuSkeleton showIcon />
-                    </>
-                  ) : isPaidPlan ? (
-                    <>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname.startsWith("/admin/proposals")}
-                        >
-                          <Link href="/admin/proposals">
-                            <FileText />
-                            Proposals
-                          </Link>
+                  <Collapsible
+                    defaultOpen={isClientManagementActive}
+                    className="group-data-[collapsible=icon]:hidden"
+                  >
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        variant="ghost"
+                        className="w-full justify-between"
+                        isActive={isClientManagementActive}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Briefcase />
+                          Client Management
+                        </div>
+                        <ChevronDown className="h-4 w-4 data-[state=open]:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pl-4">
+                      <SidebarMenu className="py-2">
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            size="sm"
+                            asChild
+                            isActive={pathname.startsWith("/admin/clients")}
+                          >
+                            <Link href="/admin/clients">
+                              <Users className="h-3 w-3 mr-1"/>
+                              Clients
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        {isPaidPlan && (
+                          <>
+                            <SidebarMenuItem>
+                              <SidebarMenuButton
+                                size="sm"
+                                asChild
+                                isActive={pathname.startsWith(
+                                  "/admin/proposals"
+                                )}
+                              >
+                                <Link href="/admin/proposals">
+                                  <FileText className="h-3 w-3 mr-1"/>
+                                  Proposals
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                             <SidebarMenuItem>
+                              <SidebarMenuButton
+                                size="sm"
+                                asChild
+                                isActive={pathname.startsWith(
+                                  "/admin/invoices"
+                                )}
+                              >
+                                <Link href="/admin/invoices">
+                                  <DollarSign className="h-3 w-3 mr-1"/>
+                                  Invoices
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          </>
+                        )}
+                         <SidebarMenuItem>
+                          <SidebarMenuButton
+                            size="sm"
+                            asChild
+                            isActive={pathname.startsWith("/admin/reports")}
+                          >
+                            <Link href="/admin/reports">
+                              <ClipboardCheck className="h-3 w-3 mr-1"/>
+                              Client Reports
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            size="sm"
+                            asChild
+                            isActive={pathname.startsWith("/admin/chat")}
+                          >
+                            <Link href="/admin/chat">
+                              <MessageSquare className="h-3 w-3 mr-1"/>
+                              Client Chat
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </SidebarMenu>
+                    </CollapsibleContent>
+                  </Collapsible>
+                  
+                  {/* Icon only view for collapsed client management */}
+                   <SidebarMenuItem className="hidden group-data-[collapsible=icon]:block">
+                        <SidebarMenuButton asChild isActive={isClientManagementActive}>
+                           <Link href="/admin/clients">
+                            <Briefcase />
+                            Client Management
+                           </Link>
                         </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname.startsWith("/admin/invoices")}
-                        >
-                          <Link href="/admin/invoices">
-                            <DollarSign />
-                            Invoices
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    </>
-                  ) : null}
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/reports")}
-                    >
-                      <Link href="/admin/reports">
-                        <ClipboardCheck />
-                        Client Reports
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/chat")}
-                    >
-                      <Link href="/admin/chat">
-                        <MessageSquare />
-                        Client Chat
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                    </SidebarMenuItem>
+
+
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild
@@ -175,17 +237,6 @@ export default function AdminLayout({
                       <Link href="/admin/users">
                         <Users />
                         Users
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/clients")}
-                    >
-                      <Link href="/admin/clients">
-                        <Briefcase />
-                        Clients
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
