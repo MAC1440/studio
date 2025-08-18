@@ -33,6 +33,7 @@ import {
   ClipboardCheck,
   MessageSquare,
   Zap,
+  Bug,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -270,6 +271,17 @@ export default function AdminLayout({
                       <Link href="/admin/billing">
                         <CreditCard />
                         Billing
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                   <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname.startsWith("/admin/debug-env")}
+                    >
+                      <Link href="/admin/debug-env">
+                        <Bug />
+                        Debug ENV
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
