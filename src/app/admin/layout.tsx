@@ -1,7 +1,8 @@
-"use client";
 
-import AuthGuard from "@/components/auth/AuthGuard";
-import AppHeader from "@/components/layout/header";
+'use client';
+
+import AuthGuard from '@/components/auth/AuthGuard';
+import AppHeader from '@/components/layout/header';
 import {
   SidebarProvider,
   Sidebar,
@@ -13,7 +14,11 @@ import {
   SidebarHeader,
   SidebarTrigger,
   SidebarMenuSkeleton,
-} from "@/components/ui/sidebar";
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+} from '@/components/ui/sidebar';
 import {
   Home,
   Users,
@@ -27,17 +32,55 @@ import {
   ClipboardCheck,
   MessageSquare,
   Zap,
-} from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname } from "next/navigation";
-import logo from "../../../public/logos/logo.png";
-import { useAuth } from "@/context/AuthContext";
-import { useState, useEffect } from "react";
-import { type Organization } from "@/lib/types";
-import { getDoc, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
-import { Button } from "@/components/ui/button";
+  Settings,
+  Building,
+} from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+import logo from '../../../public/logos/logo.png';
+import { useAuth } from '@/context/AuthContext';
+import { useState, useEffect } from 'react';
+import { type Organization } from '@/lib/types';
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const SidebarCollapsible = ({
+  title,
+  icon,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+         <Button
+            variant="ghost"
+            className="w-full justify-start items-center gap-2 px-2"
+          >
+          {icon}
+          <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">{title}</span>
+           <ChevronRight className={cn("h-4 w-4 shrink-0 transition-transform duration-200 group-data-[collapsible=icon]:hidden", isOpen && "rotate-90")} />
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <SidebarMenuSub className="group-data-[collapsible=icon]:hidden">{children}</SidebarMenuSub>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
 
 export default function AdminLayout({
   children,
@@ -52,7 +95,7 @@ export default function AdminLayout({
   useEffect(() => {
     if (userData?.organizationId) {
       setIsOrgLoading(true);
-      const orgRef = doc(db, "organizations", userData.organizationId);
+      const orgRef = doc(db, 'organizations', userData.organizationId);
       getDoc(orgRef)
         .then((docSnap) => {
           if (docSnap.exists()) {
@@ -72,8 +115,10 @@ export default function AdminLayout({
   }, [userData?.organizationId]);
 
   const isPaidPlan =
-    organization?.subscriptionPlan === "startup" ||
-    organization?.subscriptionPlan === "pro";
+    organization?.subscriptionPlan === 'startup' ||
+    organization?.subscriptionPlan === 'pro';
+
+  const isSubpathActive = (subpath: string) => pathname.startsWith(`/admin/${subpath}`);
 
   return (
     <AuthGuard role="admin">
@@ -103,135 +148,112 @@ export default function AdminLayout({
                     <SidebarTrigger className="hidden md:flex group-data-[collapsible=icon]:hidden" />
                   </div>
                 </SidebarHeader>
-                <SidebarMenu>
+                <SidebarMenu className="p-2">
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/admin"}>
+                    <SidebarMenuButton asChild isActive={pathname === '/admin'}>
                       <Link href="/admin">
                         <Home />
                         Dashboard
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-
+                  
                   {isOrgLoading ? (
+                     <div className="px-2 space-y-2">
+                      <SidebarMenuSkeleton showIcon />
+                      <SidebarMenuSkeleton showIcon />
+                      <SidebarMenuSkeleton showIcon />
+                    </div>
+                  ) : (
                     <>
-                      <SidebarMenuSkeleton showIcon />
-                      <SidebarMenuSkeleton showIcon />
-                      <SidebarMenuSkeleton showIcon />
-                    </>
-                  ) : isPaidPlan ? (
-                    <>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname.startsWith("/admin/proposals")}
+                      <SidebarCollapsible 
+                        title="Workspace" 
+                        icon={<LayoutGrid className="h-4 w-4" />}
+                        defaultOpen={isSubpathActive('projects') || isSubpathActive('tickets')}
+                      >
+                         <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={isSubpathActive('projects')}>
+                              <Link href="/admin/projects"><FolderKanban /> Projects</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={isSubpathActive('tickets')}>
+                              <Link href="/admin/tickets"><Ticket /> Tickets</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                      </SidebarCollapsible>
+
+                      <SidebarCollapsible 
+                        title="Clients" 
+                        icon={<Briefcase className="h-4 w-4" />}
+                        defaultOpen={isSubpathActive('clients') || isSubpathActive('chat') || isSubpathActive('reports')}
                         >
-                          <Link href="/admin/proposals">
-                            <FileText />
-                            Proposals
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={pathname.startsWith("/admin/invoices")}
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={isSubpathActive('clients')}>
+                              <Link href="/admin/clients"><Users /> Client Management</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                           <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={isSubpathActive('chat')}>
+                              <Link href="/admin/chat"><MessageSquare /> Client Chat</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                           <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={isSubpathActive('reports')}>
+                              <Link href="/admin/reports"><ClipboardCheck /> Client Reports</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                      </SidebarCollapsible>
+                      
+                       {isPaidPlan && (
+                          <SidebarCollapsible 
+                            title="Financials" 
+                            icon={<DollarSign className="h-4 w-4" />}
+                            defaultOpen={isSubpathActive('invoices') || isSubpathActive('proposals')}
+                          >
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton asChild isActive={isSubpathActive('proposals')}>
+                                  <Link href="/admin/proposals"><FileText /> Proposals</Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton asChild isActive={isSubpathActive('invoices')}>
+                                  <Link href="/admin/invoices"><DollarSign /> Invoices</Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                          </SidebarCollapsible>
+                        )}
+                      
+                       <SidebarCollapsible 
+                        title="Settings" 
+                        icon={<Settings className="h-4 w-4" />}
+                        defaultOpen={isSubpathActive('users') || isSubpathActive('billing')}
                         >
-                          <Link href="/admin/invoices">
-                            <DollarSign />
-                            Invoices
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                           <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={isSubpathActive('users')}>
+                              <Link href="/admin/users"><Users /> Users</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                           <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild isActive={isSubpathActive('billing')}>
+                              <Link href="/admin/billing"><CreditCard /> Billing</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                      </SidebarCollapsible>
+
                     </>
-                  ) : null}
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/reports")}
-                    >
-                      <Link href="/admin/reports">
-                        <ClipboardCheck />
-                        Client Reports
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/chat")}
-                    >
-                      <Link href="/admin/chat">
-                        <MessageSquare />
-                        Client Chat
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/users")}
-                    >
-                      <Link href="/admin/users">
-                        <Users />
-                        Users
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/clients")}
-                    >
-                      <Link href="/admin/clients">
-                        <Briefcase />
-                        Clients
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/tickets")}
-                    >
-                      <Link href="/admin/tickets">
-                        <Ticket />
-                        Tickets
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/projects")}
-                    >
-                      <Link href="/admin/projects">
-                        <FolderKanban />
-                        Projects
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/billing")}
-                    >
-                      <Link href="/admin/billing">
-                        <CreditCard />
-                        Billing
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  )}
+
 
                   {!isOrgLoading && !isPaidPlan && (
-                    <div className="p-4 group-data-[collapsible=icon]:hidden">
+                    <div className="p-4 group-data-[collapsible=icon]:hidden mt-auto">
                       <div className="rounded-lg bg-accent/80 p-4 text-center">
                         <Zap className="mx-auto h-8 w-8 text-primary mb-2" />
                         <h4 className="font-semibold text-sm">
                           Upgrade for More
                         </h4>
                         <p className="text-xs text-muted-foreground mt-1 mb-3">
-                          Unlock proposals, invoices, reports and more.
+                          Unlock proposals, invoices, and more.
                         </p>
                         <Button size="sm" className="w-full" asChild>
                           <Link href="/admin/billing">Upgrade Now</Link>
