@@ -113,21 +113,18 @@ export default function TicketsPage() {
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const assignedToId = formData.get('assignedTo') as string;
-    const tagsString = formData.get('tags') as string;
     const priority = formData.get('priority') as TicketPriority;
     const projectId = formData.get('projectId') as string;
 
     const assignedTo = users.find(u => u.id === assignedToId) || null;
-    const tags = tagsString.split(',').map(tag => ({ id: tag.trim(), label: tag.trim(), color: 'gray' })).filter(t => t.label);
-
-
+    
     if (title && description && projectId) {
       try {
         await createTicket({
             title,
             description,
             assignedTo,
-            tags,
+            tags: [],
             priority,
             projectId,
             deadline,
@@ -267,12 +264,6 @@ export default function TicketsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="tags">Tags</Label>
-                  <Input id="tags" name="tags" placeholder="e.g. Frontend, Bug" disabled={isSubmitting} />
-                  <p className="text-xs text-muted-foreground">Comma-separated.</p>
-                </div>
-              </div>
-                <div className="space-y-2">
                     <Label>Deadline</Label>
                      <Popover>
                         <PopoverTrigger asChild>
@@ -297,6 +288,7 @@ export default function TicketsPage() {
                         </PopoverContent>
                     </Popover>
                  </div>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="assignedTo">Assign To</Label>
                 <Select name="assignedTo" disabled={isSubmitting}>
