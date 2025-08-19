@@ -32,8 +32,6 @@ For features like "Forgot Password" and email notifications to work, you must co
 6.  Ensure the template is customized and saved. You can use the default settings.
 7.  Click **Save**.
 
-This project uses a service called **Resend** to send some email notifications. If you wish to enable this, you will need to create a Resend account, generate an API key, and add it as an environment variable named `RESEND_API_KEY`.
-
 ## Deployment to Vercel
 
 This project is configured for easy deployment on Vercel.
