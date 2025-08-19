@@ -360,8 +360,8 @@ function HeaderContent() {
         <div className="flex items-center gap-2">
             {isAdminSection && <SidebarTrigger />}
             <Link href={getHomeLink()} className="flex items-center gap-2">
-              <Image src={logo.src} alt="BoardR Logo" width={24} height={24} className="h-6 w-6" />
-              <span className="text-lg font-bold tracking-tight">BoardR</span>
+              <Image src={logo.src} alt="BoardRLane Logo" width={24} height={24} className="h-6 w-6" />
+              <span className="text-lg font-bold tracking-tight">BoardRLane</span>
             </Link>
         </div>
         <div className="flex items-center gap-2">

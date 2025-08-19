@@ -165,17 +165,17 @@ const features = [
 
 const testimonials = [
   {
-    quote: "BoardR has been a game-changer for my freelance business. I can finally manage everything from one place and my clients love the portal.",
+    quote: "BoardRLane has been a game-changer for my freelance business. I can finally manage everything from one place and my clients love the portal.",
     name: "Sarah K.",
     role: "Freelance Designer"
   },
   {
-    quote: "Our agency switched from a clunky, expensive tool to BoardR and we haven't looked back. It's simple, powerful, and our team actually enjoys using it.",
+    quote: "Our agency switched from a clunky, expensive tool to BoardRLane and we haven't looked back. It's simple, powerful, and our team actually enjoys using it.",
     name: "Michael R.",
     role: "Agency Owner"
   },
   {
-    quote: "Juggling multiple projects and clients used to be a nightmare. BoardR brought order to the chaos. The invoicing feature alone saves me hours every month.",
+    quote: "Juggling multiple projects and clients used to be a nightmare. BoardRLane brought order to the chaos. The invoicing feature alone saves me hours every month.",
     name: "David L.",
     role: "Project Manager"
   }
@@ -196,8 +196,8 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen bg-background text-foreground items-center">
       <header className="w-full px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background/95 backdrop-blur-sm z-50">
         <Link href="/" className="flex items-center justify-center">
-          <Image src={logo.src} alt="BoardR Logo" width={32} height={32} />
-          <span className="ml-2 text-xl font-bold">BoardR</span>
+          <Image src={logo.src} alt="BoardRLane Logo" width={32} height={32} />
+          <span className="ml-2 text-xl font-bold">BoardRLane</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link
@@ -227,7 +227,7 @@ export default function LandingPage() {
                 Manage Clients, Projects, and Payments — All in One Place.
               </h1>
               <p className="mt-4 text-muted-foreground md:text-xl">
-                BoardR replaces your scattered tools with one simple, powerful workspace.
+                BoardRLane replaces your scattered tools with one simple, powerful workspace.
               </p>
               <div className="mt-6 flex flex-col gap-4 min-[400px]:flex-row justify-center">
                 <Button asChild size="lg">
@@ -354,7 +354,7 @@ export default function LandingPage() {
                 Everything You Need. Nothing You Don't.
               </h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed mt-4">
-                BoardR is designed to be powerful yet simple, giving you the tools to manage complex projects without the clutter.
+                BoardRLane is designed to be powerful yet simple, giving you the tools to manage complex projects without the clutter.
               </p>
             </div>
             <div className="mx-auto grid max-w-7xl gap-8 sm:grid-cols-2 lg:grid-cols-3 mt-12">
@@ -548,7 +548,7 @@ export default function LandingPage() {
                        Stop Juggling. Start Building.
                     </h2>
                      <p className="mt-4 text-muted-foreground md:text-xl">
-                        Join 500+ freelancers and agencies streamlining their work with BoardR today.
+                        Join 500+ freelancers and agencies streamlining their work with BoardRLane today.
                     </p>
                     <div className="mt-6">
                         <Button asChild size="lg">
@@ -562,7 +562,7 @@ export default function LandingPage() {
 
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} BoardR. All rights reserved.
+          &copy; {new Date().getFullYear()} BoardRLane. All rights reserved.
         </p>
          <div className="flex gap-4 sm:ml-auto items-center">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">

@@ -281,7 +281,7 @@ function AuthPage() {
       <div className="hidden bg-muted lg:flex items-center justify-center p-8">
         <div className="w-full max-w-md">
             <Image
-                alt="BoardR Light Logo"
+                alt="BoardRLane Light Logo"
                 className="block dark:hidden rounded-xl"
                 src={lightLogo.src}
                 width="550"
@@ -289,7 +289,7 @@ function AuthPage() {
                 priority
             />
             <Image
-                alt="BoardR Dark Logo"
+                alt="BoardRLane Dark Logo"
                 className="hidden dark:block rounded-xl"
                 src={darkLogo.src}
                 width="550"
@@ -303,5 +303,3 @@ function AuthPage() {
 }
 
 export default AuthPage;
-
-    

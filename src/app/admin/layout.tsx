@@ -91,13 +91,13 @@ export default function AdminLayout({
                     >
                       <Image
                         src={logo.src}
-                        alt="BoardR Logo"
+                        alt="BoardRLane Logo"
                         width={24}
                         height={24}
                         className="h-6 w-6"
                       />
                       <span className="group-data-[collapsible=icon]:hidden">
-                        BoardR
+                        BoardRLane
                       </span>
                     </Link>
                     <SidebarTrigger className="hidden md:flex group-data-[collapsible=icon]:hidden" />

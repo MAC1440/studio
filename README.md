@@ -1,4 +1,4 @@
-# BoardR
+# BoardRLane
 
 This is a Next.js application built with Firebase Studio. It features a fully functional Kanban board with user authentication, ticket management, and an admin panel, all integrated with Firebase.
 
