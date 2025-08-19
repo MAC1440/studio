@@ -169,6 +169,7 @@ export type Ticket = {
   projectId: string;
   comments: Comment[];
   createdAt: Timestamp;
+  updatedAt?: Timestamp; // Add this for sorting recent activity
   checklist?: ChecklistItem[];
   deadline?: Timestamp;
   loggedHours?: number;

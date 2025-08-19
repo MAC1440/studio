@@ -1,4 +1,6 @@
 
+'use client';
+
 import ClientProjectView from '@/components/client/ClientProjectView';
 
 // This is a Server Component. It can directly access params.

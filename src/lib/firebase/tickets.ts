@@ -46,6 +46,7 @@ export async function createTicket(args: CreateTicketArgs): Promise<Ticket> {
         comments: [],
         assignedTo: args.assignedTo || undefined,
         createdAt: serverTimestamp() as any,
+        updatedAt: serverTimestamp() as any,
         ...(args.deadline && { deadline: Timestamp.fromDate(args.deadline) }),
         loggedHours: 0,
     };
@@ -86,7 +87,7 @@ export async function getTickets({ projectId, organizationId }: { projectId?: st
 export async function updateTicket(ticketId: string, updates: Partial<Omit<Ticket, 'id' | 'comments'>>): Promise<void> {
     const ticketRef = doc(db, 'tickets', ticketId);
     
-    const finalUpdates: { [key: string]: any } = { ...updates };
+    const finalUpdates: { [key: string]: any } = { ...updates, updatedAt: serverTimestamp() };
     
     if (updates.deadline && !(updates.deadline instanceof Timestamp)) {
         finalUpdates.deadline = Timestamp.fromDate(updates.deadline as any);
@@ -118,7 +119,8 @@ export async function updateTicket(ticketId: string, updates: Partial<Omit<Ticke
 export async function updateTicketStatus(ticketId: string, status: ColumnId): Promise<void> {
     const ticketRef = doc(db, 'tickets', ticketId);
     await updateDoc(ticketRef, {
-        status: status
+        status: status,
+        updatedAt: serverTimestamp()
     });
 }
 
@@ -147,7 +149,8 @@ export async function addCommentToTicket(ticketId: string, {userId, message}: Ad
     
     const ticketRef = doc(db, 'tickets', ticketId);
     await updateDoc(ticketRef, {
-        comments: arrayUnion(comment)
+        comments: arrayUnion(comment),
+        updatedAt: serverTimestamp()
     });
 }
 
