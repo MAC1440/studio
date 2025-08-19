@@ -224,7 +224,7 @@ export default function LandingPage() {
           <div className="container px-4 md:px-6 text-center">
             <div className="max-w-4xl mx-auto">
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl/none">
-                Manage Clients, Projects, and Payments — All in One Place.
+                The all-in-one platform to manage your clients, projects, and finances.
               </h1>
               <p className="mt-4 text-muted-foreground md:text-xl">
                 BoardRLane replaces your scattered tools with one simple, powerful workspace.

@@ -12,7 +12,7 @@ import { type Project, type Ticket, type Proposal, type Invoice, type Comment, P
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, FileText, GanttChartSquare, CalendarIcon, Flag, DollarSign, CheckCircle, RefreshCw, ClipboardCheck, MessageSquare, Send } from 'lucide-react';
+import { ArrowLeft, FileText, GanttChartSquare, CalendarIcon, Flag, DollarSign, CheckCircle, RefreshCw, ClipboardCheck, MessageSquare, Send, ListTodo, CircleCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -829,26 +829,38 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                 <CardContent className="space-y-4">
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <h3 className="text-sm font-medium">Progress</h3>
+                            <h3 className="text-sm font-medium">Overall Progress</h3>
                              <span className="text-sm font-medium">{Math.round(completionPercentage)}%</span>
                         </div>
                         <Progress value={completionPercentage} />
-                        <p className="text-xs text-muted-foreground mt-1">{doneTickets.length} of {totalTickets} tasks completed</p>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm pt-2">
                         <div className="flex items-center gap-2">
-                            <Flag className="h-4 w-4 text-muted-foreground"/>
+                            <ListTodo className="h-5 w-5 text-muted-foreground"/>
                             <div>
-                                <p className="text-muted-foreground">Status</p>
-                                <Badge variant={getStatusBadgeVariant(project.status)} className="capitalize">{project.status?.replace('-', ' ') || 'N/A'}</Badge>
+                                <p className="font-bold">{totalTickets}</p>
+                                <p className="text-muted-foreground text-xs">Total Tasks</p>
                             </div>
                         </div>
                          <div className="flex items-center gap-2">
-                            <CalendarIcon className="h-4 w-4 text-muted-foreground"/>
+                            <GanttChartSquare className="h-5 w-5 text-muted-foreground"/>
                             <div>
-                                <p className="text-muted-foreground">Deadline</p>
-                                <p className="font-medium">{project.deadline ? format(project.deadline.toDate(), 'MMM d, yyyy') : 'Not set'}</p>
+                                <p className="font-bold">{inProgressTickets.length}</p>
+                                <p className="text-muted-foreground text-xs">In Progress</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <CircleCheck className="h-5 w-5 text-muted-foreground"/>
+                            <div>
+                                <p className="font-bold">{doneTickets.length}</p>
+                                <p className="text-muted-foreground text-xs">Completed</p>
+                            </div>
+                        </div>
+                         <div className="flex items-center gap-2">
+                            <CalendarIcon className="h-5 w-5 text-muted-foreground"/>
+                            <div>
+                                <p className="font-bold">{project.deadline ? format(project.deadline.toDate(), 'MMM d, yyyy') : 'Not set'}</p>
+                                <p className="text-muted-foreground text-xs">Deadline</p>
                             </div>
                         </div>
                     </div>
@@ -1018,5 +1030,3 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     </Dialog>
   );
 }
-
-    
