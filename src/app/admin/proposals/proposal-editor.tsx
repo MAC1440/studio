@@ -34,6 +34,9 @@ import { Zap } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { generateProposal } from "@/ai/flows/proposal-flow";
 import { useAuth } from "@/context/AuthContext";
+import { checkAndResetAiProposalCount, incrementAiProposalCount } from "@/lib/firebase/organizations";
+import Link from "next/link";
+
 
 type ProposalEditorProps = {
   onSave: (data: {
@@ -124,7 +127,7 @@ export default function ProposalEditor({
   proposal,
   isSubmitting,
 }: ProposalEditorProps) {
-  const { users, projects, activeProjectIds } = useAuth();
+  const { users, projects, activeProjectIds, userData } = useAuth();
   const clients = useMemo(() => users.filter(u => u.role === 'client'), [users]);
   const activeProjects = useMemo(() => projects.filter(p => activeProjectIds.includes(p.id)), [projects, activeProjectIds]);
   
@@ -160,10 +163,39 @@ export default function ProposalEditor({
   };
 
   const handleAiGenerate = async (prompt: string) => {
+    if (!userData?.organizationId) return;
+    
     setIsGenerating(true);
     try {
+      // 1. Check usage limits first
+      const org = await checkAndResetAiProposalCount(userData.organizationId);
+      const plan = org.subscriptionPlan || 'free';
+      const count = org.aiProposalCount || 0;
+      
+      const limits = {
+        free: 3,
+        startup: 10,
+        pro: Infinity
+      };
+      
+      if (count >= limits[plan]) {
+        toast({
+          title: "Daily Limit Reached",
+          description: `You have reached your daily limit of ${limits[plan]} AI proposals for the ${plan} plan.`,
+          variant: "destructive",
+          action: plan !== 'pro' ? <Button asChild><Link href="/admin/billing">Upgrade Plan</Link></Button> : undefined
+        });
+        setIsGenerating(false);
+        setIsAiDialogOpen(false);
+        return;
+      }
+
+      // 2. Generate content
       const result = await generateProposal({ prompt });
       if (result.content) {
+        // 3. Increment count on success
+        await incrementAiProposalCount(userData.organizationId);
+        
         setContent(result.content);
         setTitle(prompt); // Use the prompt as a starting title
         toast({ title: 'AI content generated!', description: 'The editor has been updated with the generated proposal.' });

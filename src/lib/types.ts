@@ -10,6 +10,8 @@ export type Organization = {
   createdAt: Timestamp;
   subscriptionPlan: OrganizationPlan;
   stripeCustomerId?: string;
+  aiProposalCount?: number;
+  aiProposalCountLastReset?: Timestamp;
 };
 
 export type User = {
