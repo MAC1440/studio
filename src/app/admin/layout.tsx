@@ -45,6 +45,44 @@ import { type Organization } from "@/lib/types";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+function CollapsibleSidebarGroup({ 
+    label, 
+    children, 
+    subpaths 
+}: { 
+    label: string, 
+    children: React.ReactNode, 
+    subpaths: string[] 
+}) {
+    const pathname = usePathname();
+    const isSubpathActive = (paths: string[]) => paths.some(p => pathname.startsWith(`/admin/${p}`));
+    const [isOpen, setIsOpen] = useState(isSubpathActive(subpaths));
+
+    useEffect(() => {
+        setIsOpen(isSubpathActive(subpaths));
+    }, [pathname, subpaths]);
+
+    return (
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+            <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between p-2 rounded-md hover:bg-sidebar-accent">
+                    <span className="text-sm font-semibold">{label}</span>
+                    <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen && "rotate-90")} />
+                </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                <div className="pl-4 py-1 space-y-1">
+                    {children}
+                </div>
+            </CollapsibleContent>
+        </Collapsible>
+    )
+}
+
 
 export default function AdminLayout({
   children,
@@ -52,35 +90,13 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { userData } = useAuth();
-  const [organization, setOrganization] = useState<Organization | null>(null);
-  const [isOrgLoading, setIsOrgLoading] = useState(true);
-
-  useEffect(() => {
-    if (userData?.organizationId) {
-      setIsOrgLoading(true);
-      const orgRef = doc(db, "organizations", userData.organizationId);
-      getDoc(orgRef)
-        .then((docSnap) => {
-          if (docSnap.exists()) {
-            setOrganization(docSnap.data() as Organization);
-          }
-        })
-        .finally(() => {
-          setIsOrgLoading(false);
-        });
-    } else if (!userData) {
-      // If there's no user data at all yet, we are in a loading state.
-      setIsOrgLoading(true);
-    } else {
-      // User data exists but no orgId (shouldn't happen for admin, but good practice)
-      setIsOrgLoading(false);
-    }
-  }, [userData?.organizationId]);
+  const { userData, organization, isOrgLoading } = useAuth();
 
   const isPaidPlan =
     organization?.subscriptionPlan === "startup" ||
     organization?.subscriptionPlan === "pro";
+
+  const isSubpathActive = (path: string) => pathname.startsWith(`/admin/${path}`);
 
   return (
     <AuthGuard role="admin">
@@ -119,49 +135,54 @@ export default function AdminLayout({
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  
+                  <SidebarSeparator />
 
-                  <SidebarGroup>
-                    <SidebarGroupLabel>Workspace</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                      <SidebarMenuItem>
+                  <CollapsibleSidebarGroup label="Workspace" subpaths={['projects', 'tickets', 'clients']}>
+                     <SidebarMenuItem>
                         <SidebarMenuButton
-                          asChild
-                          isActive={pathname.startsWith("/admin/projects")}
+                            asChild
+                            isActive={isSubpathActive('projects')}
+                            size="sm"
+                            variant="ghost"
                         >
-                          <Link href="/admin/projects">
-                            <FolderKanban />
-                            Projects
-                          </Link>
+                            <Link href="/admin/projects">
+                                <FolderKanban className="h-4 w-4" />
+                                Projects
+                            </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                        <SidebarMenuItem>
                         <SidebarMenuButton
-                          asChild
-                          isActive={pathname.startsWith("/admin/tickets")}
+                            asChild
+                            isActive={isSubpathActive('tickets')}
+                            size="sm"
+                            variant="ghost"
                         >
-                          <Link href="/admin/tickets">
-                            <Ticket />
-                            Tickets
-                          </Link>
+                            <Link href="/admin/tickets">
+                                <Ticket className="h-4 w-4"/>
+                                Tickets
+                            </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarMenuItem>
                         <SidebarMenuButton
-                          asChild
-                          isActive={pathname.startsWith("/admin/clients")}
+                            asChild
+                            isActive={isSubpathActive('clients')}
+                             size="sm"
+                            variant="ghost"
                         >
-                          <Link href="/admin/clients">
-                            <Briefcase />
-                            Clients
-                          </Link>
+                            <Link href="/admin/clients">
+                                <Briefcase className="h-4 w-4"/>
+                                Clients
+                            </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
-                    </SidebarGroupContent>
-                  </SidebarGroup>
+                  </CollapsibleSidebarGroup>
                   
-                  <SidebarGroup>
-                    <SidebarGroupLabel>Client Engagement</SidebarGroupLabel>
-                     <SidebarGroupContent>
+                    <SidebarSeparator />
+
+                   <CollapsibleSidebarGroup label="Client Engagement" subpaths={['proposals', 'invoices', 'reports', 'chat']}>
                        {isOrgLoading ? (
                           <SidebarMenuSkeleton showIcon />
                         ) : isPaidPlan ? (
@@ -169,10 +190,12 @@ export default function AdminLayout({
                             <SidebarMenuItem>
                               <SidebarMenuButton
                                 asChild
-                                isActive={pathname.startsWith("/admin/proposals")}
+                                isActive={isSubpathActive('proposals')}
+                                 size="sm"
+                                variant="ghost"
                               >
                                 <Link href="/admin/proposals">
-                                  <FileText />
+                                  <FileText className="h-4 w-4"/>
                                   Proposals
                                 </Link>
                               </SidebarMenuButton>
@@ -180,10 +203,12 @@ export default function AdminLayout({
                             <SidebarMenuItem>
                               <SidebarMenuButton
                                 asChild
-                                isActive={pathname.startsWith("/admin/invoices")}
+                                isActive={isSubpathActive('invoices')}
+                                 size="sm"
+                                variant="ghost"
                               >
                                 <Link href="/admin/invoices">
-                                  <DollarSign />
+                                  <DollarSign className="h-4 w-4"/>
                                   Invoices
                                 </Link>
                               </SidebarMenuButton>
@@ -193,10 +218,12 @@ export default function AdminLayout({
                         <SidebarMenuItem>
                           <SidebarMenuButton
                             asChild
-                            isActive={pathname.startsWith("/admin/reports")}
+                            isActive={isSubpathActive('reports')}
+                             size="sm"
+                            variant="ghost"
                           >
                             <Link href="/admin/reports">
-                              <ClipboardCheck />
+                              <ClipboardCheck className="h-4 w-4"/>
                               Client Reports
                             </Link>
                           </SidebarMenuButton>
@@ -204,27 +231,30 @@ export default function AdminLayout({
                         <SidebarMenuItem>
                           <SidebarMenuButton
                             asChild
-                            isActive={pathname.startsWith("/admin/chat")}
+                            isActive={isSubpathActive('chat')}
+                             size="sm"
+                            variant="ghost"
                           >
                             <Link href="/admin/chat">
-                              <MessageSquare />
+                              <MessageSquare className="h-4 w-4"/>
                               Client Chat
                             </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
-                     </SidebarGroupContent>
-                  </SidebarGroup>
+                   </CollapsibleSidebarGroup>
+                  
+                   <SidebarSeparator />
 
-                  <SidebarGroup>
-                    <SidebarGroupLabel>Settings</SidebarGroupLabel>
-                    <SidebarGroupContent>
+                   <CollapsibleSidebarGroup label="Settings" subpaths={['users', 'billing']}>
                        <SidebarMenuItem>
                         <SidebarMenuButton
                           asChild
-                          isActive={pathname.startsWith("/admin/users")}
+                          isActive={isSubpathActive('users')}
+                           size="sm"
+                          variant="ghost"
                         >
                           <Link href="/admin/users">
-                            <Users />
+                            <Users className="h-4 w-4"/>
                             Users
                           </Link>
                         </SidebarMenuButton>
@@ -232,16 +262,17 @@ export default function AdminLayout({
                        <SidebarMenuItem>
                         <SidebarMenuButton
                           asChild
-                          isActive={pathname.startsWith("/admin/billing")}
+                          isActive={isSubpathActive('billing')}
+                           size="sm"
+                          variant="ghost"
                         >
                           <Link href="/admin/billing">
-                            <CreditCard />
+                            <CreditCard className="h-4 w-4"/>
                             Billing
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
-                    </SidebarGroupContent>
-                  </SidebarGroup>
+                   </CollapsibleSidebarGroup>
                   
 
                   {!isOrgLoading && !isPaidPlan && (
