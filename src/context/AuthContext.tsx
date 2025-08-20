@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email: firebaseUser.email!,
         role: 'admin', // New sign-ups are always admins of their own org
         organizationId: newOrg.id,
-        avatarUrl: firebaseUser.photoURL || `https://placehold.co/150x150.png`
+        avatarUrl: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(firebaseUser.displayName || 'New User')}`
       };
 
       await setDoc(doc(db, "users", firebaseUser.uid), newUser);
