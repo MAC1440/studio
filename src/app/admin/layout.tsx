@@ -1,3 +1,4 @@
+
 "use client";
 
 import AuthGuard from "@/components/auth/AuthGuard";
@@ -13,6 +14,10 @@ import {
   SidebarHeader,
   SidebarTrigger,
   SidebarMenuSkeleton,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   Home,
@@ -27,6 +32,8 @@ import {
   ClipboardCheck,
   MessageSquare,
   Zap,
+  Settings,
+  Presentation,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -113,118 +120,132 @@ export default function AdminLayout({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  {isOrgLoading ? (
-                    <>
-                      <SidebarMenuSkeleton showIcon />
-                      <SidebarMenuSkeleton showIcon />
-                      <SidebarMenuSkeleton showIcon />
-                    </>
-                  ) : isPaidPlan ? (
-                    <>
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+                    <SidebarGroupContent>
                       <SidebarMenuItem>
                         <SidebarMenuButton
                           asChild
-                          isActive={pathname.startsWith("/admin/proposals")}
+                          isActive={pathname.startsWith("/admin/projects")}
                         >
-                          <Link href="/admin/proposals">
-                            <FileText />
-                            Proposals
+                          <Link href="/admin/projects">
+                            <FolderKanban />
+                            Projects
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                       <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname.startsWith("/admin/tickets")}
+                        >
+                          <Link href="/admin/tickets">
+                            <Ticket />
+                            Tickets
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarMenuItem>
                         <SidebarMenuButton
                           asChild
-                          isActive={pathname.startsWith("/admin/invoices")}
+                          isActive={pathname.startsWith("/admin/clients")}
                         >
-                          <Link href="/admin/invoices">
-                            <DollarSign />
-                            Invoices
+                          <Link href="/admin/clients">
+                            <Briefcase />
+                            Clients
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
-                    </>
-                  ) : null}
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/reports")}
-                    >
-                      <Link href="/admin/reports">
-                        <ClipboardCheck />
-                        Client Reports
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/chat")}
-                    >
-                      <Link href="/admin/chat">
-                        <MessageSquare />
-                        Client Chat
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/users")}
-                    >
-                      <Link href="/admin/users">
-                        <Users />
-                        Users
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/clients")}
-                    >
-                      <Link href="/admin/clients">
-                        <Briefcase />
-                        Clients
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/tickets")}
-                    >
-                      <Link href="/admin/tickets">
-                        <Ticket />
-                        Tickets
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/projects")}
-                    >
-                      <Link href="/admin/projects">
-                        <FolderKanban />
-                        Projects
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith("/admin/billing")}
-                    >
-                      <Link href="/admin/billing">
-                        <CreditCard />
-                        Billing
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                  
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Client Engagement</SidebarGroupLabel>
+                     <SidebarGroupContent>
+                       {isOrgLoading ? (
+                          <SidebarMenuSkeleton showIcon />
+                        ) : isPaidPlan ? (
+                          <>
+                            <SidebarMenuItem>
+                              <SidebarMenuButton
+                                asChild
+                                isActive={pathname.startsWith("/admin/proposals")}
+                              >
+                                <Link href="/admin/proposals">
+                                  <FileText />
+                                  Proposals
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                              <SidebarMenuButton
+                                asChild
+                                isActive={pathname.startsWith("/admin/invoices")}
+                              >
+                                <Link href="/admin/invoices">
+                                  <DollarSign />
+                                  Invoices
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          </>
+                        ) : null}
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={pathname.startsWith("/admin/reports")}
+                          >
+                            <Link href="/admin/reports">
+                              <ClipboardCheck />
+                              Client Reports
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={pathname.startsWith("/admin/chat")}
+                          >
+                            <Link href="/admin/chat">
+                              <MessageSquare />
+                              Client Chat
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                     </SidebarGroupContent>
+                  </SidebarGroup>
+
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Settings</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                       <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname.startsWith("/admin/users")}
+                        >
+                          <Link href="/admin/users">
+                            <Users />
+                            Users
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                       <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={pathname.startsWith("/admin/billing")}
+                        >
+                          <Link href="/admin/billing">
+                            <CreditCard />
+                            Billing
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                  
 
                   {!isOrgLoading && !isPaidPlan && (
-                    <div className="p-4 group-data-[collapsible=icon]:hidden">
+                    <div className="p-4 group-data-[collapsible=icon]:hidden mt-auto">
                       <div className="rounded-lg bg-accent/80 p-4 text-center">
                         <Zap className="mx-auto h-8 w-8 text-primary mb-2" />
                         <h4 className="font-semibold text-sm">
