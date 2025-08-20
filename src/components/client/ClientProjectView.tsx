@@ -12,7 +12,7 @@ import { type Project, type Ticket, type Proposal, type Invoice, type Comment, P
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, FileText, GanttChartSquare, CalendarIcon, Flag, DollarSign, CheckCircle, RefreshCw, ClipboardCheck, MessageSquare, Send, ListTodo, CircleCheck, Activity } from 'lucide-react';
+import { ArrowLeft, FileText, GanttChartSquare, CalendarIcon, Flag, DollarSign, CheckCircle, RefreshCw, ClipboardCheck, MessageSquare, Send, ListTodo, CircleCheck, Activity, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -39,7 +39,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Progress } from '../ui/progress';
-import { cn } from '@/lib/utils';
+import { cn, downloadPdf } from '@/lib/utils';
 import { Input } from '../ui/input';
 import RichTextEditor from '../ui/rich-text-editor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -170,7 +170,7 @@ function ProposalDetailDialog({
                 </div>
             </DialogHeader>
             <ScrollArea className="flex-1 my-4 -mx-6">
-              <div className="px-6 space-y-4">
+              <div className="px-6 space-y-4" id="proposal-content">
                  {hasFeedback && (
                     <div className="space-y-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
                       <h3 className="font-semibold text-amber-700 dark:text-amber-400">Feedback History</h3>
@@ -188,45 +188,52 @@ function ProposalDetailDialog({
                    />
               </div>
             </ScrollArea>
-            {proposal.status === 'sent' && !isFeedbackMode && (
-                <DialogFooter className="mt-auto pt-4 border-t">
-                    <Button variant="outline" onClick={handleFeedbackRequest}>Request Changes</Button>
-                    <Button onClick={() => handleStatusChange('accepted')} disabled={isSubmitting}>
-                        {isSubmitting ? 'Accepting...' : 'Accept Proposal'}
-                    </Button>
-                     <Button variant="destructive" onClick={() => handleStatusChange('declined')} disabled={isSubmitting}>
-                        {isSubmitting ? 'Declining...' : 'Decline'}
-                    </Button>
-                </DialogFooter>
-            )}
-             {proposal.status === 'changes-requested' && (
-                 <div className="mt-auto pt-4 border-t text-center text-sm text-muted-foreground">
-                    The team has been notified of your feedback. This proposal will be updated soon.
-                </div>
-            )}
-            {isFeedbackMode && (
-                <div className="mt-auto pt-4 border-t">
-                    <DialogHeader>
-                        <DialogTitle>Request Changes</DialogTitle>
-                        <DialogDescription>Please provide your feedback below. This will send the proposal back to the team for revisions.</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <Textarea
-                            placeholder="e.g. 'Can we adjust the timeline for phase 2?'"
-                            value={feedback}
-                            onChange={(e) => setFeedback(e.target.value)}
-                            className="min-h-[100px]"
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                     <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsFeedbackMode(false)} disabled={isSubmitting}>Cancel</Button>
-                        <Button onClick={handleSubmitFeedback} disabled={isSubmitting || !feedback.trim()}>
-                            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+             <DialogFooter className="mt-auto pt-4 border-t items-center">
+                 <Button variant="outline" size="sm" onClick={() => downloadPdf('proposal-content', `Proposal - ${proposal.title}`)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                </Button>
+                <div className="flex-1" />
+                {proposal.status === 'sent' && !isFeedbackMode && (
+                    <>
+                        <Button variant="outline" onClick={handleFeedbackRequest}>Request Changes</Button>
+                        <Button onClick={() => handleStatusChange('accepted')} disabled={isSubmitting}>
+                            {isSubmitting ? 'Accepting...' : 'Accept Proposal'}
                         </Button>
-                    </DialogFooter>
-                </div>
-            )}
+                        <Button variant="destructive" onClick={() => handleStatusChange('declined')} disabled={isSubmitting}>
+                            {isSubmitting ? 'Declining...' : 'Decline'}
+                        </Button>
+                    </>
+                )}
+                 {proposal.status === 'changes-requested' && (
+                    <div className="text-center text-sm text-muted-foreground">
+                        The team has been notified of your feedback. This proposal will be updated soon.
+                    </div>
+                )}
+                {isFeedbackMode && (
+                    <div className="w-full">
+                        <DialogHeader>
+                            <DialogTitle>Request Changes</DialogTitle>
+                            <DialogDescription>Please provide your feedback below. This will send the proposal back to the team for revisions.</DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <Textarea
+                                placeholder="e.g. 'Can we adjust the timeline for phase 2?'"
+                                value={feedback}
+                                onChange={(e) => setFeedback(e.target.value)}
+                                className="min-h-[100px]"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" onClick={() => setIsFeedbackMode(false)} disabled={isSubmitting}>Cancel</Button>
+                            <Button onClick={handleSubmitFeedback} disabled={isSubmitting || !feedback.trim()}>
+                                {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </DialogFooter>
         </DialogContent>
     );
 }
@@ -288,7 +295,7 @@ function InvoiceDetailDialog({
                 </div>
             </DialogHeader>
             <ScrollArea className="flex-1 my-4 -mx-6">
-                <div className="px-6 space-y-4">
+                <div className="px-6 space-y-4" id="invoice-content">
                      {hasFeedback && (
                         <div className="space-y-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
                         <h3 className="font-semibold text-amber-700 dark:text-amber-400">Feedback History</h3>
@@ -331,43 +338,50 @@ function InvoiceDetailDialog({
                     </Card>
                 </div>
             </ScrollArea>
-             {(invoice.status === 'sent' || invoice.status === 'overdue') && !isFeedbackMode && (
-                <DialogFooter className="mt-auto pt-4 border-t">
-                    <Button variant="outline" onClick={() => setIsFeedbackMode(true)}>Request Changes</Button>
-                    <Button onClick={() => handleStatusChange('paid')} disabled={isSubmitting}>
-                        <CheckCircle className="mr-2 h-4 w-4"/>
-                        {isSubmitting ? 'Processing...' : 'Mark as Paid'}
-                    </Button>
-                </DialogFooter>
-            )}
-             {invoice.status === 'changes-requested' && (
-                 <div className="mt-auto pt-4 border-t text-center text-sm text-muted-foreground">
-                    The team has been notified of your feedback. This invoice will be updated soon.
-                </div>
-            )}
-            {isFeedbackMode && (
-                <div className="mt-auto pt-4 border-t">
-                    <DialogHeader>
-                        <DialogTitle>Request Changes</DialogTitle>
-                        <DialogDescription>Please provide your feedback below. This will send the invoice back to the team for revisions.</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <Textarea
-                            placeholder="e.g. 'Can we clarify the scope for item X?'"
-                            value={feedback}
-                            onChange={(e) => setFeedback(e.target.value)}
-                            className="min-h-[100px]"
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                     <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsFeedbackMode(false)} disabled={isSubmitting}>Cancel</Button>
-                        <Button onClick={handleSubmitFeedback} disabled={isSubmitting || !feedback.trim()}>
-                            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+             <DialogFooter className="mt-auto pt-4 border-t items-center">
+                <Button variant="outline" size="sm" onClick={() => downloadPdf('invoice-content', `Invoice - ${invoice.title}`)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                </Button>
+                 <div className="flex-1" />
+                {(invoice.status === 'sent' || invoice.status === 'overdue') && !isFeedbackMode && (
+                    <>
+                        <Button variant="outline" onClick={() => setIsFeedbackMode(true)}>Request Changes</Button>
+                        <Button onClick={() => handleStatusChange('paid')} disabled={isSubmitting}>
+                            <CheckCircle className="mr-2 h-4 w-4"/>
+                            {isSubmitting ? 'Processing...' : 'Mark as Paid'}
                         </Button>
-                    </DialogFooter>
-                </div>
-            )}
+                    </>
+                )}
+                 {invoice.status === 'changes-requested' && (
+                    <div className="text-center text-sm text-muted-foreground">
+                        The team has been notified of your feedback. This invoice will be updated soon.
+                    </div>
+                )}
+                {isFeedbackMode && (
+                    <div className="w-full">
+                        <DialogHeader>
+                            <DialogTitle>Request Changes</DialogTitle>
+                            <DialogDescription>Please provide your feedback below. This will send the invoice back to the team for revisions.</DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <Textarea
+                                placeholder="e.g. 'Can we clarify the scope for item X?'"
+                                value={feedback}
+                                onChange={(e) => setFeedback(e.target.value)}
+                                className="min-h-[100px]"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" onClick={() => setIsFeedbackMode(false)} disabled={isSubmitting}>Cancel</Button>
+                            <Button onClick={handleSubmitFeedback} disabled={isSubmitting || !feedback.trim()}>
+                                {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </DialogFooter>
         </DialogContent>
     )
 
