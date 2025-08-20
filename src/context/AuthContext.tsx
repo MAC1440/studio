@@ -67,6 +67,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         userDataFromDb.organizationId = newOrg.id;
       }
       
+      // Data migration for users without an avatarUrl
+      if (!userDataFromDb.avatarUrl) {
+          console.log(`User ${firebaseUser.uid} is missing an avatar. Creating one now.`);
+          const newAvatarUrl = `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(userDataFromDb.name)}`;
+          await updateUserProfile(firebaseUser.uid, { avatarUrl: newAvatarUrl });
+          userDataFromDb.avatarUrl = newAvatarUrl;
+      }
+
       setUserData(userDataFromDb);
       return userDataFromDb;
     } else {
