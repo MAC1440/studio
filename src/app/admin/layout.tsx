@@ -146,8 +146,8 @@ export default function AdminLayout({
           <div className="flex flex-1 overflow-hidden">
             <Sidebar>
               <SidebarContent>
-                <SidebarHeader className="border-b">
-                  <div className="flex items-center justify-between">
+                <SidebarHeader className="border-b h-16 flex items-center">
+                  <div className="flex items-center justify-between w-full">
                     <Link
                       href="/admin"
                       className="flex items-center gap-2 font-bold text-lg tracking-tight"
