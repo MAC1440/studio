@@ -180,7 +180,7 @@ function HeaderContent() {
 
   return (
     <header className="border-b border-border/60">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+      <div className="pe-4 ps-2 sm:pe-4 flex h-16 items-center justify-between w-full">
         <div className="flex items-center gap-2">
             {isAdminSection && <SidebarTrigger />}
             <Link href={getHomeLink()} className="flex items-center gap-2">
