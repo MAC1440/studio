@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import logo from "../../../public/logos/logo.png";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
@@ -48,6 +48,31 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
+function PaidFeatureLink({ href, isActive, isDisabled, children }: { href: string; isActive: boolean; isDisabled: boolean; children: React.ReactNode }) {
+    const router = useRouter();
+    const { toast } = useToast();
+
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        if (isDisabled) {
+            e.preventDefault();
+            toast({
+                title: "Upgrade Required",
+                description: "This feature is available on our paid plans.",
+                action: <Button asChild><Link href="/admin/billing"><Zap className="mr-2 h-4 w-4"/>Upgrade Plan</Link></Button>
+            });
+        } else {
+            router.push(href);
+        }
+    };
+
+    return (
+        <a href={isDisabled ? '#' : href} onClick={handleClick}>
+            {children}
+        </a>
+    )
+}
 
 function CollapsibleSidebarGroup({ 
     label, 
@@ -91,12 +116,29 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const { userData, organization, isOrgLoading } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
 
   const isPaidPlan =
     organization?.subscriptionPlan === "startup" ||
     organization?.subscriptionPlan === "pro";
 
   const isSubpathActive = (path: string) => pathname.startsWith(`/admin/${path}`);
+  
+  const handlePaidFeatureClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if(!isPaidPlan) {
+          e.preventDefault();
+          toast({
+            title: "Upgrade to Access",
+            description: "Proposals and Invoicing are premium features.",
+            action: (
+              <Button asChild size="sm">
+                <Link href="/admin/billing">Upgrade</Link>
+              </Button>
+            ),
+          });
+      }
+  }
 
   return (
     <AuthGuard role="admin">
@@ -144,7 +186,6 @@ export default function AdminLayout({
                             asChild
                             isActive={isSubpathActive('projects')}
                             size="sm"
-                            variant="ghost"
                         >
                             <Link href="/admin/projects">
                                 <FolderKanban className="h-4 w-4" />
@@ -157,7 +198,6 @@ export default function AdminLayout({
                             asChild
                             isActive={isSubpathActive('tickets')}
                             size="sm"
-                            variant="ghost"
                         >
                             <Link href="/admin/tickets">
                                 <Ticket className="h-4 w-4"/>
@@ -170,7 +210,6 @@ export default function AdminLayout({
                             asChild
                             isActive={isSubpathActive('clients')}
                              size="sm"
-                            variant="ghost"
                         >
                             <Link href="/admin/clients">
                                 <Briefcase className="h-4 w-4"/>
@@ -192,14 +231,17 @@ export default function AdminLayout({
                                 asChild
                                 isActive={isSubpathActive('proposals')}
                                 size="sm"
-                                variant="ghost"
                                 disabled={!isPaidPlan}
                               >
-                                <Link href="/admin/proposals">
+                                <PaidFeatureLink 
+                                  href="/admin/proposals" 
+                                  isActive={isSubpathActive('proposals')} 
+                                  isDisabled={!isPaidPlan}
+                                >
                                   <FileText className="h-4 w-4"/>
                                   Proposals
                                   {!isPaidPlan && <Zap className="ml-auto h-3.5 w-3.5 text-primary" />}
-                                </Link>
+                                </PaidFeatureLink>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
                             <SidebarMenuItem>
@@ -207,14 +249,17 @@ export default function AdminLayout({
                                 asChild
                                 isActive={isSubpathActive('invoices')}
                                 size="sm"
-                                variant="ghost"
                                 disabled={!isPaidPlan}
                               >
-                                <Link href="/admin/invoices">
+                                <PaidFeatureLink 
+                                  href="/admin/invoices" 
+                                  isActive={isSubpathActive('invoices')} 
+                                  isDisabled={!isPaidPlan}
+                                >
                                   <DollarSign className="h-4 w-4"/>
                                   Invoices
                                   {!isPaidPlan && <Zap className="ml-auto h-3.5 w-3.5 text-primary" />}
-                                </Link>
+                                </PaidFeatureLink>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
                           </>
@@ -224,7 +269,6 @@ export default function AdminLayout({
                             asChild
                             isActive={isSubpathActive('reports')}
                              size="sm"
-                            variant="ghost"
                           >
                             <Link href="/admin/reports">
                               <ClipboardCheck className="h-4 w-4"/>
@@ -237,7 +281,6 @@ export default function AdminLayout({
                             asChild
                             isActive={isSubpathActive('chat')}
                              size="sm"
-                            variant="ghost"
                           >
                             <Link href="/admin/chat">
                               <MessageSquare className="h-4 w-4"/>
@@ -255,7 +298,6 @@ export default function AdminLayout({
                           asChild
                           isActive={isSubpathActive('users')}
                            size="sm"
-                          variant="ghost"
                         >
                           <Link href="/admin/users">
                             <Users className="h-4 w-4"/>
@@ -268,7 +310,6 @@ export default function AdminLayout({
                           asChild
                           isActive={isSubpathActive('billing')}
                            size="sm"
-                          variant="ghost"
                         >
                           <Link href="/admin/billing">
                             <CreditCard className="h-4 w-4"/>
@@ -286,7 +327,7 @@ export default function AdminLayout({
                         <h4 className="font-semibold text-sm">
                           Upgrade for More
                         </h4>
-                        <p className="text-xs text-muted-foreground mt-1 mb-3">
+                        <p className="text-xs text-primary mt-1 mb-3">
                           Unlock proposals, invoices, reports and more.
                         </p>
                         <Button size="sm" className="w-full" asChild>
