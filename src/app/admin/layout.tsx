@@ -50,7 +50,7 @@ import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
-function PaidFeatureLink({ href, isActive, isDisabled, children }: { href: string; isActive: boolean; isDisabled: boolean; children: React.ReactNode }) {
+function PaidFeatureLink({ href, isDisabled, children, ...props }: { href: string; isDisabled: boolean; children: React.ReactNode; [key: string]: any }) {
     const router = useRouter();
     const { toast } = useToast();
 
@@ -62,15 +62,13 @@ function PaidFeatureLink({ href, isActive, isDisabled, children }: { href: strin
                 description: "This feature is available on our paid plans.",
                 action: <Button asChild><Link href="/admin/billing"><Zap className="mr-2 h-4 w-4"/>Upgrade Plan</Link></Button>
             });
-        } else {
-            router.push(href);
         }
     };
 
     return (
-        <a href={isDisabled ? '#' : href} onClick={handleClick}>
+        <Link href={isDisabled ? '#' : href} {...props} onClick={handleClick}>
             {children}
-        </a>
+        </Link>
     )
 }
 
@@ -235,7 +233,6 @@ export default function AdminLayout({
                               >
                                 <PaidFeatureLink 
                                   href="/admin/proposals" 
-                                  isActive={isSubpathActive('proposals')} 
                                   isDisabled={!isPaidPlan}
                                 >
                                   <FileText className="h-4 w-4"/>
@@ -253,7 +250,6 @@ export default function AdminLayout({
                               >
                                 <PaidFeatureLink 
                                   href="/admin/invoices" 
-                                  isActive={isSubpathActive('invoices')} 
                                   isDisabled={!isPaidPlan}
                                 >
                                   <DollarSign className="h-4 w-4"/>
