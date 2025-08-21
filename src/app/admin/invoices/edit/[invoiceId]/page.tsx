@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Calendar as CalendarIcon, DollarSign, PlusCircle, Trash2, ArrowLeft } from 'lucide-react';
+import { Calendar as CalendarIcon, DollarSign, PlusCircle, Trash2, ArrowLeft, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { getInvoice, updateInvoice } from '@/lib/firebase/invoices';
@@ -60,8 +60,11 @@ export default function EditInvoicePage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
-  const { userData } = useAuth();
+  const { userData, organization } = useAuth();
   const invoiceId = params.invoiceId as string;
+  const isPaidPlan =
+    organization?.subscriptionPlan === "startup" ||
+    organization?.subscriptionPlan === "pro";
 
   // Component State
   const [isLoading, setIsLoading] = useState(true);
@@ -87,11 +90,27 @@ export default function EditInvoicePage() {
   }
 
   useEffect(() => {
+    if (organization && !isPaidPlan) {
+      toast({
+        title: "Upgrade Required",
+        description: "Editing invoices requires a paid plan.",
+        variant: "destructive",
+        action: (
+          <Button asChild>
+            <Link href="/admin/billing">Upgrade</Link>
+          </Button>
+        ),
+      });
+      router.push("/admin/invoices");
+    }
+  }, [organization, isPaidPlan, router, toast]);
+
+  useEffect(() => {
     if (!invoiceId) {
       router.push('/admin/invoices');
       return;
     }
-    if (!userData?.organizationId) return;
+    if (!userData?.organizationId || !isPaidPlan) return;
 
     const fetchData = async () => {
       setIsLoading(true);
@@ -126,7 +145,7 @@ export default function EditInvoicePage() {
     if (userData?.organizationId) {
         fetchData();
     }
-  }, [invoiceId, router, toast, userData?.organizationId]);
+  }, [invoiceId, router, toast, userData?.organizationId, isPaidPlan]);
 
   const handleAddItem = () => {
     setItems([...items, { description: '', amount: 0 }]);
@@ -191,7 +210,7 @@ export default function EditInvoicePage() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || !isPaidPlan) {
     return <EditInvoiceSkeleton />;
   }
 
