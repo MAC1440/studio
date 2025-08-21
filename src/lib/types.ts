@@ -9,6 +9,7 @@ export type Organization = {
   ownerId: string;
   createdAt: Timestamp;
   subscriptionPlan: OrganizationPlan;
+  planExpiryDate?: Timestamp;
   stripeCustomerId?: string;
   aiProposalCount?: number;
   aiProposalCountLastReset?: Timestamp;

@@ -43,11 +43,16 @@ export async function getOrganization(organizationId: string): Promise<Organizat
 }
 
 
-export async function updateOrganizationPlan(organizationId: string, newPlan: Organization['subscriptionPlan']): Promise<void> {
+export async function updateOrganizationPlan(organizationId: string, updates: Partial<Organization>): Promise<void> {
     const orgRef = doc(db, 'organizations', organizationId);
-    await updateDoc(orgRef, {
-        subscriptionPlan: newPlan
-    });
+    
+    // Firestore does not allow 'undefined' as a value, so we must remove it.
+    const finalUpdates: { [key: string]: any } = { ...updates };
+    if (updates.planExpiryDate === undefined) {
+        delete finalUpdates.planExpiryDate;
+    }
+
+    await updateDoc(orgRef, finalUpdates);
 }
 
 export async function incrementAiProposalCount(organizationId: string): Promise<void> {

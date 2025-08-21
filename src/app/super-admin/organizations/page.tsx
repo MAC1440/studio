@@ -31,9 +31,14 @@ import { type Organization, OrganizationPlan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getAllOrganizations, updateOrganizationPlan } from '@/lib/firebase/organizations';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, Search, Edit } from 'lucide-react';
-import { format } from 'date-fns';
+import { Building, Search, Edit, Calendar as CalendarIcon, AlertTriangle } from 'lucide-react';
+import { format, isBefore, addDays } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { Timestamp } from 'firebase/firestore';
+
 
 export default function OrganizationsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -43,6 +48,7 @@ export default function OrganizationsPage() {
   const [planFilter, setPlanFilter] = useState<'all' | OrganizationPlan>('all');
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<OrganizationPlan>('free');
+  const [expiryDate, setExpiryDate] = useState<Date | undefined>();
   
   const { toast } = useToast();
 
@@ -50,7 +56,7 @@ export default function OrganizationsPage() {
     setIsLoading(true);
     try {
       const fetchedOrgs = await getAllOrganizations();
-      setOrganizations(fetchedOrgs.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()));
+      setOrganizations(fetchedOrgs);
     } catch (error) {
       console.error("Failed to fetch organizations:", error);
       toast({
@@ -70,16 +76,32 @@ export default function OrganizationsPage() {
   const handleEditPlanClick = (org: Organization) => {
     setEditingOrg(org);
     setSelectedPlan(org.subscriptionPlan);
+    setExpiryDate(org.planExpiryDate?.toDate());
   };
   
   const handlePlanUpdate = async () => {
     if (!editingOrg) return;
+    
+    if(selectedPlan !== 'free' && !expiryDate) {
+        toast({
+            title: "Expiry Date Required",
+            description: "Please set an expiry date for paid plans.",
+            variant: "destructive"
+        });
+        return;
+    }
+
     setIsSubmitting(true);
     try {
-      await updateOrganizationPlan(editingOrg.id, selectedPlan);
+      const updates: Partial<Organization> = { 
+        subscriptionPlan: selectedPlan,
+        planExpiryDate: selectedPlan === 'free' ? undefined : Timestamp.fromDate(expiryDate!),
+      };
+
+      await updateOrganizationPlan(editingOrg.id, updates);
       toast({
         title: "Plan Updated",
-        description: `${editingOrg.name}'s plan has been changed to ${selectedPlan}.`
+        description: `${editingOrg.name}'s plan has been changed.`
       });
       setEditingOrg(null);
       await fetchData(); // Refresh data
@@ -96,7 +118,19 @@ export default function OrganizationsPage() {
 
 
   const filteredOrgs = useMemo(() => {
-    return organizations.filter(org => {
+    let sortedOrgs = [...organizations];
+    
+    // Sort by plan expiry date, soonest first. Nulls (free plans) go to the bottom.
+    sortedOrgs.sort((a, b) => {
+        const aDate = a.planExpiryDate?.toMillis();
+        const bDate = b.planExpiryDate?.toMillis();
+        if(aDate && bDate) return aDate - bDate;
+        if(aDate) return -1; // a has date, b doesn't, so a comes first
+        if(bDate) return 1; // b has date, a doesn't, so b comes first
+        return 0; // neither has a date
+    });
+
+    return sortedOrgs.filter(org => {
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch = searchLower 
         ? org.name.toLowerCase().includes(searchLower) || org.id.toLowerCase().includes(searchLower)
@@ -148,8 +182,8 @@ export default function OrganizationsPage() {
             <TableRow>
               <TableHead>Organization</TableHead>
               <TableHead>Plan</TableHead>
+              <TableHead>Expires On</TableHead>
               <TableHead>Owner ID</TableHead>
-              <TableHead>Created At</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -159,22 +193,35 @@ export default function OrganizationsPage() {
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-8 w-20" /></TableCell>
                 </TableRow>
               ))
             ) : filteredOrgs.length > 0 ? (
-              filteredOrgs.map((org) => (
-                <TableRow key={org.id}>
+              filteredOrgs.map((org) => {
+                const expiry = org.planExpiryDate?.toDate();
+                const isExpiringSoon = expiry ? isBefore(expiry, addDays(new Date(), 7)) : false;
+
+                return (
+                <TableRow key={org.id} className={cn(isExpiringSoon && "bg-amber-100/50 dark:bg-amber-900/20")}>
                   <TableCell className="font-medium">{org.name}</TableCell>
                   <TableCell>
                     <Badge variant={getPlanBadgeVariant(org.subscriptionPlan)} className="capitalize">
                       {org.subscriptionPlan}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    {expiry ? (
+                        <div className="flex items-center gap-2">
+                           {isExpiringSoon && <AlertTriangle className="h-4 w-4 text-amber-500"/>}
+                           {format(expiry, 'MMM d, yyyy')}
+                        </div>
+                    ) : (
+                        <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{org.ownerId}</TableCell>
-                  <TableCell>{format(org.createdAt.toDate(), 'MMM d, yyyy')}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => handleEditPlanClick(org)}>
                       <Edit className="mr-2 h-4 w-4" />
@@ -182,7 +229,7 @@ export default function OrganizationsPage() {
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
+              )})
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
@@ -203,18 +250,47 @@ export default function OrganizationsPage() {
                 <DialogHeader>
                     <DialogTitle>Change Plan for {editingOrg.name}</DialogTitle>
                 </DialogHeader>
-                <div className="py-4 space-y-2">
-                    <Label>Subscription Plan</Label>
-                    <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as OrganizationPlan)}>
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="free">Free</SelectItem>
-                            <SelectItem value="startup">Startup</SelectItem>
-                            <SelectItem value="pro">Pro</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                        <Label>Subscription Plan</Label>
+                        <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as OrganizationPlan)}>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="free">Free</SelectItem>
+                                <SelectItem value="startup">Startup</SelectItem>
+                                <SelectItem value="pro">Pro</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     {selectedPlan !== 'free' && (
+                        <div className="space-y-2">
+                            <Label>Plan Expiry Date</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !expiryDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {expiryDate ? format(expiryDate, "PPP") : <span>Pick a date</span>}
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={expiryDate}
+                                    onSelect={setExpiryDate}
+                                    initialFocus
+                                />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    )}
                 </div>
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => setEditingOrg(null)} disabled={isSubmitting}>Cancel</Button>
