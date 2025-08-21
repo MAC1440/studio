@@ -88,8 +88,10 @@ export async function getUsers(organizationId?: string): Promise<User[]> {
 }
 
 export async function forgotPassword(email: string): Promise<void> {
+    // Use the primary auth instance for password resets
+    const primaryAuth = getAuth();
     try {
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(primaryAuth, email);
     } catch (error: any) {
         console.error("Password reset error:", error);
         throw new Error("Could not send password reset email. Please ensure the email address is correct.");
