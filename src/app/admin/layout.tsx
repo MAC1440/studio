@@ -185,18 +185,20 @@ export default function AdminLayout({
                    <CollapsibleSidebarGroup label="Client Engagement" subpaths={['proposals', 'invoices', 'reports', 'chat']}>
                        {isOrgLoading ? (
                           <SidebarMenuSkeleton showIcon />
-                        ) : isPaidPlan ? (
+                        ) : (
                           <>
                             <SidebarMenuItem>
                               <SidebarMenuButton
                                 asChild
                                 isActive={isSubpathActive('proposals')}
-                                 size="sm"
+                                size="sm"
                                 variant="ghost"
+                                disabled={!isPaidPlan}
                               >
                                 <Link href="/admin/proposals">
                                   <FileText className="h-4 w-4"/>
                                   Proposals
+                                  {!isPaidPlan && <Zap className="ml-auto h-3.5 w-3.5 text-primary" />}
                                 </Link>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -204,17 +206,19 @@ export default function AdminLayout({
                               <SidebarMenuButton
                                 asChild
                                 isActive={isSubpathActive('invoices')}
-                                 size="sm"
+                                size="sm"
                                 variant="ghost"
+                                disabled={!isPaidPlan}
                               >
                                 <Link href="/admin/invoices">
                                   <DollarSign className="h-4 w-4"/>
                                   Invoices
+                                  {!isPaidPlan && <Zap className="ml-auto h-3.5 w-3.5 text-primary" />}
                                 </Link>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
                           </>
-                        ) : null}
+                        )}
                         <SidebarMenuItem>
                           <SidebarMenuButton
                             asChild
