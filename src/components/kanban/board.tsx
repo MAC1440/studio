@@ -52,7 +52,8 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
   
   useEffect(() => {
     if(user) {
-        setAssigneeFilter(user.uid);
+        // Default to showing all users tickets, not just the logged in user
+        setAssigneeFilter('all');
     }
   }, [user]);
 

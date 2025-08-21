@@ -180,12 +180,12 @@ function HeaderContent() {
 
   return (
     <header className="border-b border-border/60">
-      <div className="pe-4 ps-2 sm:pe-4 flex h-16 items-center justify-between w-full">
+      <div className="flex h-16 items-center justify-between w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
             {isAdminSection && <SidebarTrigger />}
             <Link href={getHomeLink()} className="flex items-center gap-2">
               <Image src={logo.src} alt="BoardRLane Logo" width={24} height={24} className="h-6 w-6" />
-              <span className="text-lg font-bold tracking-tight">BoardRLane</span>
+              <span className="text-lg font-bold tracking-tight hidden sm:inline">BoardRLane</span>
             </Link>
         </div>
         <div className="flex items-center gap-2">
@@ -266,7 +266,7 @@ export default function AppHeader() {
     if (loading) {
         return (
             <header className="border-b border-border/60">
-              <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+              <div className="px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Skeleton className="h-6 w-36" />
                 </div>

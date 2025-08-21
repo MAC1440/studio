@@ -173,10 +173,22 @@ export default function ProposalEditor({
       const count = org.aiProposalCount || 0;
       
       const limits = {
-        free: 3,
+        free: 0,
         startup: 10,
-        pro: Infinity
+        pro: 50
       };
+
+      if (plan === 'free') {
+        toast({
+            title: "Upgrade to Use AI",
+            description: "The AI Proposal Generator is a premium feature.",
+            variant: "destructive",
+            action: <Button asChild><Link href="/admin/billing">Upgrade Plan</Link></Button>
+        });
+        setIsGenerating(false);
+        setIsAiDialogOpen(false);
+        return;
+      }
       
       if (count >= limits[plan]) {
         toast({

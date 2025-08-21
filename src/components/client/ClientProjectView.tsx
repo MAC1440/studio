@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { cn, downloadPdf } from '@/lib/utils';
@@ -503,12 +503,11 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const { user, userData } = useAuth();
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
-  const fetchClientData = async (options: { openProposalId?: string, openInvoiceId?: string, openChat?: boolean } = {}) => {
+  const fetchClientData = async () => {
       if (!user || !userData?.organizationId) return;
-      if (!options.openProposalId && !options.openInvoiceId && !options.openChat) {
-        setIsLoading(true);
-      }
+      setIsLoading(true);
       try {
         const [projectData, ticketData, proposalData, invoiceData, reportData, fetchedChatId] = await Promise.all([
           getProject(projectId),
@@ -533,25 +532,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
             .filter(i => i.clientId === user.uid && i.status !== 'draft')
             .sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis());
         setInvoices(filteredInvoices);
-
-        if (options.openProposalId) {
-            const proposalToOpen = filteredProposals.find(p => p.id === options.openProposalId);
-            if (proposalToOpen) {
-                setSelectedProposal(proposalToOpen);
-                setActiveTab('proposals');
-            }
-        }
-        if (options.openInvoiceId) {
-            const invoiceToOpen = filteredInvoices.find(i => i.id === options.openInvoiceId);
-            if (invoiceToOpen) {
-                setSelectedInvoice(invoiceToOpen);
-                setActiveTab('invoices');
-            }
-        }
-        if (options.openChat) {
-            setActiveTab('chat');
-        }
-
+        
       } catch (error) {
         console.error("Failed to fetch project data:", error);
       } finally {
@@ -561,12 +542,39 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
 
   useEffect(() => {
     if (userData?.organizationId && user) {
-      const openProposalId = searchParams.get('open_proposal') || undefined;
-      const openInvoiceId = searchParams.get('open_invoice') || undefined;
-      const openChat = searchParams.get('open_chat') === 'true';
-      fetchClientData({ openProposalId, openInvoiceId, openChat });
+        fetchClientData();
     }
-  }, [projectId, user, userData?.organizationId, searchParams]);
+  }, [projectId, user, userData?.organizationId]);
+
+   useEffect(() => {
+    if (isLoading) return; // Don't run on initial load
+
+    const openProposalId = searchParams.get('open_proposal') || undefined;
+    const openInvoiceId = searchParams.get('open_invoice') || undefined;
+    const openChat = searchParams.get('open_chat') === 'true';
+
+    if (openProposalId) {
+        const proposalToOpen = proposals.find(p => p.id === openProposalId);
+        if (proposalToOpen) {
+            setSelectedProposal(proposalToOpen);
+            setActiveTab('proposals');
+            router.replace(`/client/project/${projectId}`, { scroll: false });
+        }
+    }
+    if (openInvoiceId) {
+        const invoiceToOpen = invoices.find(i => i.id === openInvoiceId);
+        if (invoiceToOpen) {
+            setSelectedInvoice(invoiceToOpen);
+            setActiveTab('invoices');
+            router.replace(`/client/project/${projectId}`, { scroll: false });
+        }
+    }
+    if (openChat) {
+        setActiveTab('chat');
+        router.replace(`/client/project/${projectId}`, { scroll: false });
+    }
+  }, [isLoading, searchParams, proposals, invoices, projectId, router]);
+
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
