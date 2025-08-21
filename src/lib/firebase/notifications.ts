@@ -118,3 +118,27 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
 
     await batch.commit();
 }
+
+
+export async function deleteOldNotifications(): Promise<number> {
+    const notificationsCol = collection(db, 'notifications');
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const oneWeekAgoTimestamp = Timestamp.fromDate(oneWeekAgo);
+
+    const q = query(notificationsCol, where('createdAt', '<=', oneWeekAgoTimestamp));
+    
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return 0;
+    }
+
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+
+    return snapshot.size;
+}

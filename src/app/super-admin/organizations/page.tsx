@@ -19,6 +19,17 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -30,8 +41,9 @@ import { Label } from '@/components/ui/label';
 import { type Organization, OrganizationPlan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getAllOrganizations, updateOrganizationPlan } from '@/lib/firebase/organizations';
+import { deleteOldNotifications } from '@/lib/firebase/notifications';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, Search, Edit, Calendar as CalendarIcon, AlertTriangle } from 'lucide-react';
+import { Building, Search, Edit, Calendar as CalendarIcon, AlertTriangle, Trash2 } from 'lucide-react';
 import { format, isBefore, addDays } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -44,6 +56,7 @@ export default function OrganizationsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [planFilter, setPlanFilter] = useState<'all' | OrganizationPlan>('all');
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
@@ -116,6 +129,25 @@ export default function OrganizationsPage() {
     }
   };
 
+  const handleDeleteOldNotifications = async () => {
+      setIsDeleting(true);
+      try {
+          const count = await deleteOldNotifications();
+          toast({
+              title: "Cleanup Successful",
+              description: `${count} old notifications have been deleted.`
+          })
+      } catch (error) {
+          toast({
+              title: "Cleanup Failed",
+              description: "Could not delete old notifications.",
+              variant: "destructive"
+          })
+      } finally {
+          setIsDeleting(false);
+      }
+  }
+
 
   const filteredOrgs = useMemo(() => {
     let sortedOrgs = [...organizations];
@@ -150,8 +182,17 @@ export default function OrganizationsPage() {
   }
 
   return (
+    <AlertDialog>
     <div>
-      <h1 className="text-2xl md:text-3xl font-bold mb-6">Organization Management</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold">Organization Management</h1>
+        <AlertDialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <Trash2 className="mr-2 h-4 w-4" />
+            Cleanup Notifications
+          </Button>
+        </AlertDialogTrigger>
+      </div>
 
       <div className="flex items-center gap-4 mb-4">
         <div className="relative w-full max-w-sm">
@@ -301,6 +342,21 @@ export default function OrganizationsPage() {
             </DialogContent>
         )}
       </Dialog>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action will permanently delete all notifications older than 7 days from the database. This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDeleteOldNotifications} disabled={isDeleting}>
+            {isDeleting ? 'Deleting...' : 'Confirm'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
     </div>
+    </AlertDialog>
   );
 }
