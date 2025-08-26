@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, Flame, ChevronUp, Equal, CheckCircle } from 'lucide-react';
+import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, Flame, ChevronUp, Equal, CheckCircle, Zap } from 'lucide-react';
 import Image from 'next/image';
 import logo from '../../public/logos/logo.png';
 import darkLogo from '../../public/logos/brand-dark.png';
@@ -438,24 +438,25 @@ export default function LandingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto">
                 {/* Free Plan */}
-                <Card className="h-full">
+                <Card className="h-full flex flex-col">
                     <CardHeader>
                         <CardTitle>Free</CardTitle>
                         <CardDescription>Perfect for getting started and managing your first few projects.</CardDescription>
                         <p className="text-4xl font-bold pt-4">$0</p>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <ul className="space-y-2 text-muted-foreground">
+                    <CardContent className="space-y-4 flex flex-col flex-1">
+                        <ul className="space-y-2 text-muted-foreground flex-1">
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Up to 3 Projects</li>
+                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Up to 3 Clients</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Basic Kanban Board</li>
-                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> 1 Client Portal</li>
+                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Client Portal</li>
                         </ul>
-                        <Button className="w-full" variant="outline" asChild><Link href="/login">Get Started</Link></Button>
+                        <Button className="w-full mt-auto" variant="outline" asChild><Link href="/login">Get Started</Link></Button>
                     </CardContent>
                 </Card>
 
                 {/* Starter Plan */}
-                 <Card className="border-primary ring-2 ring-primary relative h-full">
+                 <Card className="border-primary ring-2 ring-primary relative h-full flex flex-col">
                     <div className="absolute top-0 -translate-y-1/2 w-full flex justify-center">
                         <Badge>Most Popular</Badge>
                     </div>
@@ -464,32 +465,34 @@ export default function LandingPage() {
                         <CardDescription>For growing freelancers and small teams who need more power.</CardDescription>
                          <p className="text-4xl font-bold pt-4">{isAnnual ? '$16' : '$20'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <ul className="space-y-2 text-muted-foreground">
+                    <CardContent className="space-y-4 flex flex-col flex-1">
+                        <ul className="space-y-2 text-muted-foreground flex-1">
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Unlimited Projects</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Unlimited Clients</li>
                              <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Invoicing & Proposals</li>
                              <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Real-time Chat</li>
+                              <li className="flex items-center gap-2"><Zap className="h-4 w-4 text-primary"/> AI Proposal Generator (10/day)</li>
                         </ul>
-                        <Button className="w-full" asChild><Link href="/login">Choose Starter</Link></Button>
+                        <Button className="w-full mt-auto" asChild><Link href="/login">Choose Starter</Link></Button>
                     </CardContent>
                 </Card>
 
                 {/* Pro Plan */}
-                <Card className="h-full">
+                <Card className="h-full flex flex-col">
                     <CardHeader>
                         <CardTitle>Pro</CardTitle>
                         <CardDescription>Advanced features for agencies and teams that need to scale.</CardDescription>
                         <p className="text-4xl font-bold pt-4">{isAnnual ? '$40' : '$50'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <ul className="space-y-2 text-muted-foreground">
+                    <CardContent className="space-y-4 flex flex-col flex-1">
+                        <ul className="space-y-2 text-muted-foreground flex-1">
                              <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Everything in Starter</li>
+                             <li className="flex items-center gap-2"><Zap className="h-4 w-4 text-primary"/> AI Proposal Generator (50/day)</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Advanced Reports</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Team Management Roles</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Priority Support</li>
                         </ul>
-                        <Button className="w-full" variant="outline" asChild><Link href="/login">Choose Pro</Link></Button>
+                        <Button className="w-full mt-auto" variant="outline" asChild><Link href="/login">Choose Pro</Link></Button>
                     </CardContent>
                 </Card>
             </div>
