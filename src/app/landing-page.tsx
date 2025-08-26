@@ -458,7 +458,7 @@ export default function LandingPage() {
                 {/* Starter Plan */}
                  <Card className="border-primary ring-2 ring-primary relative h-full flex flex-col">
                     <div className="absolute top-0 -translate-y-1/2 w-full flex justify-center">
-                        <Badge>Most Popular</Badge>
+                        <Badge>Recommended</Badge>
                     </div>
                     <CardHeader>
                         <CardTitle>Starter</CardTitle>
