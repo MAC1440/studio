@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Calendar as CalendarIcon, DollarSign, PlusCircle, Trash2, ArrowLeft } from 'lucide-react';
+import { Calendar as CalendarIcon, DollarSign, PlusCircle, Trash2, ArrowLeft, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { createInvoice } from '@/lib/firebase/invoices';
@@ -61,7 +61,10 @@ export default function CreateInvoicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { userData } = useAuth();
+  const { userData, organization } = useAuth();
+  const isPaidPlan =
+    organization?.subscriptionPlan === "startup" ||
+    organization?.subscriptionPlan === "pro";
 
   // Component State
   const [isLoading, setIsLoading] = useState(true);
@@ -86,12 +89,28 @@ export default function CreateInvoicePage() {
   }
 
   useEffect(() => {
+    if (organization && !isPaidPlan) {
+      toast({
+        title: "Upgrade Required",
+        description: "Creating invoices requires a paid plan.",
+        variant: "destructive",
+        action: (
+          <Button asChild>
+            <Link href="/admin/billing">Upgrade</Link>
+          </Button>
+        ),
+      });
+      router.push("/admin/clients");
+    }
+  }, [organization, isPaidPlan, router, toast]);
+
+  useEffect(() => {
     if (!clientId) {
       toast({ title: "Client not specified", description: "Please select a client to create an invoice for.", variant: "destructive" });
       router.push('/admin/clients');
       return;
     }
-    if (!userData?.organizationId) return;
+    if (!userData?.organizationId || !isPaidPlan) return;
 
     const fetchData = async () => {
       setIsLoading(true);
@@ -112,7 +131,7 @@ export default function CreateInvoicePage() {
     if (userData?.organizationId) {
         fetchData();
     }
-  }, [clientId, router, toast, userData?.organizationId]);
+  }, [clientId, router, toast, userData?.organizationId, isPaidPlan]);
 
   const handleAddItem = () => {
     setItems([...items, { description: '', amount: 0 }]);
@@ -173,7 +192,7 @@ export default function CreateInvoicePage() {
 
   }
 
-  if (isLoading) {
+  if (isLoading || !isPaidPlan) {
     return <CreateInvoiceSkeleton />;
   }
 

@@ -76,7 +76,7 @@ export default function BillingPage() {
         if (userData?.organizationId) {
             const fetchOrganization = async () => {
                 setIsLoading(true);
-                const orgRef = doc(db, 'organizations', userData.organizationId);
+                const orgRef = doc(db, 'organizations', userData.organizationId as string);
                 const orgSnap = await getDoc(orgRef);
                 if (orgSnap.exists()) {
                     setOrganization(orgSnap.data() as Organization);

@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, Flame, ChevronUp, Equal, CheckCircle } from 'lucide-react';
+import { GanttChartSquare, FileText, DollarSign, MessageSquare, Users, AreaChart, PlayCircle, ShieldCheck, Lock, Flame, ChevronUp, Equal, CheckCircle, Zap } from 'lucide-react';
 import Image from 'next/image';
 import logo from '../../public/logos/logo.png';
 import darkLogo from '../../public/logos/brand-dark.png';
@@ -165,17 +165,17 @@ const features = [
 
 const testimonials = [
   {
-    quote: "BoardR has been a game-changer for my freelance business. I can finally manage everything from one place and my clients love the portal.",
+    quote: "BoardRLane has been a game-changer for my freelance business. I can finally manage everything from one place and my clients love the portal.",
     name: "Sarah K.",
     role: "Freelance Designer"
   },
   {
-    quote: "Our agency switched from a clunky, expensive tool to BoardR and we haven't looked back. It's simple, powerful, and our team actually enjoys using it.",
+    quote: "Our agency switched from a clunky, expensive tool to BoardRLane and we haven't looked back. It's simple, powerful, and our team actually enjoys using it.",
     name: "Michael R.",
     role: "Agency Owner"
   },
   {
-    quote: "Juggling multiple projects and clients used to be a nightmare. BoardR brought order to the chaos. The invoicing feature alone saves me hours every month.",
+    quote: "Juggling multiple projects and clients used to be a nightmare. BoardRLane brought order to the chaos. The invoicing feature alone saves me hours every month.",
     name: "David L.",
     role: "Project Manager"
   }
@@ -196,8 +196,8 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen bg-background text-foreground items-center">
       <header className="w-full px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background/95 backdrop-blur-sm z-50">
         <Link href="/" className="flex items-center justify-center">
-          <Image src={logo.src} alt="BoardR Logo" width={32} height={32} />
-          <span className="ml-2 text-xl font-bold">BoardR</span>
+          <Image src={logo.src} alt="BoardRLane Logo" width={32} height={32} />
+          <span className="ml-2 text-xl font-bold">BoardRLane</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link
@@ -224,10 +224,10 @@ export default function LandingPage() {
           <div className="container px-4 md:px-6 text-center">
             <div className="max-w-4xl mx-auto">
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl/none">
-                Manage Clients, Projects, and Payments — All in One Place.
+                The all-in-one platform to manage your clients, projects, and finances.
               </h1>
               <p className="mt-4 text-muted-foreground md:text-xl">
-                BoardR replaces your scattered tools with one simple, powerful workspace.
+                BoardRLane replaces your scattered tools with one simple, powerful workspace.
               </p>
               <div className="mt-6 flex flex-col gap-4 min-[400px]:flex-row justify-center">
                 <Button asChild size="lg">
@@ -354,7 +354,7 @@ export default function LandingPage() {
                 Everything You Need. Nothing You Don't.
               </h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed mt-4">
-                BoardR is designed to be powerful yet simple, giving you the tools to manage complex projects without the clutter.
+                BoardRLane is designed to be powerful yet simple, giving you the tools to manage complex projects without the clutter.
               </p>
             </div>
             <div className="mx-auto grid max-w-7xl gap-8 sm:grid-cols-2 lg:grid-cols-3 mt-12">
@@ -438,58 +438,61 @@ export default function LandingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto">
                 {/* Free Plan */}
-                <Card className="h-full">
+                <Card className="h-full flex flex-col">
                     <CardHeader>
                         <CardTitle>Free</CardTitle>
                         <CardDescription>Perfect for getting started and managing your first few projects.</CardDescription>
                         <p className="text-4xl font-bold pt-4">$0</p>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <ul className="space-y-2 text-muted-foreground">
+                    <CardContent className="space-y-4 flex flex-col flex-1">
+                        <ul className="space-y-2 text-muted-foreground flex-1">
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Up to 3 Projects</li>
+                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Up to 3 Clients</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Basic Kanban Board</li>
-                            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> 1 Client Portal</li>
+                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Client Portal</li>
                         </ul>
-                        <Button className="w-full" variant="outline" asChild><Link href="/login">Get Started</Link></Button>
+                        <Button className="w-full mt-auto" variant="outline" asChild><Link href="/login">Get Started</Link></Button>
                     </CardContent>
                 </Card>
 
                 {/* Starter Plan */}
-                 <Card className="border-primary ring-2 ring-primary relative h-full">
+                 <Card className="border-primary ring-2 ring-primary relative h-full flex flex-col">
                     <div className="absolute top-0 -translate-y-1/2 w-full flex justify-center">
-                        <Badge>Most Popular</Badge>
+                        <Badge>Recommended</Badge>
                     </div>
                     <CardHeader>
                         <CardTitle>Starter</CardTitle>
                         <CardDescription>For growing freelancers and small teams who need more power.</CardDescription>
                          <p className="text-4xl font-bold pt-4">{isAnnual ? '$16' : '$20'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <ul className="space-y-2 text-muted-foreground">
+                    <CardContent className="space-y-4 flex flex-col flex-1">
+                        <ul className="space-y-2 text-muted-foreground flex-1">
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Unlimited Projects</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Unlimited Clients</li>
                              <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Invoicing & Proposals</li>
                              <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Real-time Chat</li>
+                              <li className="flex items-center gap-2"><Zap className="h-4 w-4 text-primary"/> AI Proposal Generator (10/day)</li>
                         </ul>
-                        <Button className="w-full" asChild><Link href="/login">Choose Starter</Link></Button>
+                        <Button className="w-full mt-auto" asChild><Link href="/login">Choose Starter</Link></Button>
                     </CardContent>
                 </Card>
 
                 {/* Pro Plan */}
-                <Card className="h-full">
+                <Card className="h-full flex flex-col">
                     <CardHeader>
                         <CardTitle>Pro</CardTitle>
                         <CardDescription>Advanced features for agencies and teams that need to scale.</CardDescription>
                         <p className="text-4xl font-bold pt-4">{isAnnual ? '$40' : '$50'}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <ul className="space-y-2 text-muted-foreground">
+                    <CardContent className="space-y-4 flex flex-col flex-1">
+                        <ul className="space-y-2 text-muted-foreground flex-1">
                              <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Everything in Starter</li>
+                             <li className="flex items-center gap-2"><Zap className="h-4 w-4 text-primary"/> AI Proposal Generator (50/day)</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Advanced Reports</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Team Management Roles</li>
                             <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary"/> Priority Support</li>
                         </ul>
-                        <Button className="w-full" variant="outline" asChild><Link href="/login">Choose Pro</Link></Button>
+                        <Button className="w-full mt-auto" variant="outline" asChild><Link href="/login">Choose Pro</Link></Button>
                     </CardContent>
                 </Card>
             </div>
@@ -548,7 +551,7 @@ export default function LandingPage() {
                        Stop Juggling. Start Building.
                     </h2>
                      <p className="mt-4 text-muted-foreground md:text-xl">
-                        Join 500+ freelancers and agencies streamlining their work with BoardR today.
+                        Join 500+ freelancers and agencies streamlining their work with BoardRLane today.
                     </p>
                     <div className="mt-6">
                         <Button asChild size="lg">
@@ -562,7 +565,7 @@ export default function LandingPage() {
 
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} BoardR. All rights reserved.
+          &copy; {new Date().getFullYear()} BoardRLane. All rights reserved.
         </p>
          <div className="flex gap-4 sm:ml-auto items-center">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">

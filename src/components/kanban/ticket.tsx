@@ -62,7 +62,7 @@ export default function KanbanTicket({ ticket, onClick }: KanbanTicketProps) {
               <div className="flex items-center gap-2">
                   {priorityIcons[ticket.priority]}
                   <div className="flex items-center gap-1">
-                      {ticket.tags.slice(0, 2).map((tag) => (
+                      {(ticket.tags || []).slice(0, 2).map((tag) => (
                       <Badge key={tag.id} variant="secondary" style={{
                           backgroundColor: 'hsl(var(--accent))',
                           color: 'hsl(var(--accent-foreground))'

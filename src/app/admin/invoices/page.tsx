@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,19 +16,43 @@ import { useToast } from "@/hooks/use-toast";
 import { getInvoices } from "@/lib/firebase/invoices";
 import { type Invoice } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DollarSign, PlusCircle } from "lucide-react";
+import { DollarSign, PlusCircle, Zap } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { userData } = useAuth();
+  const { userData, organization } = useAuth();
+  const router = useRouter();
+  const isPaidPlan =
+    organization?.subscriptionPlan === "startup" ||
+    organization?.subscriptionPlan === "pro";
+
+  useEffect(() => {
+    if (organization && !isPaidPlan) {
+      toast({
+        title: "Upgrade Required",
+        description: "Viewing invoices requires a paid plan.",
+        variant: "destructive",
+        action: (
+          <Button asChild>
+            <Link href="/admin/billing">Upgrade</Link>
+          </Button>
+        ),
+      });
+      router.push("/admin");
+    }
+  }, [organization, isPaidPlan, router, toast]);
 
   const fetchData = async () => {
-    if (!userData?.organizationId) return;
+    if (!userData?.organizationId || !isPaidPlan) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const fetchedInvoices = await getInvoices({
@@ -54,7 +79,7 @@ export default function InvoicesPage() {
     if (userData?.organizationId) {
       fetchData();
     }
-  }, [userData?.organizationId]);
+  }, [userData?.organizationId, isPaidPlan]);
 
   const getStatusBadgeVariant = (status: Invoice["status"]) => {
     switch (status) {
@@ -77,6 +102,10 @@ export default function InvoicesPage() {
       currency: "USD",
     }).format(amount);
   };
+  
+  if (!isPaidPlan) {
+    return null;
+  }
 
   return (
     <div className="max-w-[100vw] overflow-auto">

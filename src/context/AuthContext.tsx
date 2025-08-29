@@ -17,6 +17,7 @@ interface AuthContextType {
   user: FirebaseUser | null;
   userData: User | null;
   organization: Organization | null;
+  isOrgLoading: boolean;
   projects: Project[];
   activeProjectIds: string[];
   loading: boolean;
@@ -39,6 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [activeProjectIds, setActiveProjectIds] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isOrgLoading, setIsOrgLoading] = useState(true);
   const [ticketReloadKey, setTicketReloadKey] = useState(0);
   const [refetchKey, setRefetchKey] = useState(0);
   const router = useRouter();
@@ -67,6 +69,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         userDataFromDb.organizationId = newOrg.id;
       }
       
+      // Data migration for users without an avatarUrl
+      if (!userDataFromDb.avatarUrl) {
+          console.log(`User ${firebaseUser.uid} is missing an avatar. Creating one now.`);
+          const newAvatarUrl = `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(userDataFromDb.name)}`;
+          await updateUserProfile(firebaseUser.uid, { avatarUrl: newAvatarUrl });
+          userDataFromDb.avatarUrl = newAvatarUrl;
+      }
+
       setUserData(userDataFromDb);
       return userDataFromDb;
     } else {
@@ -81,7 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email: firebaseUser.email!,
         role: 'admin', // New sign-ups are always admins of their own org
         organizationId: newOrg.id,
-        avatarUrl: firebaseUser.photoURL || `https://placehold.co/150x150.png`
+        avatarUrl: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(firebaseUser.displayName || 'New User')}`
       };
 
       await setDoc(doc(db, "users", firebaseUser.uid), newUser);
@@ -101,6 +111,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const currentUserData = await fetchAndSetUserData(firebaseUser);
         
         if (currentUserData?.organizationId) {
+            setIsOrgLoading(true);
             const [orgData, projectData, allUsers] = await Promise.all([
                 getOrganization(currentUserData.organizationId),
                 getProjects(currentUserData.organizationId),
@@ -119,6 +130,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             
             const activeIds = sortedProjects.slice(0, limit).map(p => p.id);
             setActiveProjectIds(activeIds);
+            setIsOrgLoading(false);
 
         }
       } else {
@@ -179,7 +191,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userData, loading, login, signup, logout, users, ticketReloadKey, reloadTickets, forceRefetch, organization, projects, activeProjectIds }}>
+    <AuthContext.Provider value={{ user, userData, loading, login, signup, logout, users, ticketReloadKey, reloadTickets, forceRefetch, organization, isOrgLoading, projects, activeProjectIds }}>
       {children}
     </AuthContext.Provider>
   );

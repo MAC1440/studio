@@ -9,7 +9,10 @@ export type Organization = {
   ownerId: string;
   createdAt: Timestamp;
   subscriptionPlan: OrganizationPlan;
+  planExpiryDate?: Timestamp;
   stripeCustomerId?: string;
+  aiProposalCount?: number;
+  aiProposalCountLastReset?: Timestamp;
 };
 
 export type User = {
@@ -169,6 +172,7 @@ export type Ticket = {
   projectId: string;
   comments: Comment[];
   createdAt: Timestamp;
+  updatedAt?: Timestamp; // Add this for sorting recent activity
   checklist?: ChecklistItem[];
   deadline?: Timestamp;
   loggedHours?: number;

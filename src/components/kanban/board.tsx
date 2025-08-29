@@ -26,7 +26,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getProject } from '@/lib/firebase/projects';
 import Link from 'next/link';
 import { Button } from '../ui/button';
-import { ArrowLeft, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Inbox } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
@@ -52,7 +52,8 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
   
   useEffect(() => {
     if(user) {
-        setAssigneeFilter(user.uid);
+        // Default to showing all users tickets, not just the logged in user
+        setAssigneeFilter('all');
     }
   }, [user]);
 
@@ -245,6 +246,7 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
   }
 
   const backLinkHref = userData?.role === 'client' ? '/client' : '/board';
+  const hasTicketsOnBoard = columns.some(c => c.tickets.length > 0);
 
   return (
     <Dialog open={isTicketDetailOpen} onOpenChange={handleTicketDetailClose}>
@@ -270,7 +272,7 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
                                 <span>All Users</span>
                             </div>
                         </SelectItem>
-                        {users.map(u => (
+                        {users.filter(u => u.role !== 'client').map(u => (
                           <SelectItem key={u.id} value={u.id}>
                             <div className="flex items-center gap-2">
                                 <Avatar className="h-6 w-6">
@@ -285,31 +287,41 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
                     </Select>
                   </div>
             </div>
-            <div className="flex h-full w-full gap-6 p-4 md:p-6 pt-2 overflow-x-auto">
+            <div className="flex flex-col flex-1 h-full w-full gap-6 p-4 md:p-6 pt-2 overflow-x-auto">
             {isLoading ? (
-                Array.from({length: 5}).map((_, i) => (
-                    <div key={i} className="flex flex-col w-72 md:w-80 shrink-0">
-                        <div className="flex items-center justify-between p-2 mb-2">
-                            <Skeleton className="h-6 w-32" />
-                            <Skeleton className="h-6 w-8 rounded-md" />
+                <div className='flex gap-6 h-full'>
+                    {Array.from({length: 5}).map((_, i) => (
+                        <div key={i} className="flex flex-col w-72 md:w-80 shrink-0">
+                            <div className="flex items-center justify-between p-2 mb-2">
+                                <Skeleton className="h-6 w-32" />
+                                <Skeleton className="h-6 w-8 rounded-md" />
+                            </div>
+                            <div className="flex-1 rounded-md bg-muted p-2 space-y-3">
+                                <Skeleton className="h-24 w-full" />
+                                <Skeleton className="h-24 w-full" />
+                                <Skeleton className="h-24 w-full" />
+                            </div>
                         </div>
-                        <div className="flex-1 rounded-md bg-muted p-2 space-y-3">
-                            <Skeleton className="h-24 w-full" />
-                            <Skeleton className="h-24 w-full" />
-                            <Skeleton className="h-24 w-full" />
-                        </div>
-                    </div>
-                ))
+                    ))}
+                </div>
+            ) : hasTicketsOnBoard ? (
+                <div className='flex gap-6'>
+                    <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+                    {columns.map((column) => (
+                        <KanbanColumn
+                        key={column.id}
+                        column={column}
+                        onTicketClick={handleTicketClick}
+                        />
+                    ))}
+                    </SortableContext>
+                </div>
             ) : (
-                <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
-                {columns.map((column) => (
-                    <KanbanColumn
-                    key={column.id}
-                    column={column}
-                    onTicketClick={handleTicketClick}
-                    />
-                ))}
-                </SortableContext>
+                <div className='flex-1 flex flex-col items-center justify-center text-center text-muted-foreground bg-muted/50 rounded-lg'>
+                    <Inbox className='h-16 w-16 mb-4'/>
+                    <h2 className='text-xl font-semibold'>Board is Empty</h2>
+                    <p>No tickets match the current filter.</p>
+                </div>
             )}
             </div>
         </div>

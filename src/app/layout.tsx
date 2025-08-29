@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'BoardR',
+  title: 'BoardRLane',
   description: 'A modern Kanban board application.',
 };
 

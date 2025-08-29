@@ -14,195 +14,25 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-  DialogTrigger
-} from '@/components/ui/dialog';
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '../ui/skeleton';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { createTicket } from '@/lib/firebase/tickets';
-import { type User, type Notification, Project } from '@/lib/types';
+import { type Notification } from '@/lib/types';
 import { subscribeToNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/lib/firebase/notifications';
 import { cn } from '@/lib/utils';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { Separator } from '../ui/separator';
 import { useRouter, usePathname } from 'next/navigation';
-import { SidebarTrigger, useSidebar } from '../ui/sidebar';
+import { SidebarTrigger } from '../ui/sidebar';
 import { ThemeToggle } from './theme-toggle';
 import logo from '../../../public/logos/logo.png'
-
-function CreateTicketDialog({ onTicketCreated }: { onTicketCreated: () => void }) {
-    const { users, projects, activeProjectIds, userData } = useAuth();
-    const activeProjects = useMemo(() => projects.filter(p => activeProjectIds.includes(p.id)), [projects, activeProjectIds]);
-    const teamMembers = useMemo(() => users.filter(u => u.role !== 'client'), [users]);
-
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [deadline, setDeadline] = useState<Date | undefined>();
-    const { toast } = useToast();
-
-    const handleCreateTicket = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        if (!userData?.organizationId) {
-            toast({ title: "Organization not found.", variant: "destructive" });
-            return;
-        }
-
-        setIsSubmitting(true);
-        const formData = new FormData(event.currentTarget);
-        const title = formData.get('title') as string;
-        const description = formData.get('description') as string;
-        const assignedToId = formData.get('assignedTo') as string;
-        const projectId = formData.get('projectId') as string;
-
-        const assignedTo = users.find(u => u.id === assignedToId) || null;
-
-        if (title && description && projectId) {
-            try {
-                await createTicket({
-                    title,
-                    description,
-                    assignedTo,
-                    projectId,
-                    deadline,
-                    organizationId: userData.organizationId,
-                });
-                toast({
-                    title: "Ticket Created",
-                    description: `Ticket "${title}" has been created.`,
-                });
-                setIsDialogOpen(false);
-                setDeadline(undefined);
-                onTicketCreated();
-            } catch (error: any) {
-                console.error("Failed to create ticket:", error);
-                toast({
-                    title: "Error Creating Ticket",
-                    description: `Could not create ticket. Error: ${error.message}`,
-                    variant: "destructive",
-                });
-            } finally {
-                setIsSubmitting(false);
-            }
-        } else {
-             if (!projectId) {
-                toast({
-                    title: "Project Required",
-                    description: `Please select a project for the ticket.`,
-                    variant: "destructive",
-                });
-            }
-            setIsSubmitting(false);
-        }
-    };
-
-    return (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" size="sm" disabled={activeProjects.length === 0}>Create Ticket</Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Create New Ticket</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleCreateTicket} className="space-y-4">
-                     <div className="space-y-2">
-                        <Label htmlFor="projectId">Project</Label>
-                        <Select name="projectId" required disabled={isSubmitting}>
-                            <SelectTrigger id="projectId">
-                                <SelectValue placeholder="Select an active project" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {activeProjects.map(project => (
-                                    <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="title">Title</Label>
-                        <Input id="title" name="title" required disabled={isSubmitting} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea id="description" name="description" required disabled={isSubmitting} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Deadline</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !deadline && "text-muted-foreground"
-                                )}
-                            >
-                                <Calendar className="mr-2 h-4 w-4" />
-                                {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                            <CalendarComponent
-                                mode="single"
-                                selected={deadline}
-                                onSelect={setDeadline}
-                                initialFocus
-                            />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="assignedTo">Assign To</Label>
-                        <Select name="assignedTo" disabled={isSubmitting}>
-                            <SelectTrigger id="assignedTo">
-                                <SelectValue placeholder="Select a user" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="unassigned">Unassigned</SelectItem>
-                                {teamMembers.map(user => (
-                                    <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button type="button" variant="outline" disabled={isSubmitting}>Cancel</Button>
-                        </DialogClose>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? 'Creating...' : 'Create Ticket'}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
-    );
-}
 
 function NotificationBell() {
     const { user, userData } = useAuth();
@@ -333,14 +163,8 @@ function NotificationBell() {
 }
 
 function HeaderContent() {
-  const { user, userData, logout, loading, reloadTickets } = useAuth();
+  const { user, userData, logout, loading } = useAuth();
   const pathname = usePathname();
-
-  const handleTicketCreated = () => {
-    if (reloadTickets) {
-        reloadTickets();
-    }
-  }
 
   const getHomeLink = () => {
     if (!userData) return '/';
@@ -356,12 +180,12 @@ function HeaderContent() {
 
   return (
     <header className="border-b border-border/60">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+      <div className="flex h-16 items-center justify-between w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
             {isAdminSection && <SidebarTrigger />}
             <Link href={getHomeLink()} className="flex items-center gap-2">
-              <Image src={logo.src} alt="BoardR Logo" width={24} height={24} className="h-6 w-6" />
-              <span className="text-lg font-bold tracking-tight">BoardR</span>
+              <Image src={logo.src} alt="BoardRLane Logo" width={24} height={24} className="h-6 w-6" />
+              <span className="text-lg font-bold tracking-tight hidden sm:inline">BoardRLane</span>
             </Link>
         </div>
         <div className="flex items-center gap-2">
@@ -372,7 +196,6 @@ function HeaderContent() {
             </div>
           ) : user ? (
             <>
-              {userData?.role !== 'client' && <CreateTicketDialog onTicketCreated={handleTicketCreated}/>}
               <NotificationBell />
               <ThemeToggle />
               <DropdownMenu>
@@ -443,7 +266,7 @@ export default function AppHeader() {
     if (loading) {
         return (
             <header className="border-b border-border/60">
-              <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+              <div className="px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Skeleton className="h-6 w-36" />
                 </div>

@@ -292,8 +292,7 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
             <SelectItem value="closed">Closed</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-         <div className="w-full md:w-auto md:ml-auto my-3">
+         <div className="w-full md:w-auto md:ml-auto">
             <AlertDialogTrigger asChild>
                 <Button 
                     variant="outline" 
@@ -305,6 +304,7 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
                 </Button>
             </AlertDialogTrigger>
         </div>
+      </div>
 
       <div className="border rounded-lg">
         <div className="flex flex-col">
@@ -314,12 +314,12 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
                     key={ticket.id}
                     className={cn(
                         "flex items-center gap-4 p-4 border-b cursor-pointer hover:bg-muted/50",
-                        ticket.status === 'open' && "bg-blue-500/10 hover:bg-blue-500/20"
+                        ticket.status === 'open' && "bg-primary/10 hover:bg-primary/20"
                     )}
                     onClick={() => setSelectedTicket(ticket)}
                 >
                     <div className="flex items-center gap-2 w-1/6 font-semibold truncate">
-                        {ticket.status === 'open' && <span className="h-2.5 w-2.5 rounded-full bg-blue-500 shrink-0" />}
+                        {ticket.status === 'open' && <span className="h-2.5 w-2.5 rounded-full bg-primary shrink-0" />}
                         <span className={cn("truncate", ticket.status === 'open' && "font-bold")}>{ticket.requester.name}</span>
                     </div>
                     <div className="flex-1 truncate">
@@ -338,6 +338,7 @@ export default function TicketsTable({ initialTickets }: { initialTickets: Suppo
                     <LifeBuoy className="h-12 w-12 text-muted-foreground" />
                     <h2 className="text-lg font-semibold mt-4">Inbox Zero</h2>
                     <p className="text-muted-foreground">No support tickets match your filters.</p>
+
                 </div>
             )}
         </div>

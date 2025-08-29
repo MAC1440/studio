@@ -1,6 +1,6 @@
 
 'use client';
-import { type Ticket, type Comment as CommentType, User, TicketPriority, ChecklistItem } from '@/lib/types';
+import { type Ticket, type Comment as CommentType, User, TicketPriority, ChecklistItem, Tag } from '@/lib/types';
 import {
   DialogContent,
   DialogHeader,
@@ -33,7 +33,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { addCommentToTicket, deleteTicket, updateTicket } from '@/lib/firebase/tickets';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Calendar, Trash2, User as UserIcon, Plus, Clock, Hourglass } from 'lucide-react';
+import { Calendar, Trash2, User as UserIcon, Plus, Clock, Hourglass, X } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -77,6 +77,7 @@ function Comment({ comment }: { comment: CommentType }) {
 export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) {
   const [newComment, setNewComment] = useState('');
   const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [newTag, setNewTag] = useState('');
   const [hoursToAdd, setHoursToAdd] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { userData, user, users } = useAuth();
@@ -223,6 +224,45 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
       toast({ title: 'Error', description: 'Could not log hours.', variant: 'destructive' });
     }
   };
+  
+  const handleAddTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedTag = newTag.trim();
+    if (!trimmedTag) return;
+    
+    const newTagObject: Tag = {
+        id: trimmedTag.toLowerCase().replace(/\s+/g, '-'),
+        label: trimmedTag,
+        color: 'gray'
+    };
+
+    if (ticket.tags.some(t => t.id === newTagObject.id)) {
+        toast({ title: "Tag already exists", variant: "destructive" });
+        return;
+    }
+
+    const updatedTags = [...ticket.tags, newTagObject];
+
+    try {
+        await updateTicket(ticket.id, { tags: updatedTags });
+        setNewTag('');
+        onUpdate();
+    } catch (error) {
+        console.error('Failed to add tag:', error);
+        toast({ title: 'Error', description: 'Could not add tag.', variant: 'destructive' });
+    }
+  }
+
+  const handleRemoveTag = async (tagId: string) => {
+    const updatedTags = ticket.tags.filter(t => t.id !== tagId);
+     try {
+        await updateTicket(ticket.id, { tags: updatedTags });
+        onUpdate();
+    } catch (error) {
+        console.error('Failed to remove tag:', error);
+        toast({ title: 'Error', description: 'Could not remove tag.', variant: 'destructive' });
+    }
+  }
 
 
   const sortedComments = ticket.comments?.sort((a, b) => {
@@ -249,14 +289,6 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
           <div className="flex items-center gap-2 pt-2 flex-wrap">
               <Badge variant="secondary" className="capitalize">{ticket.status.replace('-', ' ')}</Badge>
                <Badge variant={ticket.priority === 'critical' || ticket.priority === 'high' ? 'destructive' : 'secondary'} className="capitalize">{ticket.priority}</Badge>
-              {(ticket.tags || []).map((tag) => (
-                <Badge key={tag.id} variant="outline" style={{
-                  borderColor: 'hsl(var(--accent))',
-                  color: 'hsl(var(--accent))'
-                }}>
-                  {tag.label}
-                </Badge>
-              ))}
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto">
                   <Hourglass className="h-3.5 w-3.5" />
                   <span>Created {format(createdAtDate, "MMM d, yyyy")}</span>
@@ -270,6 +302,26 @@ export default function TicketDetails({ ticket, onUpdate }: TicketDetailsProps) 
                   <div>
                       <h3 className="font-semibold mb-2">Description</h3>
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap">{ticket.description}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold mb-2">Tags</h3>
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                         {(ticket.tags || []).map((tag) => (
+                            <Badge key={tag.id} variant="outline" className="flex items-center gap-1.5 pr-1">
+                              {tag.label}
+                              <button onClick={() => handleRemoveTag(tag.id)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                    </div>
+                    <form onSubmit={handleAddTag} className="flex items-center gap-2">
+                        <Input value={newTag} onChange={(e) => setNewTag(e.target.value)} placeholder="Add new tag" className="h-9"/>
+                        <Button type="submit" size="sm" disabled={!newTag.trim()}>
+                            Add
+                        </Button>
+                    </form>
                   </div>
 
                   <div>

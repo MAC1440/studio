@@ -1,7 +1,8 @@
 
 import { db } from './config';
-import { collection, addDoc, doc, setDoc, serverTimestamp, Timestamp, updateDoc, getDocs, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, serverTimestamp, Timestamp, updateDoc, getDocs, getDoc, increment } from 'firebase/firestore';
 import type { Organization } from '@/lib/types';
+import { startOfDay } from 'date-fns';
 
 type CreateOrganizationArgs = {
   name: string;
@@ -17,6 +18,8 @@ export async function createOrganization(args: CreateOrganizationArgs): Promise<
         ownerId: args.ownerId,
         createdAt: serverTimestamp() as Timestamp,
         subscriptionPlan: 'free',
+        aiProposalCount: 0,
+        aiProposalCountLastReset: serverTimestamp() as Timestamp,
     };
 
     await setDoc(doc(db, "organizations", docRef.id), newOrganizationData);
@@ -40,9 +43,46 @@ export async function getOrganization(organizationId: string): Promise<Organizat
 }
 
 
-export async function updateOrganizationPlan(organizationId: string, newPlan: Organization['subscriptionPlan']): Promise<void> {
+export async function updateOrganizationPlan(organizationId: string, updates: Partial<Organization>): Promise<void> {
+    const orgRef = doc(db, 'organizations', organizationId);
+    
+    // Firestore does not allow 'undefined' as a value, so we must remove it.
+    const finalUpdates: { [key: string]: any } = { ...updates };
+    if (updates.planExpiryDate === undefined) {
+        delete finalUpdates.planExpiryDate;
+    }
+
+    await updateDoc(orgRef, finalUpdates);
+}
+
+export async function incrementAiProposalCount(organizationId: string): Promise<void> {
     const orgRef = doc(db, 'organizations', organizationId);
     await updateDoc(orgRef, {
-        subscriptionPlan: newPlan
+        aiProposalCount: increment(1)
     });
+}
+
+export async function checkAndResetAiProposalCount(organizationId: string): Promise<Organization> {
+    const orgRef = doc(db, 'organizations', organizationId);
+    const orgSnap = await getDoc(orgRef);
+
+    if (!orgSnap.exists()) {
+        throw new Error('Organization not found');
+    }
+
+    const orgData = orgSnap.data() as Organization;
+    const lastResetDate = orgData.aiProposalCountLastReset?.toDate();
+    const today = startOfDay(new Date());
+
+    // If last reset is not set or was before today, reset the count
+    if (!lastResetDate || lastResetDate < today) {
+        await updateDoc(orgRef, {
+            aiProposalCount: 0,
+            aiProposalCountLastReset: Timestamp.now()
+        });
+        const updatedSnap = await getDoc(orgRef);
+        return updatedSnap.data() as Organization;
+    }
+
+    return orgData;
 }

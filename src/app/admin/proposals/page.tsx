@@ -31,11 +31,13 @@ import { useToast } from '@/hooks/use-toast';
 import { getProposals, updateProposal, createProposal, deleteProposal } from '@/lib/firebase/proposals';
 import { type Proposal, type User, type Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, PlusCircle, Edit, Send, MessageSquareWarning, Trash2, Eye } from 'lucide-react';
+import { FileText, PlusCircle, Edit, Send, MessageSquareWarning, Trash2, Eye, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import ProposalEditor from './proposal-editor';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function ProposalsPage() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -47,11 +49,28 @@ export default function ProposalsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { toast } = useToast();
-  const { userData, users } = useAuth();
+  const { userData, users, organization } = useAuth();
+  const router = useRouter();
   const clients = users.filter(u => u.role === 'client');
+  const isPaidPlan = organization?.subscriptionPlan === 'startup' || organization?.subscriptionPlan === 'pro';
+
+  useEffect(() => {
+    if (organization && !isPaidPlan) {
+      toast({
+        title: "Upgrade Required",
+        description: "Viewing proposals requires a paid plan.",
+        variant: "destructive",
+        action: <Button asChild><Link href="/admin/billing">Upgrade</Link></Button>
+      });
+      router.push('/admin');
+    }
+  }, [organization, isPaidPlan, router, toast]);
 
   const fetchData = async () => {
-    if (!userData?.organizationId) return;
+    if (!userData?.organizationId || !isPaidPlan) {
+        setIsLoading(false);
+        return;
+    };
     setIsLoading(true);
     try {
       const fetchedProposals = await getProposals({ organizationId: userData.organizationId });
@@ -72,7 +91,7 @@ export default function ProposalsPage() {
     if (userData?.organizationId) {
       fetchData();
     }
-  }, [userData?.organizationId]);
+  }, [userData?.organizationId, isPaidPlan]);
 
   const handleCreateClick = () => {
     setEditingProposal(null);
@@ -190,6 +209,10 @@ export default function ProposalsPage() {
       default:
         return 'outline';
     }
+  }
+  
+  if (!isPaidPlan) {
+      return null; // or a loading spinner, or a specific "Access Denied" component
   }
 
   return (

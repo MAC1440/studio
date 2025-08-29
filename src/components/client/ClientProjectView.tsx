@@ -12,7 +12,7 @@ import { type Project, type Ticket, type Proposal, type Invoice, type Comment, P
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, FileText, GanttChartSquare, CalendarIcon, Flag, DollarSign, CheckCircle, RefreshCw, ClipboardCheck, MessageSquare, Send } from 'lucide-react';
+import { ArrowLeft, FileText, GanttChartSquare, CalendarIcon, Flag, DollarSign, CheckCircle, RefreshCw, ClipboardCheck, MessageSquare, Send, ListTodo, CircleCheck, Activity, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -36,12 +36,13 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Textarea } from '../ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Progress } from '../ui/progress';
-import { cn } from '@/lib/utils';
+import { cn, downloadPdf } from '@/lib/utils';
 import { Input } from '../ui/input';
 import RichTextEditor from '../ui/rich-text-editor';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 function SubmitReportDialog({
@@ -169,7 +170,7 @@ function ProposalDetailDialog({
                 </div>
             </DialogHeader>
             <ScrollArea className="flex-1 my-4 -mx-6">
-              <div className="px-6 space-y-4">
+              <div className="px-6 space-y-4" id="proposal-content">
                  {hasFeedback && (
                     <div className="space-y-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
                       <h3 className="font-semibold text-amber-700 dark:text-amber-400">Feedback History</h3>
@@ -187,45 +188,52 @@ function ProposalDetailDialog({
                    />
               </div>
             </ScrollArea>
-            {proposal.status === 'sent' && !isFeedbackMode && (
-                <DialogFooter className="mt-auto pt-4 border-t">
-                    <Button variant="outline" onClick={handleFeedbackRequest}>Request Changes</Button>
-                    <Button onClick={() => handleStatusChange('accepted')} disabled={isSubmitting}>
-                        {isSubmitting ? 'Accepting...' : 'Accept Proposal'}
-                    </Button>
-                     <Button variant="destructive" onClick={() => handleStatusChange('declined')} disabled={isSubmitting}>
-                        {isSubmitting ? 'Declining...' : 'Decline'}
-                    </Button>
-                </DialogFooter>
-            )}
-             {proposal.status === 'changes-requested' && (
-                 <div className="mt-auto pt-4 border-t text-center text-sm text-muted-foreground">
-                    The team has been notified of your feedback. This proposal will be updated soon.
-                </div>
-            )}
-            {isFeedbackMode && (
-                <div className="mt-auto pt-4 border-t">
-                    <DialogHeader>
-                        <DialogTitle>Request Changes</DialogTitle>
-                        <DialogDescription>Please provide your feedback below. This will send the proposal back to the team for revisions.</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <Textarea
-                            placeholder="e.g. 'Can we adjust the timeline for phase 2?'"
-                            value={feedback}
-                            onChange={(e) => setFeedback(e.target.value)}
-                            className="min-h-[100px]"
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                     <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsFeedbackMode(false)} disabled={isSubmitting}>Cancel</Button>
-                        <Button onClick={handleSubmitFeedback} disabled={isSubmitting || !feedback.trim()}>
-                            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+             <DialogFooter className="mt-auto pt-4 border-t items-center">
+                 <Button variant="outline" size="sm" onClick={() => downloadPdf('proposal-content', `Proposal - ${proposal.title}`)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                </Button>
+                <div className="flex-1" />
+                {proposal.status === 'sent' && !isFeedbackMode && (
+                    <>
+                        <Button variant="outline" onClick={handleFeedbackRequest}>Request Changes</Button>
+                        <Button onClick={() => handleStatusChange('accepted')} disabled={isSubmitting}>
+                            {isSubmitting ? 'Accepting...' : 'Accept Proposal'}
                         </Button>
-                    </DialogFooter>
-                </div>
-            )}
+                        <Button variant="destructive" onClick={() => handleStatusChange('declined')} disabled={isSubmitting}>
+                            {isSubmitting ? 'Declining...' : 'Decline'}
+                        </Button>
+                    </>
+                )}
+                 {proposal.status === 'changes-requested' && (
+                    <div className="text-center text-sm text-muted-foreground">
+                        The team has been notified of your feedback. This proposal will be updated soon.
+                    </div>
+                )}
+                {isFeedbackMode && (
+                    <div className="w-full">
+                        <DialogHeader>
+                            <DialogTitle>Request Changes</DialogTitle>
+                            <DialogDescription>Please provide your feedback below. This will send the proposal back to the team for revisions.</DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <Textarea
+                                placeholder="e.g. 'Can we adjust the timeline for phase 2?'"
+                                value={feedback}
+                                onChange={(e) => setFeedback(e.target.value)}
+                                className="min-h-[100px]"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" onClick={() => setIsFeedbackMode(false)} disabled={isSubmitting}>Cancel</Button>
+                            <Button onClick={handleSubmitFeedback} disabled={isSubmitting || !feedback.trim()}>
+                                {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </DialogFooter>
         </DialogContent>
     );
 }
@@ -287,7 +295,7 @@ function InvoiceDetailDialog({
                 </div>
             </DialogHeader>
             <ScrollArea className="flex-1 my-4 -mx-6">
-                <div className="px-6 space-y-4">
+                <div className="px-6 space-y-4" id="invoice-content">
                      {hasFeedback && (
                         <div className="space-y-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
                         <h3 className="font-semibold text-amber-700 dark:text-amber-400">Feedback History</h3>
@@ -330,43 +338,50 @@ function InvoiceDetailDialog({
                     </Card>
                 </div>
             </ScrollArea>
-             {(invoice.status === 'sent' || invoice.status === 'overdue') && !isFeedbackMode && (
-                <DialogFooter className="mt-auto pt-4 border-t">
-                    <Button variant="outline" onClick={() => setIsFeedbackMode(true)}>Request Changes</Button>
-                    <Button onClick={() => handleStatusChange('paid')} disabled={isSubmitting}>
-                        <CheckCircle className="mr-2 h-4 w-4"/>
-                        {isSubmitting ? 'Processing...' : 'Mark as Paid'}
-                    </Button>
-                </DialogFooter>
-            )}
-             {invoice.status === 'changes-requested' && (
-                 <div className="mt-auto pt-4 border-t text-center text-sm text-muted-foreground">
-                    The team has been notified of your feedback. This invoice will be updated soon.
-                </div>
-            )}
-            {isFeedbackMode && (
-                <div className="mt-auto pt-4 border-t">
-                    <DialogHeader>
-                        <DialogTitle>Request Changes</DialogTitle>
-                        <DialogDescription>Please provide your feedback below. This will send the invoice back to the team for revisions.</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <Textarea
-                            placeholder="e.g. 'Can we clarify the scope for item X?'"
-                            value={feedback}
-                            onChange={(e) => setFeedback(e.target.value)}
-                            className="min-h-[100px]"
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                     <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsFeedbackMode(false)} disabled={isSubmitting}>Cancel</Button>
-                        <Button onClick={handleSubmitFeedback} disabled={isSubmitting || !feedback.trim()}>
-                            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+             <DialogFooter className="mt-auto pt-4 border-t items-center">
+                <Button variant="outline" size="sm" onClick={() => downloadPdf('invoice-content', `Invoice - ${invoice.title}`)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                </Button>
+                 <div className="flex-1" />
+                {(invoice.status === 'sent' || invoice.status === 'overdue') && !isFeedbackMode && (
+                    <>
+                        <Button variant="outline" onClick={() => setIsFeedbackMode(true)}>Request Changes</Button>
+                        <Button onClick={() => handleStatusChange('paid')} disabled={isSubmitting}>
+                            <CheckCircle className="mr-2 h-4 w-4"/>
+                            {isSubmitting ? 'Processing...' : 'Mark as Paid'}
                         </Button>
-                    </DialogFooter>
-                </div>
-            )}
+                    </>
+                )}
+                 {invoice.status === 'changes-requested' && (
+                    <div className="text-center text-sm text-muted-foreground">
+                        The team has been notified of your feedback. This invoice will be updated soon.
+                    </div>
+                )}
+                {isFeedbackMode && (
+                    <div className="w-full">
+                        <DialogHeader>
+                            <DialogTitle>Request Changes</DialogTitle>
+                            <DialogDescription>Please provide your feedback below. This will send the invoice back to the team for revisions.</DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <Textarea
+                                placeholder="e.g. 'Can we clarify the scope for item X?'"
+                                value={feedback}
+                                onChange={(e) => setFeedback(e.target.value)}
+                                className="min-h-[100px]"
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" onClick={() => setIsFeedbackMode(false)} disabled={isSubmitting}>Cancel</Button>
+                            <Button onClick={handleSubmitFeedback} disabled={isSubmitting || !feedback.trim()}>
+                                {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </DialogFooter>
         </DialogContent>
     )
 
@@ -416,7 +431,6 @@ function ChatView({ chatId }: { chatId: string }) {
 
     return (
         <div className="flex flex-col h-full">
-            <h2 className="text-2xl font-bold mb-4">Project Chat</h2>
             <ScrollArea className="flex-1 -mx-6 px-6" ref={scrollAreaRef}>
                 <div className="space-y-6 pb-4">
                     {messages.map((message) => {
@@ -482,19 +496,18 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
   const [chatId, setChatId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeView, setActiveView] = useState('progress');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const { user, userData } = useAuth();
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
-  const fetchClientData = async (options: { openProposalId?: string, openInvoiceId?: string, openChat?: boolean } = {}) => {
+  const fetchClientData = async () => {
       if (!user || !userData?.organizationId) return;
-      if (!options.openProposalId && !options.openInvoiceId && !options.openChat) {
-        setIsLoading(true);
-      }
+      setIsLoading(true);
       try {
         const [projectData, ticketData, proposalData, invoiceData, reportData, fetchedChatId] = await Promise.all([
           getProject(projectId),
@@ -519,25 +532,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
             .filter(i => i.clientId === user.uid && i.status !== 'draft')
             .sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis());
         setInvoices(filteredInvoices);
-
-        if (options.openProposalId) {
-            const proposalToOpen = filteredProposals.find(p => p.id === options.openProposalId);
-            if (proposalToOpen) {
-                setSelectedProposal(proposalToOpen);
-                setActiveView('proposals');
-            }
-        }
-        if (options.openInvoiceId) {
-            const invoiceToOpen = filteredInvoices.find(i => i.id === options.openInvoiceId);
-            if (invoiceToOpen) {
-                setSelectedInvoice(invoiceToOpen);
-                setActiveView('invoices');
-            }
-        }
-        if (options.openChat) {
-            setActiveView('chat');
-        }
-
+        
       } catch (error) {
         console.error("Failed to fetch project data:", error);
       } finally {
@@ -547,12 +542,39 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
 
   useEffect(() => {
     if (userData?.organizationId && user) {
-      const openProposalId = searchParams.get('open_proposal') || undefined;
-      const openInvoiceId = searchParams.get('open_invoice') || undefined;
-      const openChat = searchParams.get('open_chat') === 'true';
-      fetchClientData({ openProposalId, openInvoiceId, openChat });
+        fetchClientData();
     }
-  }, [projectId, user, userData?.organizationId, searchParams]);
+  }, [projectId, user, userData?.organizationId]);
+
+   useEffect(() => {
+    if (isLoading) return; // Don't run on initial load
+
+    const openProposalId = searchParams.get('open_proposal') || undefined;
+    const openInvoiceId = searchParams.get('open_invoice') || undefined;
+    const openChat = searchParams.get('open_chat') === 'true';
+
+    if (openProposalId) {
+        const proposalToOpen = proposals.find(p => p.id === openProposalId);
+        if (proposalToOpen) {
+            setSelectedProposal(proposalToOpen);
+            setActiveTab('proposals');
+            router.replace(`/client/project/${projectId}`, { scroll: false });
+        }
+    }
+    if (openInvoiceId) {
+        const invoiceToOpen = invoices.find(i => i.id === openInvoiceId);
+        if (invoiceToOpen) {
+            setSelectedInvoice(invoiceToOpen);
+            setActiveTab('invoices');
+            router.replace(`/client/project/${projectId}`, { scroll: false });
+        }
+    }
+    if (openChat) {
+        setActiveTab('chat');
+        router.replace(`/client/project/${projectId}`, { scroll: false });
+    }
+  }, [isLoading, searchParams, proposals, invoices, projectId, router]);
+
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -681,34 +703,19 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
 
   if (isLoading) {
     return (
-      <div className="p-4 md:p-6">
-        <Skeleton className="h-8 w-64 mb-4" />
-        <div className="flex gap-6">
-          <div className="w-64">
-            <Skeleton className="h-10 w-full mb-2" />
-            <Skeleton className="h-10 w-full mb-2" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <div className="flex-1">
-            <Skeleton className="h-96 w-full" />
-          </div>
+      <div className="p-4 md:p-6 space-y-4">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-9 w-28" />
+          <Skeleton className="h-8 w-48" />
         </div>
+        <Skeleton className="h-10 w-[400px]" />
+        <Skeleton className="h-96 w-full" />
       </div>
     );
   }
 
   if (!project) {
     return <div>Project not found.</div>;
-  }
-
-  const getStatusBadgeVariant = (status?: ProjectStatus) => {
-    switch (status) {
-      case 'completed': return 'default';
-      case 'off-track': return 'destructive';
-      case 'at-risk': return 'secondary';
-      case 'on-track': return 'secondary';
-      default: return 'outline';
-    }
   }
   
   const getInvoiceStatusBadgeVariant = (status: Invoice['status']) => {
@@ -730,10 +737,13 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     }
   }
 
-  const inProgressTickets = tickets.filter(t => t.status === 'in-progress' || t.status === 'review' || t.status === 'todo' || t.status === 'backlog');
   const doneTickets = tickets.filter(t => t.status === 'done');
   const totalTickets = tickets.length;
   const completionPercentage = totalTickets > 0 ? (doneTickets.length / totalTickets) * 100 : 0;
+  const recentlyCompletedTickets = doneTickets
+    .sort((a,b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0))
+    .slice(0, 5);
+
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -747,8 +757,8 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
             setIsReportDialogOpen(false);
         }
     }}>
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-4 p-4 md:px-6 border-b">
+    <div className="flex flex-col h-full p-4 md:p-6">
+      <div className="flex items-center gap-4 mb-4">
          <Button variant="outline" size="sm" asChild>
             <Link href={userData?.role === 'admin' ? '/admin/chat' : '/client'}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -761,151 +771,93 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         )}
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        <nav className="w-64 border-r p-4">
-          <ul className="space-y-2">
-            <li>
-              <Button
-                variant={activeView === 'progress' ? 'secondary' : 'ghost'}
-                className="w-full justify-start"
-                onClick={() => setActiveView('progress')}
-              >
-                <GanttChartSquare className="mr-2 h-4 w-4"/>
-                Progress
-              </Button>
-            </li>
-             <li>
-              <Button
-                 variant={activeView === 'chat' ? 'secondary' : 'ghost'}
-                className="w-full justify-start"
-                onClick={() => setActiveView('chat')}
-              >
-                <MessageSquare className="mr-2 h-4 w-4"/>
-                Chat
-              </Button>
-            </li>
-            <li>
-              <Button
-                 variant={activeView === 'reports' ? 'secondary' : 'ghost'}
-                className="w-full justify-start"
-                onClick={() => setActiveView('reports')}
-              >
-                <ClipboardCheck className="mr-2 h-4 w-4"/>
-                Reports
-              </Button>
-            </li>
-            <li>
-              <Button
-                 variant={activeView === 'invoices' ? 'secondary' : 'ghost'}
-                className="w-full justify-start"
-                onClick={() => setActiveView('invoices')}
-              >
-                <DollarSign className="mr-2 h-4 w-4"/>
-                Invoices
-              </Button>
-            </li>
-            <li>
-              <Button
-                variant={activeView === 'proposals' ? 'secondary' : 'ghost'}
-                className="w-full justify-start"
-                onClick={() => setActiveView('proposals')}
-              >
-                 <FileText className="mr-2 h-4 w-4"/>
-                Proposals
-              </Button>
-            </li>
-          </ul>
-        </nav>
-        <main className="flex-1 overflow-auto p-6 flex flex-col">
-          {activeView === 'progress' && (
-            <div>
-              <Card className="mb-6">
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Project Overview</CardTitle>
-                    <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isRefreshing}>
-                        <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-                    </Button>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <h3 className="text-sm font-medium">Progress</h3>
-                             <span className="text-sm font-medium">{Math.round(completionPercentage)}%</span>
+       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+            <TabsList>
+                <TabsTrigger value="dashboard"><GanttChartSquare className="mr-2 h-4 w-4"/> Dashboard</TabsTrigger>
+                <TabsTrigger value="chat"><MessageSquare className="mr-2 h-4 w-4"/> Chat</TabsTrigger>
+                <TabsTrigger value="reports"><ClipboardCheck className="mr-2 h-4 w-4"/> Reports</TabsTrigger>
+                <TabsTrigger value="invoices"><DollarSign className="mr-2 h-4 w-4"/> Invoices</TabsTrigger>
+                <TabsTrigger value="proposals"><FileText className="mr-2 h-4 w-4"/> Proposals</TabsTrigger>
+            </TabsList>
+            <TabsContent value="dashboard" className="flex-1 flex flex-col overflow-auto pt-4">
+                 <Card className="mb-6">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Project Overview</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isRefreshing}>
+                            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                        </Button>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <h3 className="text-sm font-medium">Overall Progress</h3>
+                                <span className="text-sm font-medium">{Math.round(completionPercentage)}%</span>
+                            </div>
+                            <Progress value={completionPercentage} />
                         </div>
-                        <Progress value={completionPercentage} />
-                        <p className="text-xs text-muted-foreground mt-1">{doneTickets.length} of {totalTickets} tasks completed</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                            <Flag className="h-4 w-4 text-muted-foreground"/>
-                            <div>
-                                <p className="text-muted-foreground">Status</p>
-                                <Badge variant={getStatusBadgeVariant(project.status)} className="capitalize">{project.status?.replace('-', ' ') || 'N/A'}</Badge>
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm pt-2">
+                             <div className="flex items-center gap-2">
+                                <ListTodo className="h-5 w-5 text-muted-foreground"/>
+                                <div>
+                                    <p className="font-bold">{totalTickets}</p>
+                                    <p className="text-muted-foreground text-xs">Total Tasks</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <CircleCheck className="h-5 w-5 text-muted-foreground"/>
+                                <div>
+                                    <p className="font-bold">{doneTickets.length}</p>
+                                    <p className="text-muted-foreground text-xs">Completed</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <CalendarIcon className="h-5 w-5 text-muted-foreground"/>
+                                <div>
+                                    <p className="font-bold">{project.deadline ? format(project.deadline.toDate(), 'MMM d, yyyy') : 'Not set'}</p>
+                                    <p className="text-muted-foreground text-xs">Deadline</p>
+                                </div>
                             </div>
                         </div>
-                         <div className="flex items-center gap-2">
-                            <CalendarIcon className="h-4 w-4 text-muted-foreground"/>
-                            <div>
-                                <p className="text-muted-foreground">Deadline</p>
-                                <p className="font-medium">{project.deadline ? format(project.deadline.toDate(), 'MMM d, yyyy') : 'Not set'}</p>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                </Card>
 
-              <h2 className="text-2xl font-bold mb-4">In Progress Tasks</h2>
-              <div className="border rounded-lg mb-8">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Task</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Priority</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {inProgressTickets.length > 0 ? inProgressTickets.map(ticket => (
-                            <TableRow key={ticket.id}>
-                                <TableCell>{ticket.title}</TableCell>
-                                <TableCell><Badge variant="secondary" className="capitalize">{ticket.status.replace('-', ' ')}</Badge></TableCell>
-                                <TableCell><Badge variant={ticket.priority === 'high' || ticket.priority === 'critical' ? 'destructive' : 'secondary'} className="capitalize">{ticket.priority}</Badge></TableCell>
-                            </TableRow>
-                        )) : <TableRow><TableCell colSpan={3} className="text-center h-24">No tasks in progress.</TableCell></TableRow>}
-                    </TableBody>
-                </Table>
-              </div>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Activity className="h-5 w-5"/>
+                            Recent Activity
+                        </CardTitle>
+                        <CardDescription>The last 5 tasks completed for this project.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {recentlyCompletedTickets.length > 0 ? (
+                             <ul className="space-y-4">
+                                {recentlyCompletedTickets.map(ticket => (
+                                    <li key={ticket.id} className="flex items-center gap-4">
+                                        <div className="bg-green-500/20 text-green-700 dark:bg-green-500/10 dark:text-green-400 rounded-full h-8 w-8 flex items-center justify-center">
+                                            <CheckCircle className="h-5 w-5"/>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-medium text-sm">{ticket.title}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Completed {formatDistanceToNow(ticket.updatedAt.toDate(), { addSuffix: true })}
+                                            </p>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-center text-muted-foreground py-8">No completed tasks yet.</p>
+                        )}
+                       
+                    </CardContent>
+                </Card>
 
-              <h2 className="text-2xl font-bold mb-4">Completed Tasks</h2>
-               <div className="border rounded-lg">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Task</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Priority</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {doneTickets.length > 0 ? doneTickets.map(ticket => (
-                            <TableRow key={ticket.id}>
-                                <TableCell>{ticket.title}</TableCell>
-                                <TableCell><Badge variant="secondary" className="capitalize">{ticket.status.replace('-', ' ')}</Badge></TableCell>
-                                <TableCell><Badge variant="secondary" className="capitalize">{ticket.priority}</Badge></TableCell>
-                            </TableRow>
-                        )) : <TableRow><TableCell colSpan={3} className="text-center h-24">No tasks completed yet.</TableCell></TableRow>}
-                    </TableBody>
-                </Table>
-              </div>
-            </div>
-          )}
-           {activeView === 'chat' && chatId && (
-                <ChatView chatId={chatId} />
-            )}
-           {activeView === 'reports' && (
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Your Submitted Reports</h2>
+            </TabsContent>
+            <TabsContent value="chat" className="flex-1 flex flex-col pt-4 min-h-0">
+                {chatId && <ChatView chatId={chatId} />}
+            </TabsContent>
+            <TabsContent value="reports" className="pt-4">
                 <div className="border rounded-lg">
                    <Table>
                     <TableHeader>
@@ -926,11 +878,8 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                     </TableBody>
                 </Table>
                 </div>
-              </div>
-           )}
-           {activeView === 'invoices' && (
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Invoices</h2>
+            </TabsContent>
+            <TabsContent value="invoices" className="pt-4">
                 <div className="border rounded-lg">
                    <Table>
                     <TableHeader>
@@ -959,12 +908,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                     </TableBody>
                 </Table>
                 </div>
-              </div>
-           )}
-           {activeView === 'proposals' && (
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Proposals</h2>
-                <div className="border rounded-lg">
+            </TabsContent>
+            <TabsContent value="proposals" className="pt-4">
+                 <div className="border rounded-lg">
                    <Table>
                     <TableHeader>
                         <TableRow>
@@ -990,10 +936,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                     </TableBody>
                 </Table>
                 </div>
-              </div>
-           )}
-        </main>
-      </div>
+            </TabsContent>
+        </Tabs>
+      
 
         {project && isReportDialogOpen && userData?.role === 'client' && (
           <SubmitReportDialog
@@ -1018,5 +963,3 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
     </Dialog>
   );
 }
-
-    

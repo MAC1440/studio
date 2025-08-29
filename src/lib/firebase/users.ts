@@ -52,6 +52,7 @@ export async function createUser(args: CreateUserArgs): Promise<User> {
             email: args.email,
             role: args.role,
             organizationId: args.organizationId || '', 
+            avatarUrl: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(args.name)}`,
         };
         
         // Pre-create the user document for all invited users so they exist in the system before first login.
@@ -87,8 +88,10 @@ export async function getUsers(organizationId?: string): Promise<User[]> {
 }
 
 export async function forgotPassword(email: string): Promise<void> {
+    // Use the primary auth instance for password resets
+    const primaryAuth = getAuth();
     try {
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(primaryAuth, email);
     } catch (error: any) {
         console.error("Password reset error:", error);
         throw new Error("Could not send password reset email. Please ensure the email address is correct.");
