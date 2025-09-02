@@ -72,16 +72,24 @@ export async function updateProject(projectId: string, updates: Partial<Omit<Pro
 export async function deleteProject(projectId: string): Promise<void> {
   const batch = writeBatch(db);
 
+  // 1. Delete the project document itself
   const projectRef = doc(db, 'projects', projectId);
   batch.delete(projectRef);
 
-  const ticketsCol = collection(db, 'tickets');
-  const q = query(ticketsCol, where('projectId', '==', projectId));
-  const ticketsSnapshot = await getDocs(q);
-  
+  // 2. Find and delete all tickets associated with the project
+  const ticketsQuery = query(collection(db, 'tickets'), where('projectId', '==', projectId));
+  const ticketsSnapshot = await getDocs(ticketsQuery);
   ticketsSnapshot.forEach((ticketDoc) => {
     batch.delete(ticketDoc.ref);
   });
   
+  // 3. Find and delete all documents associated with the project
+  const documentsQuery = query(collection(db, 'documents'), where('projectId', '==', projectId));
+  const documentsSnapshot = await getDocs(documentsQuery);
+  documentsSnapshot.forEach((docDoc) => {
+      batch.delete(docDoc.ref);
+  });
+
+  // Commit the batch
   await batch.commit();
 }
