@@ -31,7 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Document as DocumentIcon, PlusCircle, Edit, Trash2, Eye } from 'lucide-react';
+import { FileText as DocumentIcon, PlusCircle, Edit, Trash2, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
 import type { Document } from '@/lib/types';
