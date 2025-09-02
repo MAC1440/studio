@@ -1,7 +1,7 @@
 
 import { auth, db } from './config';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, getAuth } from 'firebase/auth';
-import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where } from 'firebase/firestore';
+import { setDoc, doc, collection, getDocs, query, deleteDoc, updateDoc, where, writeBatch, arrayRemove } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { initializeApp, getApps, deleteApp } from 'firebase/app';
 
@@ -99,9 +99,46 @@ export async function forgotPassword(email: string): Promise<void> {
 }
 
 export async function deleteUser(userId: string): Promise<void> {
+    const batch = writeBatch(db);
+
+    // 1. Delete the user document
     const userRef = doc(db, 'users', userId);
-    await deleteDoc(userRef);
+    batch.delete(userRef);
+
+    // 2. Delete all invoices for this client
+    const invoicesQuery = query(collection(db, 'invoices'), where('clientId', '==', userId));
+    const invoicesSnapshot = await getDocs(invoicesQuery);
+    invoicesSnapshot.forEach(doc => batch.delete(doc.ref));
+    
+    // 3. Delete all proposals for this client
+    const proposalsQuery = query(collection(db, 'proposals'), where('clientId', '==', userId));
+    const proposalsSnapshot = await getDocs(proposalsQuery);
+    proposalsSnapshot.forEach(doc => batch.delete(doc.ref));
+
+    // 4. Delete all notifications for this user
+    const notificationsQuery = query(collection(db, 'notifications'), where('userId', '==', userId));
+    const notificationsSnapshot = await getDocs(notificationsQuery);
+    notificationsSnapshot.forEach(doc => batch.delete(doc.ref));
+    
+    // 5. Remove user from all projects they are assigned to
+    const projectsQuery = query(collection(db, 'projects'), where('clientIds', 'array-contains', userId));
+    const projectsSnapshot = await getDocs(projectsQuery);
+    projectsSnapshot.forEach(projectDoc => {
+        batch.update(projectDoc.ref, {
+            clientIds: arrayRemove(userId)
+        });
+    });
+
+    // Note: Chat history is not deleted to preserve context for the admin team.
+    // The user will lose access once their account is deleted.
+
+    await batch.commit();
+
+    // The user's actual auth account is not deleted from Firebase Auth here.
+    // This only removes them from the application database.
+    // This is often desired behavior to prevent a user from immediately re-signing up.
 }
+
 
 export async function updateUserProfile(userId: string, updates: Partial<User>): Promise<void> {
     const userRef = doc(db, 'users', userId);
