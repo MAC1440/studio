@@ -48,6 +48,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import DocumentManager from '@/components/kanban/document-manager';
+import { Timestamp } from 'firebase/firestore';
 
 const PROJECTS_PER_PAGE = 5;
 
@@ -192,11 +193,10 @@ export default function ProjectsPage() {
     
     setIsSubmitting(true);
     
-    const projectData = {
+    const baseData = {
       name,
       description,
       clientIds: selectedClientIds,
-      deadline,
       status: projectToEdit ? status : 'on-track', // Default to on-track for new projects
       organizationId: userData.organizationId,
     };
@@ -204,13 +204,21 @@ export default function ProjectsPage() {
     if (name) {
       try {
         if (projectToEdit) {
-          await updateProject(projectToEdit.id, projectData);
+          const updateData = {
+            ...baseData,
+            deadline: deadline ? Timestamp.fromDate(deadline) : undefined,
+          } as Partial<Omit<Project, 'id'>>;
+          await updateProject(projectToEdit.id, updateData);
           toast({
             title: "Project Updated",
             description: `Project "${name}" has been updated.`,
           });
         } else {
-          await createProject(projectData);
+          const createData = {
+            ...baseData,
+            deadline,
+          };
+          await createProject(createData);
           toast({
             title: "Project Created",
             description: `Project "${name}" has been created.`,

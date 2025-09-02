@@ -87,7 +87,7 @@ export default function DocumentEditor({
           <RichTextEditor
             content={content}
             onChange={setContent}
-            editable={!isSubmitting && isAdmin}
+            editable
           />
         </div>
       </div>
