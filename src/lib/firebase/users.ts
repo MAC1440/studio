@@ -89,7 +89,7 @@ export async function getUsers(organizationId?: string): Promise<User[]> {
 
 export async function forgotPassword(email: string): Promise<void> {
     // Use the primary auth instance for password resets
-    const primaryAuth = getAuth();
+    const primaryAuth = auth;
     try {
         await sendPasswordResetEmail(primaryAuth, email);
     } catch (error: any) {
@@ -129,8 +129,24 @@ export async function deleteUser(userId: string): Promise<void> {
         });
     });
 
-    // Note: Chat history is not deleted to preserve context for the admin team.
-    // The user will lose access once their account is deleted.
+    // 6. Delete chat messages from this user and remove them from chat documents
+    const chatsQuery = query(collection(db, 'chats'), where('userIds', 'array-contains', userId));
+    const chatsSnapshot = await getDocs(chatsQuery);
+
+    for (const chatDoc of chatsSnapshot.docs) {
+        // Remove user from the chat's userIds array
+        batch.update(chatDoc.ref, {
+            userIds: arrayRemove(userId)
+        });
+
+        // Delete messages sent by the user in this chat
+        const messagesColRef = collection(db, 'chats', chatDoc.id, 'messages');
+        const userMessagesQuery = query(messagesColRef, where('sender.id', '==', userId));
+        const messagesSnapshot = await getDocs(userMessagesQuery);
+        messagesSnapshot.forEach(messageDoc => {
+            batch.delete(messageDoc.ref);
+        });
+    }
 
     await batch.commit();
 
