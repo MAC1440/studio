@@ -18,6 +18,7 @@ import {
 import { type Column, type ColumnId, type Ticket } from '@/lib/types';
 import KanbanColumn from './column';
 import TicketDetails from './ticket-details';
+import DocumentManager from './document-manager';
 import { Dialog } from '@/components/ui/dialog';
 import { getTickets, updateTicketStatus } from '@/lib/firebase/tickets';
 import { useToast } from '@/hooks/use-toast';
@@ -26,7 +27,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getProject } from '@/lib/firebase/projects';
 import Link from 'next/link';
 import { Button } from '../ui/button';
-import { ArrowLeft, User as UserIcon, Inbox } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Inbox, BookCopy } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
@@ -46,6 +47,7 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketDetailOpen, setIsTicketDetailOpen] = useState(false);
+  const [isDocManagerOpen, setIsDocManagerOpen] = useState(false);
   const { toast } = useToast();
   const { user, userData, users, ticketReloadKey } = useAuth();
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
@@ -261,32 +263,38 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
                     </Link>
                 </Button>
                 <h1 className="text-xl font-semibold text-foreground truncate">{projectName}</h1>
-                 <div className="ml-auto w-full max-w-xs">
-                    <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Filter by assignee..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">
-                            <div className="flex items-center gap-2">
-                                <UserIcon className="h-5 w-5 p-0.5 text-muted-foreground" />
-                                <span>All Users</span>
-                            </div>
-                        </SelectItem>
-                        {users.filter(u => u.role !== 'client').map(u => (
-                          <SelectItem key={u.id} value={u.id}>
-                            <div className="flex items-center gap-2">
-                                <Avatar className="h-6 w-6">
-                                    <AvatarImage src={u.avatarUrl} alt={u.name} />
-                                    <AvatarFallback>{u.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <span>{u.name}</span>
-                            </div>
+                 <div className="ml-auto flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setIsDocManagerOpen(true)}>
+                        <BookCopy className="mr-2 h-4 w-4" />
+                        Documents
+                    </Button>
+                    <div className="w-full max-w-xs">
+                      <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Filter by assignee..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">
+                              <div className="flex items-center gap-2">
+                                  <UserIcon className="h-5 w-5 p-0.5 text-muted-foreground" />
+                                  <span>All Users</span>
+                              </div>
                           </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                          {users.filter(u => u.role !== 'client').map(u => (
+                            <SelectItem key={u.id} value={u.id}>
+                              <div className="flex items-center gap-2">
+                                  <Avatar className="h-6 w-6">
+                                      <AvatarImage src={u.avatarUrl} alt={u.name} />
+                                      <AvatarFallback>{u.name.charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                  <span>{u.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                 </div>
             </div>
             <div className="flex flex-col flex-1 h-full w-full gap-6 p-4 md:p-6 pt-2 overflow-x-auto">
             {isLoading ? (
@@ -329,6 +337,13 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
       </DndContext>
       {selectedTicket && <TicketDetails ticket={selectedTicket} onUpdate={onTicketUpdate} />}
     </Dialog>
+    
+    <DocumentManager 
+        projectId={projectId}
+        projectName={projectName}
+        isOpen={isDocManagerOpen}
+        onClose={() => setIsDocManagerOpen(false)}
+    />
     </>
   );
 }
