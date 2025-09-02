@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Document } from '@/lib/types';
 import RichTextEditor from '@/components/ui/rich-text-editor';
+import { useAuth } from '@/context/AuthContext';
 
 type DocumentEditorProps = {
   document: Document | null;
@@ -32,6 +33,9 @@ export default function DocumentEditor({
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const { toast } = useToast();
+  const { userData } = useAuth();
+  
+  const isAdmin = userData?.role === 'admin';
 
   useEffect(() => {
     if (document) {
@@ -44,6 +48,7 @@ export default function DocumentEditor({
   }, [document]);
 
   const handleSubmit = () => {
+    if (!isAdmin) return;
     if (!title.trim() || !content.trim()) {
       toast({
         title: 'Missing Information',
@@ -55,14 +60,13 @@ export default function DocumentEditor({
     onSave({ title, content });
   };
 
-  const isViewOnly = !!document; // For now, editor is always editable if open
 
   return (
     <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
       <DialogHeader>
-        <DialogTitle>{document ? 'Edit Document' : 'Create New Document'}</DialogTitle>
+        <DialogTitle>{document ? (isAdmin ? 'Edit Document' : document.title) : 'Create New Document'}</DialogTitle>
         <DialogDescription>
-          {document ? `Editing "${document.title}"` : 'Create a new document for your project.'}
+          {document ? `Viewing "${document.title}"` : 'Create a new document for your project.'}
         </DialogDescription>
       </DialogHeader>
 
@@ -74,7 +78,7 @@ export default function DocumentEditor({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g., Sprint Plan Q3"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isAdmin}
           />
         </div>
 
@@ -83,18 +87,20 @@ export default function DocumentEditor({
           <RichTextEditor
             content={content}
             onChange={setContent}
-            editable={!isSubmitting}
+            editable={!isSubmitting && isAdmin}
           />
         </div>
       </div>
 
       <DialogFooter>
         <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-          Cancel
+          {isAdmin ? 'Cancel' : 'Close'}
         </Button>
-        <Button onClick={handleSubmit} disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : 'Save Document'}
-        </Button>
+        {isAdmin && (
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save Document'}
+            </Button>
+        )}
       </DialogFooter>
     </DialogContent>
   );

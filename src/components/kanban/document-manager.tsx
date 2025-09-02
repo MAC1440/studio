@@ -55,6 +55,8 @@ export default function DocumentManager({ projectId, projectName, isOpen, onClos
 
   const { userData } = useAuth();
   const { toast } = useToast();
+  
+  const isAdmin = userData?.role === 'admin';
 
   const fetchData = async () => {
     if (!userData?.organizationId) return;
@@ -147,12 +149,14 @@ export default function DocumentManager({ projectId, projectName, isOpen, onClos
                 </DialogDescription>
             </DialogHeader>
 
-            <div className="flex justify-end">
-                <Button size="sm" onClick={handleCreateClick}>
-                    <PlusCircle className="mr-2 h-4 w-4"/>
-                    Create Document
-                </Button>
-            </div>
+            {isAdmin && (
+                <div className="flex justify-end">
+                    <Button size="sm" onClick={handleCreateClick}>
+                        <PlusCircle className="mr-2 h-4 w-4"/>
+                        Create Document
+                    </Button>
+                </div>
+            )}
             
             <div className="flex-1 border rounded-lg overflow-auto">
                  <Table>
@@ -184,15 +188,17 @@ export default function DocumentManager({ projectId, projectName, isOpen, onClos
                             <TableCell className="text-right">
                             <div className="flex justify-end items-center gap-2">
                                 <Button variant="ghost" size="sm" onClick={() => handleEditClick(doc)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View / Edit
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    {isAdmin ? 'View / Edit' : 'View'}
                                 </Button>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="sm" onClick={() => setDocToDelete(doc)}>
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Delete
-                                    </Button>
-                                </AlertDialogTrigger>
+                                {isAdmin && (
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" size="sm" onClick={() => setDocToDelete(doc)}>
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                )}
                             </div>
                             </TableCell>
                         </TableRow>
@@ -203,7 +209,7 @@ export default function DocumentManager({ projectId, projectName, isOpen, onClos
                             <div className="flex flex-col items-center gap-2 text-muted-foreground">
                             <DocumentIcon className="h-12 w-12" />
                             <h2 className="text-lg font-semibold">No Documents Yet</h2>
-                            <p>Click "Create Document" to get started.</p>
+                            {isAdmin && <p>Click "Create Document" to get started.</p>}
                             </div>
                         </TableCell>
                         </TableRow>
@@ -229,7 +235,7 @@ export default function DocumentManager({ projectId, projectName, isOpen, onClos
                 </AlertDialogContent>
             )}
            </AlertDialog>
-            <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
+            <Dialog open={isEditorOpen} onOpenChange={(isOpen) => { if(!isOpen) { setIsEditorOpen(false); setEditingDocument(null); }}}>
                 <DocumentEditor
                     document={editingDocument}
                     onSave={handleSaveDocument}
