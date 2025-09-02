@@ -26,9 +26,10 @@ import { useAuth } from '@/context/AuthContext';
 import { getProject } from '@/lib/firebase/projects';
 import Link from 'next/link';
 import { Button } from '../ui/button';
-import { ArrowLeft, User as UserIcon, Inbox } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Inbox, BookCopy } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import DocumentManager from './document-manager';
 
 
 const initialColumns: Column[] = [
@@ -46,6 +47,7 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isTicketDetailOpen, setIsTicketDetailOpen] = useState(false);
+  const [isDocumentManagerOpen, setIsDocumentManagerOpen] = useState(false);
   const { toast } = useToast();
   const { user, userData, users, ticketReloadKey } = useAuth();
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
@@ -249,6 +251,7 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
   const hasTicketsOnBoard = columns.some(c => c.tickets.length > 0);
 
   return (
+    <>
     <Dialog open={isTicketDetailOpen} onOpenChange={handleTicketDetailClose}>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="flex flex-col h-full w-full">
@@ -260,6 +263,15 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
                     </Link>
                 </Button>
                 <h1 className="text-xl font-semibold text-foreground truncate">{projectName}</h1>
+                 <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-4"
+                    onClick={() => setIsDocumentManagerOpen(true)}
+                 >
+                    <BookCopy className="mr-2 h-4 w-4"/>
+                    Documents
+                 </Button>
                  <div className="ml-auto w-full max-w-xs">
                     <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
                       <SelectTrigger>
@@ -328,5 +340,12 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
       </DndContext>
       {selectedTicket && <TicketDetails ticket={selectedTicket} onUpdate={onTicketUpdate} />}
     </Dialog>
+    <DocumentManager 
+        projectId={projectId}
+        projectName={projectName}
+        isOpen={isDocumentManagerOpen}
+        onClose={() => setIsDocumentManagerOpen(false)}
+    />
+    </>
   );
 }
