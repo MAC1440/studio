@@ -40,6 +40,16 @@ export type Project = {
   organizationId: string;
 };
 
+export type Document = {
+  id: string;
+  title: string;
+  content: string; // Rich text content
+  projectId: string;
+  organizationId: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+};
+
 export type Proposal = {
   id:string;
   title: string;

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -38,7 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createProject, getProjects, updateProject, deleteProject } from '@/lib/firebase/projects';
 import { getUsers } from '@/lib/firebase/users';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle, Calendar as CalendarIcon, Search, Zap } from 'lucide-react';
+import { FolderKanban, Trash2, Edit, Check, ChevronsUpDown, PlusCircle, Calendar as CalendarIcon, Search, Zap, BookCopy } from 'lucide-react';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -48,6 +47,8 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
+import DocumentManager from '@/components/kanban/document-manager';
+import { Timestamp } from 'firebase/firestore';
 
 const PROJECTS_PER_PAGE = 5;
 
@@ -115,6 +116,10 @@ export default function ProjectsPage() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
   
+  // Document manager state
+  const [isDocManagerOpen, setIsDocManagerOpen] = useState(false);
+  const [selectedProjectForDocs, setSelectedProjectForDocs] = useState<Project | null>(null);
+
   // Form state
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
   const [deadline, setDeadline] = useState<Date | undefined>();
@@ -188,11 +193,10 @@ export default function ProjectsPage() {
     
     setIsSubmitting(true);
     
-    const projectData = {
+    const baseData = {
       name,
       description,
       clientIds: selectedClientIds,
-      deadline,
       status: projectToEdit ? status : 'on-track', // Default to on-track for new projects
       organizationId: userData.organizationId,
     };
@@ -200,13 +204,21 @@ export default function ProjectsPage() {
     if (name) {
       try {
         if (projectToEdit) {
-          await updateProject(projectToEdit.id, projectData);
+          const updateData = {
+            ...baseData,
+            deadline: deadline ? Timestamp.fromDate(deadline) : undefined,
+          } as Partial<Omit<Project, 'id'>>;
+          await updateProject(projectToEdit.id, updateData);
           toast({
             title: "Project Updated",
             description: `Project "${name}" has been updated.`,
           });
         } else {
-          await createProject(projectData);
+          const createData = {
+            ...baseData,
+            deadline,
+          };
+          await createProject(createData);
           toast({
             title: "Project Created",
             description: `Project "${name}" has been created.`,
@@ -290,6 +302,11 @@ export default function ProjectsPage() {
     resetFormState();
     setIsDialogOpen(true);
   };
+  
+  const openDocManager = (project: Project) => {
+    setSelectedProjectForDocs(project);
+    setIsDocManagerOpen(true);
+  }
 
   const closeDialog = () => {
     setIsDialogOpen(false);
@@ -507,6 +524,10 @@ export default function ProjectsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => openDocManager(project)}>
+                           <BookCopy className="mr-2 h-4 w-4" />
+                            Documents
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => openEditDialog(project)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
@@ -581,6 +602,14 @@ export default function ProjectsPage() {
         </AlertDialogContent>
 
       </div>
+      {selectedProjectForDocs && (
+        <DocumentManager
+            projectId={selectedProjectForDocs.id}
+            projectName={selectedProjectForDocs.name}
+            isOpen={isDocManagerOpen}
+            onClose={() => setIsDocManagerOpen(false)}
+        />
+      )}
     </AlertDialog>
   );
 }

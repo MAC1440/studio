@@ -685,7 +685,7 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
         projectName: project.name,
         clientId: user.uid,
         clientName: userData.name,
-        organizationId: userData.organizationId,
+        organizationId: userData.organizationId as string,
       });
       toast({ title: 'Report Submitted', description: 'Thank you for your feedback!' });
       setIsReportDialogOpen(false);
@@ -840,7 +840,9 @@ export default function ClientProjectView({ projectId }: { projectId: string }) 
                                         <div className="flex-1">
                                             <p className="font-medium text-sm">{ticket.title}</p>
                                             <p className="text-xs text-muted-foreground">
-                                                Completed {formatDistanceToNow(ticket.updatedAt.toDate(), { addSuffix: true })}
+                                                {ticket.updatedAt
+                                                    ? `Completed ${formatDistanceToNow(ticket.updatedAt.toDate(), { addSuffix: true })}`
+                                                    : 'Completed date unknown'}
                                             </p>
                                         </div>
                                     </li>
